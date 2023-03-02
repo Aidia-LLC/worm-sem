@@ -3,12 +3,10 @@ using wormsem.invoker;
 using wormsem.client;
 using wormsem.responses;
 
-ClientResponder responder = new ClientResponder();
-
-SEMInvoker invoker = new SEMInvoker(responder);
+SEMInvoker invoker = new SEMInvoker();
 invoker.Start();
 
 ClientListener listener = new ClientListener(invoker);
 listener.Start();
 
-responder.Send(new ReadyResponse());
+ClientResponder.Send(new ReadyResponse());

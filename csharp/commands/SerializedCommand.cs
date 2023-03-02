@@ -6,7 +6,7 @@ namespace wormsem.commands
 	{
 		public int? id { get; set; }
 		public String? type { get; set; }
-		public String[]? strings { get; set; }
-		public double[]? doubles { get; set; }
+		public String? message { get; set; }
+		public double[]? data { get; set; }
 	}
 }

@@ -14,7 +14,7 @@ namespace wormsem.commands
 
         public override Response Execute()
         {
-            return new SuccessResponse(id, "Successfully executed PrintCommand");
+            return new SuccessResponse(id, "Successfully executed PrintCommand: " + text);
         }
     }
 }

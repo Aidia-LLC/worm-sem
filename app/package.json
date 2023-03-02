@@ -8,6 +8,7 @@
     "build": "tsc && vite build && electron-builder"
   },
   "devDependencies": {
+    "@types/node": "^18.14.4",
     "autoprefixer": "^10.4.13",
     "electron": "^22.0.0",
     "electron-builder": "^23.6.0",

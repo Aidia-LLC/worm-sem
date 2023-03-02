@@ -4,19 +4,20 @@ process.env.PUBLIC = app.isPackaged
   : join(process.env.DIST, "../public");
 
 import { join } from "path";
-import { app, BrowserWindow, shell, utilityProcess } from "electron";
+import { app, BrowserWindow, shell, ipcMain } from "electron";
+import { spawn, exec } from "child_process";
+import path from "path";
+import { Message } from "../src/types/semClient";
 
 let win: BrowserWindow | null;
-// Here, you can also use other preload
-const preload = join(__dirname, "./preload.js");
 const url = process.env.VITE_DEV_SERVER_URL;
 
-function createWindow() {
+const createWindow = () => {
   win = new BrowserWindow({
-    icon: join(process.env.PUBLIC, "logo.svg"),
+    icon: path.join(process.env.PUBLIC, "logo.svg"),
     title: "Test",
     webPreferences: {
-      preload,
+      preload: path.join(__dirname, "./preload.js"),
     },
   });
 
@@ -32,23 +33,57 @@ function createWindow() {
   } else {
     win.loadFile(join(process.env.DIST, "index.html"));
   }
-}
+};
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
+  // if (process.platform !== "darwin")
+  app.quit();
 });
 
 app.whenReady().then(() => {
-  createWindow();
+  // TODO in production, we should package the prebuilt binary with the app
+  console.log("Building C# program...");
+  const cwd = path.join(__dirname, "..", "..", "csharp");
+  exec("dotnet publish worm-sem.csproj --configuration Release", { cwd }).on(
+    "exit",
+    () => {
+      console.log("Done building C# program.");
+      const childProcess = spawn("./bin/Release/net7.0/csharp", { cwd });
 
-  app.on("activate", function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
-});
+      childProcess.on("spawn", () => {
+        childProcess.stdout.on("data", (data: Buffer) => {
+          const messages: Message[] = data
+            .toString("utf8")
+            .split("\n")
+            .map((message) => {
+              const trimmed = message.trim();
+              if (trimmed.length > 0) return JSON.parse(trimmed);
+              return undefined;
+            })
+            .filter(Boolean);
+          messages.forEach((message) =>
+            win?.webContents.send("SEMClient:Received", message)
+          );
+        });
 
-const fork = utilityProcess.fork(join(__dirname, "./execCsharp.js"));
-fork.on("message", (message) => {
-  console.log(`message from child: ${message}`);
+        ipcMain.handle("SEMClient:Send", (_, message: Message) =>
+          childProcess.stdin.write(JSON.stringify(message) + "\n")
+        );
+
+        ipcMain.on("counter-value", (_event, value) => {
+          console.log(`got counter value: ${value}`);
+        });
+
+        createWindow();
+      });
+
+      app.on("before-quit", () => {
+        childProcess.kill();
+      });
+
+      app.on("activate", function () {
+        if (BrowserWindow.getAllWindows().length === 0) createWindow();
+      });
+    }
+  );
 });

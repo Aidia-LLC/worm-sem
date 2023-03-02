@@ -16,9 +16,9 @@ namespace wormsem.commands
 			switch (serializedCommand?.type)
 			{
 				case "print":
-					if (serializedCommand.strings == null || serializedCommand.strings.Length == 0)
+					if (serializedCommand.message == null)
 						throw new Exception("Expecting string value");
-					return new PrintCommand(id, serializedCommand.strings[0]);
+					return new PrintCommand(id, serializedCommand.message);
 				default:
 					throw new Exception("Invalid command received: '" + serializedCommand?.type + "'");
 			}

@@ -6,7 +6,23 @@
  * https://www.electronjs.org/docs/latest/tutorial/tutorial-preload
  */
 
-// import { contextBridge } from "electron";
-// import { createClient } from "./semClient";
+import { contextBridge, ipcRenderer } from "electron";
+import { Command, Message, SEMClient } from "../src/types/semClient";
 
-// contextBridge.exposeInMainWorld("semClient", createClient());
+const subscribers: ((message: Message) => void)[] = [];
+
+const client: SEMClient = {
+  send: (command: Command) => {
+    ipcRenderer.invoke("SEMClient:Send", command);
+  },
+  subscribe: (callback) => {
+    subscribers.push(callback);
+  },
+};
+
+ipcRenderer.on("SEMClient:Received", (_, data) => {
+  const message = data as Message;
+  subscribers.forEach((callback) => callback(message));
+});
+
+contextBridge.exposeInMainWorld("semClient", client);

@@ -9,12 +9,6 @@ namespace wormsem.invoker
     {
         private Queue<Command> commands = new Queue<Command>();
         private Thread? thread = null;
-        public ClientResponder responder;
-
-        public SEMInvoker(ClientResponder responder)
-        {
-            this.responder = responder;
-        }
 
         public void QueueCommand(Command command)
         {
@@ -37,7 +31,7 @@ namespace wormsem.invoker
                         {
                             Command nextCommand = commands.Dequeue();
                             Response response = nextCommand.Execute();
-                            responder.Send(response);
+                            ClientResponder.Send(response);
                         }
                     }
                     Thread.Sleep(100);

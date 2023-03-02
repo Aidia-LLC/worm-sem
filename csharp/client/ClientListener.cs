@@ -1,5 +1,6 @@
 using wormsem.invoker;
 using wormsem.commands;
+using wormsem.responses;
 
 namespace wormsem.client
 {
@@ -19,7 +20,8 @@ namespace wormsem.client
         {
             if (thread != null) return;
 
-            thread = new Thread(() => {
+            thread = new Thread(() =>
+            {
                 while (true)
                 {
                     try
@@ -28,8 +30,10 @@ namespace wormsem.client
                         if (line == null || line == "") continue;
                         Command command = factory.Create(line);
                         invoker.QueueCommand(command);
-                    } catch (Exception e) {
-                        Console.WriteLine("Caught exception in ClientListener: " + e.ToString());
+                    }
+                    catch (Exception e)
+                    {
+                        ClientResponder.Send(new ErrorResponse(-1, ErrorCode.JSON_DECODE, "Unable to decode JSON. " + e.ToString()));
                     }
                 }
             });
