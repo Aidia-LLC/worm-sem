@@ -5,6 +5,8 @@
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <RootNamespace>wormsem</RootNamespace>
+    <AssemblyName>csharp</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,4 +21,14 @@
     <Content Include="ParamsList.txt" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="invoker\" />
+    <None Remove="commands\" />
+    <None Remove="responses\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="invoker\" />
+    <Folder Include="commands\" />
+    <Folder Include="responses\" />
+  </ItemGroup>
 </Project>

@@ -18,5 +18,8 @@
     "vite": "^4.0.3",
     "vite-plugin-electron": "^0.11.1",
     "vite-plugin-solid": "^2.5.0"
+  },
+  "browser": {
+    "child_process": false
   }
 }
