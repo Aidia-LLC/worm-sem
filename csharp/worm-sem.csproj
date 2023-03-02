@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>wormsem</RootNamespace>
-    <AssemblyName>csharp</AssemblyName>
+    <AssemblyName>wormsem</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>

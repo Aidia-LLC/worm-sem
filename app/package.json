@@ -1,14 +1,20 @@
 {
   "name": "worm-sem",
+  "author": "Aidia LLC",
+  "description": "Application to interface with SmartSEM",
   "version": "0.0.0",
   "main": "dist-electron/main.js",
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && electron-builder"
+    "build": "tsc && vite build && electron-builder",
+    "build:windows": "cd ../csharp && dotnet publish worm-sem.csproj --configuration Release --runtime win-x86 --self-contained true /p:PublishSingleFile=true && mkdir -p ../app/resources/win && cp bin/Release/net7.0/win-x86/publish/wormsem.exe ../app/resources/win/wormsem",
+    "build:macos-arm": "cd ../csharp && dotnet publish worm-sem.csproj --configuration Release --runtime osx-arm64 --self-contained true /p:PublishSingleFile=true && mkdir -p ../app/resources/mac && cp bin/Release/net7.0/osx-arm64/publish/wormsem ../app/resources/mac/wormsem"
   },
   "devDependencies": {
+    "@types/app-root-dir": "^0.1.1",
     "@types/node": "^18.14.4",
+    "app-root-dir": "^1.0.2",
     "autoprefixer": "^10.4.13",
     "electron": "^22.0.0",
     "electron-builder": "^23.6.0",
@@ -22,5 +28,48 @@
   },
   "browser": {
     "child_process": false
+  },
+  "build": {
+    "extraFiles": [
+      {
+        "from": "resources/${os}",
+        "to": "Resources/bin",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "appId": "aidiawormsem",
+    "asar": true,
+    "directories": {
+      "output": "release/${version}"
+    },
+    "files": [
+      "dist",
+      "dist-electron"
+    ],
+    "mac": {
+      "artifactName": "${productName}_${version}.${ext}",
+      "target": [
+        "dmg"
+      ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}_${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false
+    }
   }
 }

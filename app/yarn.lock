@@ -528,6 +528,11 @@
   resolved "https://registry.yarnpkg.com/@tootallnate/once/-/once-2.0.0.tgz#f544a148d3ab35801c1f633a7441fd87c2e484bf"
   integrity sha512-XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A==
 
+"@types/app-root-dir@^0.1.1":
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/@types/app-root-dir/-/app-root-dir-0.1.1.tgz#a7c95c0031b9d8aeb3d9c38b6126ad803d1fbdb4"
+  integrity sha512-N1r8cnF5dDWx3I/wPpSbSSAoMe2AGlPbifc7S8On8xrV0xCXUQuwjlRXIF/UuQV3y40x8/SKmCFSfuj40Xxz6Q==
+
 "@types/cacheable-request@^6.0.1":
   version "6.0.3"
   resolved "https://registry.yarnpkg.com/@types/cacheable-request/-/cacheable-request-6.0.3.tgz#a430b3260466ca7b5ca5bfd735693b36e7a9d183"
@@ -740,6 +745,11 @@ app-builder-lib@23.6.0:
     semver "^7.3.7"
     tar "^6.1.11"
     temp-file "^3.4.0"
+
+app-root-dir@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/app-root-dir/-/app-root-dir-1.0.2.tgz#38187ec2dea7577fff033ffcb12172692ff6e118"
+  integrity sha512-jlpIfsOoNoafl92Sz//64uQHGSyMrD2vYG5d8o2a4qGvyNCvXur7bzIsWtAC/6flI2RYAp3kv8rsfBtaLm7w0g==
 
 arg@^5.0.2:
   version "5.0.2"

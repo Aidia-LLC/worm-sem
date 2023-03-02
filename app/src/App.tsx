@@ -13,7 +13,7 @@ export const App = () => {
 
   return (
     <div class="bg-blue-300">
-      <h1 class="text-2xl">Worms</h1>
+      <h1 class="text-2xl">Wormssss</h1>
       <For each={messages()}>
         {(message) => (
           <div class="bg-white">
