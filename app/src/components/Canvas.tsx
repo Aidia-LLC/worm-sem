@@ -1,10 +1,11 @@
 import { createEffect } from "solid-js";
+import { setupCanvas } from "./ImageDetection";
 
 export const Canvas = () => {
   let canvasRef!: HTMLCanvasElement;
 
   createEffect(() => {
-    
+    setupCanvas(canvasRef);
   })
 
   return (
