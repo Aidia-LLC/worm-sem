@@ -18,6 +18,11 @@
       "vite-plugin-electron/electron-env"
     ],
     "jsx": "preserve",
-    "jsxImportSource": "solid-js"
+    "jsxImportSource": "solid-js",
+    "baseUrl": ".",
+    "paths": {
+      "@components/*": ["src/components/*"],
+      "@dto/*": ["src/dto/*"],
+    }
   }
 }

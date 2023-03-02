@@ -1,16 +1,18 @@
 import { app, BrowserWindow, shell, ipcMain } from "electron";
 import { spawn, exec, ChildProcessWithoutNullStreams } from "child_process";
 import path from "path";
-import { Message } from "../src/types/semClient";
+import { Message } from "../src/dto/semClient";
 import appRootDir from "app-root-dir";
 import { getPlatform } from "./platform";
 
+const isProduction = app.isPackaged;
+
 process.env.DIST = path.join(__dirname, "../dist");
-process.env.PUBLIC = app.isPackaged
+process.env.PUBLIC = isProduction
   ? process.env.DIST
   : path.join(process.env.DIST, "../public");
 
-const resourcePath = app.isPackaged
+const resourcePath = isProduction
   ? path.join(path.dirname(appRootDir.get()), "bin")
   : path.join(appRootDir.get(), "resources", getPlatform());
 
@@ -38,6 +40,7 @@ const createWindow = () => {
   } else {
     win.loadFile(path.join(process.env.DIST, "index.html"));
   }
+  return win;
 };
 
 app.on("window-all-closed", () => {
@@ -50,6 +53,7 @@ const init = (childProcess: ChildProcessWithoutNullStreams) => {
     childProcess.stdout.on("data", (data: Buffer) => {
       const messages: Message[] = data
         .toString("utf8")
+        .trim()
         .split("\n")
         .map((message) => {
           const trimmed = message.trim();
@@ -66,10 +70,6 @@ const init = (childProcess: ChildProcessWithoutNullStreams) => {
       childProcess.stdin.write(JSON.stringify(message) + "\n")
     );
 
-    ipcMain.on("counter-value", (_event, value) => {
-      console.log(`got counter value: ${value}`);
-    });
-
     createWindow();
   });
 
@@ -83,7 +83,7 @@ const init = (childProcess: ChildProcessWithoutNullStreams) => {
 };
 
 app.whenReady().then(() => {
-  if (app.isPackaged) {
+  if (isProduction) {
     const childProcess = spawn(path.join(resourcePath, "csharp"));
     init(childProcess);
   } else {

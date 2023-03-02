@@ -2,6 +2,7 @@ using System.Text.Json;
 using wormsem.commands;
 using wormsem.responses;
 using wormsem.client;
+using wormsem.imaging;
 
 namespace wormsem.invoker
 {
@@ -9,6 +10,12 @@ namespace wormsem.invoker
     {
         private Queue<Command> commands = new Queue<Command>();
         private Thread? thread = null;
+
+        public SEMInvoker()
+        {
+            //api = new SmartSEMImaging();
+            //api.Run();
+        }
 
         public void QueueCommand(Command command)
         {

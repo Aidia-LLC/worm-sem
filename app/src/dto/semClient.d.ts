@@ -23,3 +23,9 @@ export interface PrintCommand extends BaseCommand {
   type: "print";
   message: string;
 }
+
+declare global {
+  interface Window {
+    semClient: SEMClient;
+  }
+}

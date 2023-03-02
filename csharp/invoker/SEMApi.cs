@@ -1,40 +1,77 @@
-using APILib;
+﻿using APILib;
 //using System.Drawing;
 using System.Runtime.InteropServices;
 //using System.Security.Cryptography;
 
-namespace wormsem.imaging
+namespace wormsem.invoker
 {
 
-    public class SmartSEMImaging
+    public class SEMApi
     {
-        // static Dictionary<string, Image<Gray, byte>> IMGDictionary; // Dictionary for images
+        private Api api;
+        private Boolean initialized = false;
+
+        public SEMApi()
+        {
+            api = new Api();
+        }
+
+        public void Connect()
+        {
+            long response = api.InitialiseRemoting();
+            if (response != 0)
+                throw new Exception("Unable to connect");
+            initialized = true;
+        }
+
+        private void VerifyInitialized()
+        {
+            if (!initialized)
+                Connect();
+        }
+
+        /*
+         * From Remote API Manual page 22
+         * 
+         * Reduction Factor | Subsamping
+         *        -1        | Image  is  grabbed with  overlay plane / datazone and no subsampling
+         *        0         | No subsampling
+         *        1         | 1:2
+         *        2         | 1:3
+         *        3         | 1:4
+         * 
+         */
+        public void Grab(String name, String filename, short x, short y, short width, short height, short reduction = -1)
+        {
+            VerifyInitialized();
+
+            if (reduction < -1 || reduction > 3)
+                throw new Exception("Reduction value not in [-1, 3]");
+
+            object nameWrapper = new VariantWrapper(name);
+            api.Set("SV_SAMPLE_ID", ref nameWrapper);
+
+            long response = api.Grab(x, y, width, height, reduction, filename);
+
+            switch ((ZeissErrorCode)response)
+            {
+                case ZeissErrorCode.API_E_NO_ERROR:
+                    // Hooray! Success.
+                    break;
+                case ZeissErrorCode.API_E_GRAB_FAIL:
+                    throw new Exception("Grab command failed.");
+                case ZeissErrorCode.API_E_NOT_INITIALISED:
+                    throw new Exception("API not initialised.");
+            }
+        }
+
+        public void GrabFullFrame(String name, String filename, short reduction = -1)
+        {
+            Grab(name, filename, 0, 0, 1024, 768);
+        }
 
         public void Run()
         {
-
-            // Initialize Api
-            var CZEMApi = new Api();
-
-            // Define a flag to later check for initialisation
-            bool apiInitialised = false;
-
-
-            // Initalise communication between the CZEMApi OCX and EM Server
-            //long lReturn = CZEMApi.Initialise(""); //This doesn't work on 64bit process
-            long lReturn = CZEMApi.InitialiseRemoting();
-            if (lReturn == 0)
-            {
-                apiInitialised = true;
-                Console.WriteLine("Remote API correctly initialised");
-            }
-            else
-            {
-                Console.WriteLine("Remote API not initialised");
-            }
-
-
-
             /*
            // -- TEST -- Grab image from SmartSEM API (grab) method
            if (apiInitialised)

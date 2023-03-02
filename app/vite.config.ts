@@ -1,9 +1,11 @@
 import { defineConfig } from 'vite';
 import electron from 'vite-plugin-electron';
 import solidPlugin from 'vite-plugin-solid';
+import tsconfigPaths from 'vite-tsconfig-paths'
 
 export default defineConfig({
   plugins: [
+    tsconfigPaths(),
     solidPlugin(),
     electron([
       {
