@@ -143,6 +143,7 @@ export const setupCanvas = (canvas: HTMLCanvasElement) => {
           q = gradientData[(y + 1) * width + x - 1];
           r = gradientData[(y - 1) * width + x + 1];
         }
+        // const directionThreshold = 50;
         const p = gradientData[y * width + x];
         if (p >= q && p >= r) {
           suppressedData[y * width + x] = p; // Only keep the strong edges
@@ -151,8 +152,8 @@ export const setupCanvas = (canvas: HTMLCanvasElement) => {
     }
 
     // Perform hysteresis thresholding
-    const highThreshold = 0.08; // Adjust as needed. Maybe higher?
-    const lowThreshold = 0.04; // Adjust as needed
+    const highThreshold = 0.1; // Adjust as needed. Maybe higher?
+    const lowThreshold = 0.05; // Adjust as needed
     const edgeData = new Uint8ClampedArray(width * height);
     const highThresholdValue = Math.round(highThreshold * 255);
     const lowThresholdValue = Math.round(lowThreshold * 255);
@@ -222,7 +223,7 @@ export const setupCanvas = (canvas: HTMLCanvasElement) => {
             const distance = Math.sqrt(
               Math.pow(x - x1, 2) + Math.pow(y - y1, 2)
             );
-            if (distance > 100) {
+            if (distance > 1) {
               continue;
             }
             // Increment accumulator for this (rho, theta) pair
@@ -253,15 +254,15 @@ export const setupCanvas = (canvas: HTMLCanvasElement) => {
 
   function cluster(lines: number[], context: CanvasRenderingContext2D) {
     const threshold = 10; //Adjust this value to change the number of lines detected. Higher means less lines
-    const thetaThreshold = 15; //Adjust this value to change the sesitivity of merging lines into clusters. Represents degree difference between theta values of lines
+    const thetaThreshold = 10; //Adjust this value to change the sesitivity of merging lines into clusters. Represents degree difference between theta values of lines
 
     const rhoMax = lines.length / 90;
     const lineSegments: LineSegment[] = [];
 
     // Loop through each (rho, theta) pair in the accumulator
     for (let rho = 0; rho < rhoMax; rho++) {
-      for (let theta = 0; theta < 180; theta++) {
-        const votes = lines[rho * 180 + theta];
+      for (let theta = 0; theta < 90; theta++) {
+        const votes = lines[rho * 90 + theta];
 
         // Check if number of votes exceeds threshold
         if (votes >= threshold) {
