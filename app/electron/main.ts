@@ -75,6 +75,8 @@ const init = (childProcess: ChildProcessWithoutNullStreams) => {
       childProcess.stdin.write(JSON.stringify(message) + "\n")
     );
 
+    ipcMain.handle("GetInitialPath", () => __dirname);
+
     createWindow();
   });
 

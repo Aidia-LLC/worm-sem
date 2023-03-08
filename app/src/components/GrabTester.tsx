@@ -1,3 +1,4 @@
+import { onMount } from "solid-js";
 import { Button } from "./Button";
 
 export const GrabTester = () => {
@@ -9,6 +10,11 @@ export const GrabTester = () => {
   let filenameRef!: HTMLInputElement;
   let reductionRef!: HTMLInputElement;
 
+  onMount(async () => {
+    const path = await window.getInitialPath();
+    filenameRef.value = `${path}/grab.png`;
+  });
+
   return (
     <div class="flex flex-col gap-3">
       <h3 class="font-bold text-xl">Grab Tester</h3>
@@ -18,7 +24,11 @@ export const GrabTester = () => {
       <input ref={heightRef} type="number" placeholder="height" />
       <input ref={nameRef} type="text" placeholder="name" />
       <input ref={filenameRef} type="text" placeholder="filename" />
-      <input ref={reductionRef} type="number" placeholder="reduction (integer between -1 and 3)" />
+      <input
+        ref={reductionRef}
+        type="number"
+        placeholder="reduction (integer between -1 and 3)"
+      />
       <Button
         onClick={() => {
           const x = parseInt(xRef.value);

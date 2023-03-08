@@ -49,5 +49,6 @@ export interface GrabFullFrameCommand extends BaseCommand {
 declare global {
   interface Window {
     semClient: SEMClient;
+    getInitialPath: () => Promise<string>;
   }
 }
