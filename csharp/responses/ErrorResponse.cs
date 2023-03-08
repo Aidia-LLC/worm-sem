@@ -5,7 +5,8 @@ namespace wormsem.responses
 	{
 		JSON_DECODE = 1,
 		INVALID_REDUCTION_VALUE = 2,
-		FAILED_TO_GRAB = 3
+		FAILED_TO_GRAB = 3,
+		FAILED_TO_CONNECT = 4
 	}
 
 	public class ErrorResponse: Response

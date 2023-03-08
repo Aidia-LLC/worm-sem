@@ -21,6 +21,8 @@ namespace wormsem.commands
                     if (serializedCommand.message == null)
                         throw new Exception("Expecting string value");
                     return new EchoCommand(id, serializedCommand.message);
+                case "connect":
+                    return new ConnectCommand(id);
                 case "grab":
                     {
                         if (serializedCommand.x == null || serializedCommand.y == null || serializedCommand.width == null || serializedCommand.height == null)

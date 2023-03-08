@@ -16,7 +16,8 @@ export type Command =
   | BaseCommand
   | EchoCommand
   | GrabCommand
-  | GrabFullFrameCommand;
+  | GrabFullFrameCommand
+  | ConnectCommand;
 
 export interface BaseCommand {
   id: number;
@@ -44,6 +45,10 @@ export interface GrabFullFrameCommand extends BaseCommand {
   name: string;
   filename: string;
   reduction: number;
+}
+
+export interface ConnectCommand extends BaseCommand {
+  type: "connect";
 }
 
 declare global {

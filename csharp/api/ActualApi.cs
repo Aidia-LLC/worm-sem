@@ -18,7 +18,8 @@ namespace wormsem.api
         }
 
         public void Connect()
-        {
+        {  
+            if (initialized) return;
             long response = api.InitialiseRemoting();
             if (response != 0)
                 throw new Exception("Unable to connect");
@@ -27,8 +28,7 @@ namespace wormsem.api
 
         private void VerifyInitialized()
         {
-            if (!initialized)
-                Connect();
+            Connect();
         }
 
         public void Grab(string name, string filename, short x, short y, short width, short height, Reduction reduction = Reduction.OVERLAY_PLANE)

@@ -13,6 +13,16 @@ export const MessageLog = () => {
 
   return (
     <div class="flex flex-col gap-3">
+      <Button
+        onClick={() =>
+          window.semClient.send({
+            type: "connect",
+            id: Math.floor(Math.random() * 1000),
+          })
+        }
+      >
+        Connect
+      </Button>
       <Button onClick={() => setMessages([])}>Clear</Button>
       <Button
         onClick={() => {

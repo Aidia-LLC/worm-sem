@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 
 namespace wormsem.api
 {
@@ -11,12 +12,19 @@ namespace wormsem.api
 
         public void Grab(string name, string filename, short x, short y, short width, short height, Reduction reduction = Reduction.OVERLAY_PLANE)
         {
+            var assembly = Assembly.GetExecutingAssembly();
+            var stream = assembly.GetManifestResourceStream("wormsem.grab.png");
+            if (stream == null) throw new Exception("Null stream");
+            var fileStream = File.Create(filename);
+            stream.Seek(0, SeekOrigin.Begin);
+            stream.CopyTo(fileStream);
+            fileStream.Close();
             return;
         }
 
         public void GrabFullFrame(string name, string filename, Reduction reduction = Reduction.OVERLAY_PLANE)
         {
-            return;
+            Grab("test", filename, 0, 0, 0, 0);
         }
     }
 }

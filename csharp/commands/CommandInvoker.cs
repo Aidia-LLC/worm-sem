@@ -29,7 +29,6 @@ namespace wormsem.commands
             if (thread != null) return;
             thread = new Thread(() =>
             {
-                api.Connect();
                 while (true)
                 {
                     lock (commands)
