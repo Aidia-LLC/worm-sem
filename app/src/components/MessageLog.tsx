@@ -1,5 +1,6 @@
 import type { Message } from "@dto/semClient";
 import { createEffect, createSignal, For } from "solid-js";
+import { Button } from "./Button";
 
 export const MessageLog = () => {
   const [messages, setMessages] = createSignal<Message[]>([]);
@@ -12,7 +13,19 @@ export const MessageLog = () => {
 
   return (
     <div class="flex flex-col gap-3">
-      <h3 class="font-bold text-xl mt-4 mx-4">Messages</h3>
+      <Button onClick={() => setMessages([])}>Clear</Button>
+      <Button
+        onClick={() => {
+          window.semClient.send({
+            id: Math.floor(Math.random() * 1000),
+            type: "echo",
+            message: "Hello from Solid",
+          });
+        }}
+      >
+        Send Test Message
+      </Button>
+      <h3 class="font-bold text-xl">Messages</h3>
       <table class="bg-blue-300 w-full">
         <thead>
           <tr>
@@ -23,12 +36,44 @@ export const MessageLog = () => {
           </tr>
         </thead>
         <For each={messages()}>
-          {(message) => (
+          {(message, i) => (
             <tr>
-              <td class="p-2">{message.type}</td>
-              <td class="p-2">{message.id}</td>
-              <td class="p-2">{message.code}</td>
-              <td class="p-2">{message.message}</td>
+              <td
+                class="p-2"
+                classList={{
+                  "bg-blue-100": i() % 2 === 0,
+                  "bg-blue-300": i() % 2 === 1,
+                }}
+              >
+                {message.type}
+              </td>
+              <td
+                class="p-2"
+                classList={{
+                  "bg-blue-100": i() % 2 === 0,
+                  "bg-blue-300": i() % 2 === 1,
+                }}
+              >
+                {message.id}
+              </td>
+              <td
+                class="p-2"
+                classList={{
+                  "bg-blue-100": i() % 2 === 0,
+                  "bg-blue-300": i() % 2 === 1,
+                }}
+              >
+                {message.code}
+              </td>
+              <td
+                class="p-2"
+                classList={{
+                  "bg-blue-100": i() % 2 === 0,
+                  "bg-blue-300": i() % 2 === 1,
+                }}
+              >
+                {message.message}
+              </td>
             </tr>
           )}
         </For>

@@ -1,23 +1,13 @@
-import { Canvas } from "@components/Canvas";
+// import { Canvas } from "@components/Canvas";
+import { GrabTester } from "@components/GrabTester";
 import { MessageLog } from "@components/MessageLog";
 
 export const App = () => {
   return (
-    <div class="">
+    <div class="flex flex-col gap-3 m-4">
       <MessageLog />
-      <Canvas />
-      <button
-        class="m-4 bg-blue-500 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-2 px-4 rounded"
-        onClick={() => {
-          window.semClient.send({
-            id: Math.floor(Math.random() * 1000),
-            type: "print",
-            message: "Hello from Solid",
-          });
-        }}
-      >
-        Send Message
-      </button>
+      {/* <Canvas /> */}
+      <GrabTester />
     </div>
   );
 };

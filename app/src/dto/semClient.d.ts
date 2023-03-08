@@ -12,16 +12,38 @@ export type SEMClient = {
   subscribe: (callback: (message: Message) => void) => void;
 };
 
-export type Command = BaseCommand | PrintCommand;
+export type Command =
+  | BaseCommand
+  | EchoCommand
+  | GrabCommand
+  | GrabFullFrameCommand;
 
 export interface BaseCommand {
   id: number;
   type: string;
 }
 
-export interface PrintCommand extends BaseCommand {
-  type: "print";
+export interface EchoCommand extends BaseCommand {
+  type: "echo";
   message: string;
+}
+
+export interface GrabCommand extends BaseCommand {
+  type: "grab";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  name: string;
+  filename: string;
+  reduction: number;
+}
+
+export interface GrabFullFrameCommand extends BaseCommand {
+  type: "grabFullFrame";
+  name: string;
+  filename: string;
+  reduction: number;
 }
 
 declare global {
