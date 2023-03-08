@@ -1,5 +1,6 @@
 ﻿using System;
 using wormsem.responses;
+using wormsem.api;
 
 namespace wormsem.commands
 {
@@ -12,6 +13,6 @@ namespace wormsem.commands
 			this.id = id;
 		}
 
-		public abstract Response Execute();
+		public abstract Response Execute(SEMApi api);
 	}
 }

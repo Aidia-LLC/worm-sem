@@ -1,20 +1,19 @@
 using System.Text.Json;
-using wormsem.commands;
 using wormsem.responses;
 using wormsem.client;
-using wormsem.imaging;
+using wormsem.api;
 
-namespace wormsem.invoker
+namespace wormsem.commands
 {
-    public class SEMInvoker
+    public class CommandInvoker
     {
         private Queue<Command> commands = new Queue<Command>();
         private Thread? thread = null;
+        private SEMApi api;
 
-        public SEMInvoker()
+        public CommandInvoker(Boolean dryRun)
         {
-            //api = new SmartSEMImaging();
-            //api.Run();
+            api = dryRun ? new TestSEMApi() : new ActualApi();
         }
 
         public void QueueCommand(Command command)
@@ -30,6 +29,7 @@ namespace wormsem.invoker
             if (thread != null) return;
             thread = new Thread(() =>
             {
+                api.Connect();
                 while (true)
                 {
                     lock (commands)
@@ -37,7 +37,7 @@ namespace wormsem.invoker
                         while (commands.Count > 0)
                         {
                             Command nextCommand = commands.Dequeue();
-                            Response response = nextCommand.Execute();
+                            Response response = nextCommand.Execute(api);
                             ClientResponder.Send(response);
                         }
                     }

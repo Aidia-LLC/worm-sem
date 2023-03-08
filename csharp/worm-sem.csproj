@@ -22,12 +22,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="invoker\" />
     <None Remove="commands\" />
     <None Remove="responses\" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="invoker\" />
     <Folder Include="commands\" />
     <Folder Include="responses\" />
   </ItemGroup>
