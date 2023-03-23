@@ -1,12 +1,12 @@
 import { createEffect } from "solid-js";
-import { setupCanvas } from "./ImageDetection";
+import { setupCanvas, setupCanvas2 } from "./ImageDetection";
 
 export const Canvas = () => {
   let canvasRef!: HTMLCanvasElement;
 
   createEffect(() => {
-    setupCanvas(canvasRef);
-  })
+    setupCanvas2(canvasRef);
+  });
 
   return (
     <div class="flex flex-col gap-3">

@@ -7,6 +7,7 @@
   "private": true,
   "scripts": {
     "dev": "vite",
+    "electron-rebuild": "electron-rebuild -f -w opencv4js",
     "build": "tsc && vite build && electron-builder",
     "build:windows": "cd ../csharp && dotnet publish worm-sem.csproj --configuration Release --runtime win-x86 --self-contained true /p:PublishSingleFile=true && mkdir -p ../app/resources/win && cp bin/Release/net7.0/win-x86/publish/wormsem.exe ../app/resources/win/wormsem",
     "build:macos-arm": "cd ../csharp && dotnet publish worm-sem.csproj --configuration Release --runtime osx-arm64 --self-contained true /p:PublishSingleFile=true && mkdir -p ../app/resources/mac && cp bin/Release/net7.0/osx-arm64/publish/wormsem ../app/resources/mac/wormsem"
@@ -72,5 +73,8 @@
       "allowToChangeInstallationDirectory": true,
       "deleteAppDataOnUninstall": false
     }
+  },
+  "dependencies": {
+    "opencv4js": "^3.4.3"
   }
 }
