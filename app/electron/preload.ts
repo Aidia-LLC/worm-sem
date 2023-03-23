@@ -7,12 +7,12 @@
  */
 
 import { contextBridge, ipcRenderer } from "electron";
-import { Command, Message, SEMClient } from "../src/dto/semClient";
+import { Message, SEMClient } from "../src/dto/semClient";
 
 const subscribers: ((message: Message) => void)[] = [];
 
 const client: SEMClient = {
-  send: (command: Command) => {
+  send: (command) => {
     ipcRenderer.invoke("SEMClient:Send", command);
   },
   subscribe: (callback) => {

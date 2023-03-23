@@ -1,56 +1,27 @@
-# solid-vite-electron
+# Electron Client
 
-![result](./result.png)
+## Basic Architecture
 
-Inspired by [ch99q](https://github.com/ch99q/vite-solid-electron)
+The Electron client is a Solid app. The `electron/main.ts` script runs in a NodeJS environment and is responsible for creating the Electron window. The `electron/preload.ts` script runs in the browser prior to the Solid app being loaded. It acts as a bridge between the NodeJS environment and the frontend.
 
-Based on [electron-vite](https://github.com/electron-vite/vite-plugin-electron/tree/main/examples/quick-start)
+## Inter-Process Communication
 
-## Overview
+IPC is handled using Electron's `ipcMain`. The preload script has access to invoke methods on the `ipcRenderer` object, which calls handlers associated with `ipcMain` in main. The `ipcRenderer` can also subscribe to events emitted by `ipcMain`.
 
-⚡️ SolidJS + Vite + TypeScript + Electron
+Any information passed through IPC must be JSON-serializable. This means that any objects passed through IPC must be plain objects, not instances of classes or functions. Any callback functions must be handled using the API exposed on the `window` object explained below in the Bridge section.
 
-📦 Ready out of the box
+- preload -> main
+  - `SEMClient:Send` - send a JSON mesage to the C# API
+  - `GetInitialPath` - gets a relative path where the grabbed image could be saved
+- main -> preload
+  - `SEMClient:Received` - notifies of a JSON message received from the C# API
 
-🔥 Hot reloading
+## Bridge
 
-## Installation
+The API that the Electron frontend can use to communicate with the Electron backend is exposed on the `window` object. The types for this API are in `src/dto/semClient.d.ts`.
 
-```bash
-# clone template without git history
-npx degit https://github.com/tgrassl/solid-vite-electron <folder_name>
+Because this runs in the browser, the data sent need not be JSON-serializable. This allows us to set up callback functions.
 
-# open the project directory
-cd <folder_name>
-
-# install dependencies
-npm install
-
-# start the application
-npm run dev
-
-# make a production build
-npm run build
-```
-
-## Directory structure
-
-```tree
-├── electron                                 Electron-related code
-│   ├── main                                 Main-process source code
-│   └── preload                              Preload-scripts source code
-│
-├── release                                  Generated after production build, contains executables
-│   └── {version}
-│       ├── {os}-{os_arch}                   Contains unpacked application executable
-│       └── {app_name}_{version}.{ext}       Installer for the application
-│
-├── public                                   Static assets
-└── src                                      Renderer source code, your SolidJS application
-```
-
-## Read more
-
-[vite-plugin-electron](https://github.com/electron-vite/vite-plugin-electron)
-
-[SolidJS](https://www.solidjs.com/)
+- `window.semClient.send(command: Command)` - send a JSON message to the C# API
+- `window.semClient.subscribe(callback: (message: Message) => void)` - pass a callback function to be called when any JSON message is received from the C# API. All filtering of messages should be done in the callback function.
+- `window.getInitialPath(): Promise<string>` - gets a relative path where the grabbed image could be saved

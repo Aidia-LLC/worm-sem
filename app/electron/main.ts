@@ -16,11 +16,11 @@ const resourcePath = isProduction
   ? path.join(path.dirname(appRootDir.get()), "bin")
   : path.join(appRootDir.get(), "resources", getPlatform());
 
-let win: BrowserWindow | null;
-const url = process.env.VITE_DEV_SERVER_URL;
+let browserWindow: BrowserWindow | null;
+const devServerUrl = process.env.VITE_DEV_SERVER_URL;
 
 const createWindow = () => {
-  win = new BrowserWindow({
+  browserWindow = new BrowserWindow({
     icon: path.join(process.env.PUBLIC, "logo.svg"),
     title: "SEM Client",
     webPreferences: {
@@ -29,18 +29,18 @@ const createWindow = () => {
   });
 
   // Open links in the browser, not inside the application
-  win.webContents.setWindowOpenHandler(({ url }) => {
+  browserWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith("https:")) shell.openExternal(url);
     return { action: "deny" };
   });
 
-  if (url) {
-    win.loadURL(url);
-    win.webContents.openDevTools();
+  if (devServerUrl) {
+    browserWindow.loadURL(devServerUrl);
+    browserWindow.webContents.openDevTools();
   } else {
-    win.loadFile(path.join(process.env.DIST, "index.html"));
+    browserWindow.loadFile(path.join(process.env.DIST, "index.html"));
   }
-  return win;
+  return browserWindow;
 };
 
 app.on("window-all-closed", () => {
@@ -63,7 +63,7 @@ const init = (childProcess: ChildProcessWithoutNullStreams) => {
         .filter(Boolean);
       messages.forEach((message) => {
         console.log("Received message from C#:", message);
-        win?.webContents.send("SEMClient:Received", message);
+        browserWindow?.webContents.send("SEMClient:Received", message);
       });
     });
 
@@ -94,6 +94,7 @@ app.whenReady().then(() => {
     const childProcess = spawn(path.join(resourcePath, "csharp"));
     init(childProcess);
   } else {
+    console.log("Building C# program...");
     const cwd = path.join(__dirname, "..", "..", "csharp");
     exec("dotnet publish worm-sem.csproj --configuration Release", { cwd }).on(
       "exit",
@@ -101,10 +102,8 @@ app.whenReady().then(() => {
         console.log("Done building C# program.");
         const childProcess = spawn(
           "./bin/Release/net7.0/wormsem",
-          ["--dry-run"],
-          {
-            cwd,
-          }
+          ["--dry-run"], // TODO remove dry run flag when ready to connect to SEM
+          { cwd }
         );
         init(childProcess);
       }

@@ -38,15 +38,13 @@ export const GrabTester = () => {
           const name = nameRef.value;
           const filename = filenameRef.value;
           const reduction = parseInt(reductionRef.value);
-          if (
-            isNaN(x) ||
-            isNaN(y) ||
-            isNaN(width) ||
-            isNaN(height) ||
-            isNaN(reduction)
-          )
-            return alert("Invalid input");
-          if (!name || !filename) return alert("Invalid input");
+          if (isNaN(x)) return alert("Invalid input for x");
+          if (isNaN(y)) return alert("Invalid input for y");
+          if (isNaN(width)) return alert("Invalid input for width");
+          if (isNaN(height)) return alert("Invalid input for height");
+          if (isNaN(reduction)) return alert("Invalid input for reduction");
+          if (!name) return alert("Invalid input for name");
+          if (!filename) return alert("Invalid input for filename");
           if (reduction < -1 || reduction > 3)
             return alert("Reduction must be between -1 and 3");
           if (x < 0 || y < 0 || width < 0 || height < 0)
@@ -71,7 +69,8 @@ export const GrabTester = () => {
           const name = nameRef.value;
           const filename = filenameRef.value;
           const reduction = parseInt(reductionRef.value);
-          if (!name || !filename) return alert("Invalid input");
+          if (!name) return alert("Invalid input for name");
+          if (!filename) return alert("Invalid input for filename");
           if (reduction < -1 || reduction > 3)
             return alert("Reduction must be between -1 and 3");
           window.semClient.send({
