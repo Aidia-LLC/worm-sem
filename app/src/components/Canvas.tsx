@@ -13,7 +13,7 @@ const Param = (props: {
       <label class="font-bold text-lg">{props.label}</label>
       <input type="number" value={props.value} ref={inputRef} />
       <button
-        onClick={() => props.onChange(parseInt(inputRef.value))}
+        onClick={() => props.onChange(parseFloat(inputRef.value))}
         class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
       >
         Set
@@ -93,12 +93,25 @@ export const Canvas = () => {
   const [gaussianKernel, setGaussianKernel] = createSignal<
     [number, number, number]
   >([1 / 16, 1 / 8, 1 / 4]);
+  const [hysteresisHigh, setHysteresisHigh] = createSignal(0.1);
+  const [hysteresisLow, setHysteresisLow] = createSignal(0.03);
+  const [grayscaleRed, setGrayscaleRed] = createSignal(0.2126);
+  const [grayscaleGreen, setGrayscaleGreen] = createSignal(0.7152);
+  const [grayscaleBlue, setGrayscaleBlue] = createSignal(0.0722);
+  const [minNeighborsForNoiseReduction, setMinNeighborsForNoiseReduction] =
+    createSignal(5);
 
   createEffect(() => {
     refresh();
     setupCanvas(canvasRef, {
       squareSize: squareSize(),
       gaussianKernel: gaussianKernel(),
+      hysteresisHigh: hysteresisHigh(),
+      hysteresisLow: hysteresisLow(),
+      grayscaleRed: grayscaleRed(),
+      grayscaleGreen: grayscaleGreen(),
+      grayscaleBlue: grayscaleBlue(),
+      minNeighborsForNoiseReduction: minNeighborsForNoiseReduction(),
     });
   });
 
@@ -117,6 +130,36 @@ export const Canvas = () => {
         onChange={setSquareSize}
       />
       <KernelParam values={gaussianKernel()} onChange={setGaussianKernel} />
+      <Param
+        label="Hysteresis High"
+        value={hysteresisHigh()}
+        onChange={setHysteresisHigh}
+      />
+      <Param
+        label="Hysteresis Low"
+        value={hysteresisLow()}
+        onChange={setHysteresisLow}
+      />
+      <Param
+        label="Grayscale % from Red"
+        value={grayscaleRed()}
+        onChange={setGrayscaleRed}
+      />
+      <Param
+        label="Grayscale % from Green"
+        value={grayscaleGreen()}
+        onChange={setGrayscaleGreen}
+      />
+      <Param
+        label="Grayscale % from Blue"
+        value={grayscaleBlue()}
+        onChange={setGrayscaleBlue}
+      />
+      <Param
+        label="Min Neighbors for Noise Reduction"
+        value={minNeighborsForNoiseReduction()}
+        onChange={setMinNeighborsForNoiseReduction}
+      />
       <canvas ref={canvasRef} id="canvas" width="1000" height="1000"></canvas>
     </div>
   );
@@ -125,6 +168,12 @@ export const Canvas = () => {
 type Options = {
   squareSize: number;
   gaussianKernel: [number, number, number];
+  hysteresisHigh: number;
+  hysteresisLow: number;
+  grayscaleRed: number;
+  grayscaleGreen: number;
+  grayscaleBlue: number;
+  minNeighborsForNoiseReduction: number;
 };
 
 let previousListener: any = null;
@@ -139,7 +188,7 @@ export const setupCanvas = (canvas: HTMLCanvasElement, options: Options) => {
     canvas.height = img.height;
     ctx.drawImage(img, 0, 0);
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const grayImageData = grayscale(imageData, ctx);
+    const grayImageData = grayscale(imageData, options, ctx);
     // console.log("grayImageData", grayImageData);
     //Apply a gausian blur
     const blurImageData1 = gaussianBlur(grayImageData, ctx, options);
@@ -147,7 +196,7 @@ export const setupCanvas = (canvas: HTMLCanvasElement, options: Options) => {
 
     ctx.putImageData(blurImageData, 0, 0);
 
-    const edgeData = canny(blurImageData);
+    const edgeData = canny(blurImageData, options);
     //convert edgeData from uint8clampedarray to imageData
     const newImageData = ctx.createImageData(canvas.width, canvas.height);
     const pixels = new Uint8ClampedArray(canvas.width * canvas.height * 4);
@@ -278,7 +327,11 @@ function getSquare(fullImage: ImageData, x: number, y: number, size: number) {
 //   // }
 // };
 
-function grayscale(imageData: ImageData, ctx?: CanvasRenderingContext2D) {
+function grayscale(
+  imageData: ImageData,
+  options: Options,
+  ctx?: CanvasRenderingContext2D
+) {
   // console.log("grayscale before", imageData);
   const data = imageData.data;
   const grayImageData =
@@ -290,7 +343,10 @@ function grayscale(imageData: ImageData, ctx?: CanvasRenderingContext2D) {
     const r = data[i];
     const g = data[i + 1];
     const b = data[i + 2];
-    const gray = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    const gray =
+      options.grayscaleRed * r +
+      options.grayscaleGreen * g +
+      options.grayscaleBlue * b;
     grayData[i] = gray;
     grayData[i + 1] = gray;
     grayData[i + 2] = gray;
@@ -300,7 +356,11 @@ function grayscale(imageData: ImageData, ctx?: CanvasRenderingContext2D) {
   return grayImageData;
 }
 
-function gaussianBlur(imageData: ImageData, ctx: CanvasRenderingContext2D, options: Options) {
+function gaussianBlur(
+  imageData: ImageData,
+  ctx: CanvasRenderingContext2D,
+  options: Options
+) {
   const width = imageData.width;
   const height = imageData.height;
   const data = imageData.data;
@@ -309,9 +369,21 @@ function gaussianBlur(imageData: ImageData, ctx: CanvasRenderingContext2D, optio
     new ImageData(0, 0);
   const blurData = blurImageData.data;
   const kernel = [
-    [options.gaussianKernel[0], options.gaussianKernel[1], options.gaussianKernel[0]],
-    [options.gaussianKernel[1], options.gaussianKernel[2], options.gaussianKernel[1]],
-    [options.gaussianKernel[0], options.gaussianKernel[1], options.gaussianKernel[0]],
+    [
+      options.gaussianKernel[0],
+      options.gaussianKernel[1],
+      options.gaussianKernel[0],
+    ],
+    [
+      options.gaussianKernel[1],
+      options.gaussianKernel[2],
+      options.gaussianKernel[1],
+    ],
+    [
+      options.gaussianKernel[0],
+      options.gaussianKernel[1],
+      options.gaussianKernel[0],
+    ],
   ];
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
@@ -336,7 +408,7 @@ function gaussianBlur(imageData: ImageData, ctx: CanvasRenderingContext2D, optio
   return blurImageData;
 }
 
-function canny(grayImageData: ImageData) {
+function canny(grayImageData: ImageData, options: Options) {
   const width = grayImageData.width;
   const height = grayImageData.height;
   const grayscaleData = grayImageData.data;
@@ -396,11 +468,9 @@ function canny(grayImageData: ImageData) {
   }
 
   // Perform hysteresis thresholding
-  const highThreshold = 0.1; // Adjust as needed. Maybe higher?
-  const lowThreshold = 0.03; // Adjust as needed
   const edgeData = new Uint8ClampedArray(width * height);
-  const highThresholdValue = Math.round(highThreshold * 255);
-  const lowThresholdValue = Math.round(lowThreshold * 255);
+  const highThresholdValue = Math.round(options.hysteresisHigh * 255);
+  const lowThresholdValue = Math.round(options.hysteresisLow * 255);
   for (let i = 0; i < width * height; i++) {
     const value = Math.round(suppressedData[i]);
     if (value <= highThresholdValue && value >= lowThresholdValue) {
@@ -409,13 +479,14 @@ function canny(grayImageData: ImageData) {
       edgeData[i] = 0;
     }
   }
-  return RemoveNoise(edgeData, width, height);
+  return RemoveNoise(edgeData, width, height, options);
 }
 
 function RemoveNoise(
   edgeData: Uint8ClampedArray,
   width: number,
-  height: number
+  height: number,
+  options: Options
 ): Uint8ClampedArray {
   const data = edgeData;
   for (let x = 1; x < width - 1; x++) {
@@ -430,7 +501,7 @@ function RemoveNoise(
             }
           }
         }
-        if (count < 5) {
+        if (count < options.minNeighborsForNoiseReduction) {
           data[i] = 0;
         }
       }
