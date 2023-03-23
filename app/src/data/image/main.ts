@@ -429,8 +429,9 @@ export function convert(width: number, height: number, imageData: Uint8Array) {
 
   const normalized = toNormalized(grayscale);
   self.postMessage({ type: "normalized" });
-
-  const blurred = toConvolutionForImg(gaussMatrix, 2, normalized);
+  const blurred2 = toConvolutionForImg(gaussMatrix, 2, normalized);
+  // const blurred2 = toConvolutionForImg(gaussMatrix, 2, blurred3);
+  const blurred = toConvolutionForImg(gaussMatrix, 2, blurred2);
   self.postMessage({
     type: "blurred",
     data: toPixels(toDenormalized(blurred)),
