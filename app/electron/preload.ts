@@ -26,3 +26,7 @@ ipcRenderer.on("SEMClient:Received", (_, data) => {
 });
 
 contextBridge.exposeInMainWorld("semClient", client);
+
+contextBridge.exposeInMainWorld("getInitialPath", () => {
+  return ipcRenderer.invoke("GetInitialPath");
+});

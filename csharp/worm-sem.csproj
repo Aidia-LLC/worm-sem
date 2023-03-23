@@ -22,13 +22,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="invoker\" />
     <None Remove="commands\" />
     <None Remove="responses\" />
+    <None Remove="grab.png" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="invoker\" />
     <Folder Include="commands\" />
     <Folder Include="responses\" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="grab.png" />
   </ItemGroup>
 </Project>

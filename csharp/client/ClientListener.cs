@@ -1,4 +1,3 @@
-using wormsem.invoker;
 using wormsem.commands;
 using wormsem.responses;
 
@@ -7,10 +6,10 @@ namespace wormsem.client
     public class ClientListener
     {
         private Thread? thread = null;
-        private SEMInvoker invoker;
+        private CommandInvoker invoker;
         private CommandFactory factory;
 
-        public ClientListener(SEMInvoker invoker)
+        public ClientListener(CommandInvoker invoker)
         {
             this.invoker = invoker;
             factory = new CommandFactory();

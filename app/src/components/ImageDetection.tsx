@@ -187,23 +187,23 @@ function canny(grayImageData: ImageData) {
   const height = grayImageData.height;
   const grayscaleData = grayImageData.data;
 
-  // Compute the gradient magnitude and direction
-  const gradientData = new Float32Array(width * height);
-  const directionData = new Float32Array(width * height);
-  for (let y = 1; y < height - 1; y++) {
-    for (let x = 1; x < width - 1; x++) {
-      const gx = // Gradient in x direction
-        grayscaleData[(y * width + x + 1) * 4] -
-        grayscaleData[(y * width + x - 1) * 4];
-      const gy = // Gradient in y direction
-        grayscaleData[((y + 1) * width + x) * 4] -
-        grayscaleData[((y - 1) * width + x) * 4];
-      const gradient = Math.sqrt(gx * gx + gy * gy);
-      const direction = Math.atan2(-gy, gx);
-      gradientData[y * width + x] = gradient;
-      directionData[y * width + x] = direction;
-    }
-  }
+//   // Compute the gradient magnitude and direction
+//   const gradientData = new Float32Array(width * height);
+//   const directionData = new Float32Array(width * height);
+//   for (let y = 1; y < height - 1; y++) {
+//     for (let x = 1; x < width - 1; x++) {
+//       const gx = // Gradient in x direction
+//         grayscaleData[(y * width + x + 1) * 4] -
+//         grayscaleData[(y * width + x - 1) * 4];
+//       const gy = // Gradient in y direction
+//         grayscaleData[((y + 1) * width + x) * 4] -
+//         grayscaleData[((y - 1) * width + x) * 4];
+//       const gradient = Math.sqrt(gx * gx + gy * gy);
+//       const direction = Math.atan2(-gy, gx);
+//       gradientData[y * width + x] = gradient;
+//       directionData[y * width + x] = direction;
+//     }
+//   }
 
   // Perform non-maximum suppression
   const suppressedData = new Float32Array(width * height);

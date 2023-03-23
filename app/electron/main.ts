@@ -1,8 +1,8 @@
-import { app, BrowserWindow, shell, ipcMain } from "electron";
-import { spawn, exec, ChildProcessWithoutNullStreams } from "child_process";
+import appRootDir from "app-root-dir";
+import { ChildProcessWithoutNullStreams, exec, spawn } from "child_process";
+import { app, BrowserWindow, ipcMain, shell } from "electron";
 import path from "path";
 import { Message } from "../src/dto/semClient";
-import appRootDir from "app-root-dir";
 import { getPlatform } from "./platform";
 
 const isProduction = app.isPackaged;
@@ -61,14 +61,21 @@ const init = (childProcess: ChildProcessWithoutNullStreams) => {
           return undefined;
         })
         .filter(Boolean);
-      messages.forEach((message) =>
-        win?.webContents.send("SEMClient:Received", message)
-      );
+      messages.forEach((message) => {
+        console.log("Received message from C#:", message);
+        win?.webContents.send("SEMClient:Received", message);
+      });
+    });
+
+    childProcess.stderr.on("data", (data: Buffer) => {
+      console.error(data.toString("utf8"));
     });
 
     ipcMain.handle("SEMClient:Send", (_, message: Message) =>
       childProcess.stdin.write(JSON.stringify(message) + "\n")
     );
+
+    ipcMain.handle("GetInitialPath", () => __dirname);
 
     createWindow();
   });
@@ -92,7 +99,13 @@ app.whenReady().then(() => {
       "exit",
       () => {
         console.log("Done building C# program.");
-        const childProcess = spawn("./bin/Release/net7.0/wormsem", { cwd });
+        const childProcess = spawn(
+          "./bin/Release/net7.0/wormsem",
+          ["--dry-run"],
+          {
+            cwd,
+          }
+        );
         init(childProcess);
       }
     );
