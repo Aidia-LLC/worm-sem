@@ -226,7 +226,10 @@ export const Canvas = () => {
         />
       </div>
       <KernelParam values={gaussianKernel()} onChange={setGaussianKernel} />
-      <Button onClick={() => setRefresh(refresh() + 1)}>Refresh</Button>
+      <Button onClick={() => {
+        setPoints([]);
+        setRefresh(refresh() + 1)
+      }}>Clear</Button>
       <canvas ref={canvasRef} id="canvas" width="1000" height="1000"></canvas>
     </div>
   );
