@@ -1,4 +1,4 @@
-import { createEffect, createSignal } from "solid-js";
+import { createEffect, createSignal, onMount, untrack } from "solid-js";
 import { Button } from "./Button";
 
 const Param = (props: {
@@ -6,15 +6,26 @@ const Param = (props: {
   value: number;
   onChange: (value: number) => void;
 }) => {
+  const [currentValue, setCurrentValue] = createSignal(props.value);
+
   let inputRef!: HTMLInputElement;
 
   return (
     <div class="flex flex-row items-center gap-2">
       <label class="font-bold text-lg">{props.label}</label>
-      <input type="number" value={props.value} ref={inputRef} />
+      <input
+        type="number"
+        value={props.value}
+        ref={inputRef}
+        onChange={(e) => setCurrentValue(parseFloat(e.currentTarget.value))}
+      />
       <button
-        onClick={() => props.onChange(parseFloat(inputRef.value))}
-        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        onClick={() => props.onChange(currentValue())}
+        class="text-white font-bold py-2 px-4 rounded"
+        classList={{
+          "bg-orange-500 hover:bg-orange-700": props.value !== currentValue(),
+          "bg-blue-500 hover:bg-blue-700": props.value === currentValue(),
+        }}
       >
         Set
       </button>
@@ -100,30 +111,59 @@ export const Canvas = () => {
   const [grayscaleBlue, setGrayscaleBlue] = createSignal(0.0722);
   const [minNeighborsForNoiseReduction, setMinNeighborsForNoiseReduction] =
     createSignal(5);
+  const [houghVoteThreshold, setHoughVoteThreshold] = createSignal(0.65);
+  const [mergeThetaThreshold, setMergeThetaThreshold] = createSignal(1);
+  const [points, setPoints] = createSignal<[number, number][]>([]);
 
-  createEffect(() => {
+  const options = () => ({
+    squareSize: squareSize(),
+    gaussianKernel: gaussianKernel(),
+    hysteresisHigh: hysteresisHigh(),
+    hysteresisLow: hysteresisLow(),
+    grayscaleRed: grayscaleRed(),
+    grayscaleGreen: grayscaleGreen(),
+    grayscaleBlue: grayscaleBlue(),
+    minNeighborsForNoiseReduction: minNeighborsForNoiseReduction(),
+    houghVoteThreshold: houghVoteThreshold(),
+    mergeThetaThreshold: mergeThetaThreshold(),
+  });
+
+  const handleClick = (e: MouseEvent) => {
+    const ctx = canvasRef.getContext("2d")!;
+    const rect = canvasRef.getBoundingClientRect();
+    const rectWidth = rect.right - rect.left;
+    const rectHeight = rect.bottom - rect.top;
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const imgX = Math.round((x / rectWidth) * canvasRef.width);
+    const imgY = Math.round((y / rectHeight) * canvasRef.height);
+    const imageData = ctx.getImageData(0, 0, canvasRef.width, canvasRef.height);
+    const pixelIndex = (imgY * imageData.width + imgX) * 4;
+    const pixel = imageData.data[pixelIndex];
+    console.log("pixel", pixel);
+    setPoints([...points(), [imgX, imgY]]);
+    detectTrapezoids(imgX, imgY, ctx, options());
+  };
+
+  createEffect(async () => {
+    console.log("refreshing");
     refresh();
-    setupCanvas(canvasRef, {
-      squareSize: squareSize(),
-      gaussianKernel: gaussianKernel(),
-      hysteresisHigh: hysteresisHigh(),
-      hysteresisLow: hysteresisLow(),
-      grayscaleRed: grayscaleRed(),
-      grayscaleGreen: grayscaleGreen(),
-      grayscaleBlue: grayscaleBlue(),
-      minNeighborsForNoiseReduction: minNeighborsForNoiseReduction(),
+    const o = options();
+    await setupCanvas(canvasRef, o);
+    untrack(() => {
+      const ctx = canvasRef.getContext("2d")!;
+      console.log("points", points());
+      for (const [x, y] of points()) detectTrapezoids(x, y, ctx, o);
     });
+  });
+
+  onMount(() => {
+    canvasRef.addEventListener("click", handleClick);
   });
 
   return (
     <div class="flex flex-col gap-3">
       <h3 class="font-bold text-xl mt-4 mx-4">Canvas2</h3>
-      <button
-        onClick={() => setRefresh(refresh() + 1)}
-        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-      >
-        Refresh
-      </button>
       <Param
         label="Square Size"
         value={squareSize()}
@@ -160,6 +200,17 @@ export const Canvas = () => {
         value={minNeighborsForNoiseReduction()}
         onChange={setMinNeighborsForNoiseReduction}
       />
+      <Param
+        label="Hough Vote Threshold"
+        value={houghVoteThreshold()}
+        onChange={setHoughVoteThreshold}
+      />
+      <Param
+        label="Merge Theta Threshold"
+        value={mergeThetaThreshold()}
+        onChange={setMergeThetaThreshold}
+      />
+      <Button onClick={() => setRefresh(refresh() + 1)}>Refresh</Button>
       <canvas ref={canvasRef} id="canvas" width="1000" height="1000"></canvas>
     </div>
   );
@@ -174,65 +225,49 @@ type Options = {
   grayscaleGreen: number;
   grayscaleBlue: number;
   minNeighborsForNoiseReduction: number;
+  houghVoteThreshold: number;
+  mergeThetaThreshold: number;
 };
 
-let previousListener: any = null;
-
-export const setupCanvas = (canvas: HTMLCanvasElement, options: Options) => {
+export const setupCanvas = (
+  canvas: HTMLCanvasElement,
+  options: Options
+): Promise<void> => {
   const ctx = canvas.getContext("2d")!;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const img = new Image();
-  img.onload = function () {
-    if (!ctx) return;
-    canvas.width = img.width;
-    canvas.height = img.height;
-    ctx.drawImage(img, 0, 0);
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const grayImageData = grayscale(imageData, options, ctx);
-    // console.log("grayImageData", grayImageData);
-    //Apply a gausian blur
-    const blurImageData1 = gaussianBlur(grayImageData, ctx, options);
-    const blurImageData = gaussianBlur(blurImageData1, ctx, options);
 
-    ctx.putImageData(blurImageData, 0, 0);
+  return new Promise((res) => {
+    img.onload = function () {
+      if (!ctx) return;
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const grayImageData = grayscale(imageData, options, ctx);
+      // console.log("grayImageData", grayImageData);
+      //Apply a gausian blur
+      const blurImageData1 = gaussianBlur(grayImageData, ctx, options);
+      const blurImageData = gaussianBlur(blurImageData1, ctx, options);
 
-    const edgeData = canny(blurImageData, options);
-    //convert edgeData from uint8clampedarray to imageData
-    const newImageData = ctx.createImageData(canvas.width, canvas.height);
-    const pixels = new Uint8ClampedArray(canvas.width * canvas.height * 4);
-    for (let i = 0; i < edgeData.length; i += 1) {
-      pixels[i * 4] = edgeData[i] > 1 ? 255 : 0;
-      pixels[i * 4 + 1] = edgeData[i] > 1 ? 255 : 0;
-      pixels[i * 4 + 2] = edgeData[i] > 1 ? 255 : 0;
-      pixels[i * 4 + 3] = 255;
-    }
-    newImageData.data.set(pixels);
-    ctx.putImageData(newImageData, 0, 0);
-  };
-  img.src = "/img/grab1.png";
+      ctx.putImageData(blurImageData, 0, 0);
 
-  if (previousListener) {
-    canvas.removeEventListener("click", previousListener);
-  }
-
-  const listener = (e: MouseEvent) => {
-    const rect = canvas.getBoundingClientRect();
-    const rectWidth = rect.right - rect.left;
-    const rectHeight = rect.bottom - rect.top;
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const imgX = Math.round((x / rectWidth) * canvas.width);
-    const imgY = Math.round((y / rectHeight) * canvas.height);
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const pixelIndex = (imgY * imageData.width + imgX) * 4;
-    const pixel = imageData.data[pixelIndex];
-    console.log("pixel", pixel);
-    detectTrapezoids(imgX, imgY, ctx, options);
-  };
-  previousListener = listener;
-
-  canvas.addEventListener("click", listener);
-
+      const edgeData = canny(blurImageData, options);
+      //convert edgeData from uint8clampedarray to imageData
+      const newImageData = ctx.createImageData(canvas.width, canvas.height);
+      const pixels = new Uint8ClampedArray(canvas.width * canvas.height * 4);
+      for (let i = 0; i < edgeData.length; i += 1) {
+        pixels[i * 4] = edgeData[i] > 1 ? 255 : 0;
+        pixels[i * 4 + 1] = edgeData[i] > 1 ? 255 : 0;
+        pixels[i * 4 + 2] = edgeData[i] > 1 ? 255 : 0;
+        pixels[i * 4 + 3] = 255;
+      }
+      newImageData.data.set(pixels);
+      ctx.putImageData(newImageData, 0, 0);
+      res();
+    };
+    img.src = "/img/grab1.png";
+  });
   // when the edge data is drawn, prmpt user to click in the middle of trapezoids
   // then draw the trapezoids and find and draw connected trapezoids
   // user can click in middle of drawn trapezoid to delete it
@@ -259,7 +294,7 @@ function detectTrapezoids(
   ctx.stroke();
   ctx.closePath();
 
-  const lines = hough(square, options.squareSize, options.squareSize);
+  const lines = hough(square, options);
   const goodLines = pixelsPerLine(lines, square, options);
   // draw each line
   for (const line of goodLines) {
@@ -546,11 +581,12 @@ interface IHoughLine {
 
 function hough(
   data: Uint8ClampedArray,
-  width: number,
-  height: number,
+  options: Options,
   thetaStep = Math.PI / 180
 ): LineSegment[] {
   // Calculate the maximum possible distance in the image
+  const width = options.squareSize;
+  const height = options.squareSize;
   const maxDistance = Math.ceil(Math.sqrt(width * width + height * height));
 
   // Create an accumulator array
@@ -602,7 +638,7 @@ function hough(
       }
     }
   }
-  const threshold = maxVotes * 0.65;
+  const threshold = maxVotes * options.houghVoteThreshold;
   for (let theta = 0; theta < 180; theta += thetaStep) {
     for (let r = 0; r < maxDistance * 2; r++) {
       const votes = accumulator[Math.floor(theta / thetaStep)][r];
@@ -627,13 +663,14 @@ function hough(
       }
     }
   }
-  return CartesionLines(lines, width, height);
+  return CartesionLines(lines, width, height, options);
 }
 
 function CartesionLines(
   lines: IHoughLine[],
   width: number,
-  height: number
+  height: number,
+  options: Options
 ): LineSegment[] {
   const cartesionLines: LineSegment[] = [];
   for (let i = 0; i < lines.length; i++) {
@@ -668,10 +705,10 @@ function CartesionLines(
     }
     cartesionLines.push({ theta, r, x1: y1, y1: x1, x2: y2, y2: x2 });
   }
-  return Merge(cartesionLines);
+  return Merge(cartesionLines, options);
 }
 
-function Merge(lines: LineSegment[]): LineSegment[] {
+function Merge(lines: LineSegment[], options: Options): LineSegment[] {
   // add weighted average of lines with similar theta
   const mergedLines: LineSegment[] = [];
   for (let i = 0; i < lines.length; i++) {
@@ -679,7 +716,9 @@ function Merge(lines: LineSegment[]): LineSegment[] {
     let merged = false;
     for (let j = 0; j < mergedLines.length; j++) {
       const mergedLine = mergedLines[j];
-      if (Math.abs(line.theta - mergedLine.theta) < 1) {
+      if (
+        Math.abs(line.theta - mergedLine.theta) < options.mergeThetaThreshold
+      ) {
         mergedLine.x1 = Math.round((line.x1 + mergedLine.x1) / 2);
         mergedLine.y1 = Math.round((line.y1 + mergedLine.y1) / 2);
         mergedLine.x2 = Math.round((line.x2 + mergedLine.x2) / 2);
