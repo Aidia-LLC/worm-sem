@@ -12,10 +12,11 @@ const Param = (props: {
 
   return (
     <div class="flex flex-row items-center gap-2">
-      <label class="font-bold text-lg">{props.label}</label>
+      <label class="font-bold">{props.label}</label>
       <input
         type="number"
         value={props.value}
+        class="w-full"
         ref={inputRef}
         onChange={(e) => setCurrentValue(parseFloat(e.currentTarget.value))}
       />
@@ -45,9 +46,17 @@ const KernelParam = (props: {
   let edges!: HTMLInputElement;
   let center!: HTMLInputElement;
 
+  const changed = () => {
+    return (
+      cornerVal() !== props.values[0] ||
+      edgeVal() !== props.values[1] ||
+      centerVal() !== props.values[2]
+    );
+  };
+
   return (
     <div class="flex flex-row items-center gap-2">
-      <label class="font-bold text-lg">Gaussian Kernel</label>
+      <label class="font-bold">Gaussian Kernel</label>
       <div class="grid grid-cols-3 gap-2">
         {Array.from({ length: 9 }).map((_, index) => {
           if (index === 0 || index === 1 || index === 4) {
@@ -85,13 +94,18 @@ const KernelParam = (props: {
           );
         })}
       </div>
-      <Button
+      <button
         onClick={() => {
           props.onChange([cornerVal(), edgeVal(), centerVal()]);
         }}
+        class="text-white font-bold py-2 px-4 rounded"
+        classList={{
+          "bg-orange-500 hover:bg-orange-700": changed(),
+          "bg-blue-500 hover:bg-blue-700": !changed(),
+        }}
       >
         Set
-      </Button>
+      </button>
     </div>
   );
 };
@@ -162,54 +176,56 @@ export const Canvas = () => {
   });
 
   return (
-    <div class="flex flex-col gap-3">
-      <h3 class="font-bold text-xl mt-4 mx-4">Canvas2</h3>
-      <Param
-        label="Square Size"
-        value={squareSize()}
-        onChange={setSquareSize}
-      />
+    <div class="flex flex-col gap-3 text-xs">
+      <h3 class="font-bold text-xl mt-4">Canvas</h3>
+      <div class="grid grid-cols-2 gap-3">
+        <Param
+          label="Square Size"
+          value={squareSize()}
+          onChange={setSquareSize}
+        />
+        <Param
+          label="Min Neighbors for Noise Reduction"
+          value={minNeighborsForNoiseReduction()}
+          onChange={setMinNeighborsForNoiseReduction}
+        />
+        <Param
+          label="Hysteresis Low"
+          value={hysteresisLow()}
+          onChange={setHysteresisLow}
+        />
+        <Param
+          label="Hysteresis High"
+          value={hysteresisHigh()}
+          onChange={setHysteresisHigh}
+        />
+        <Param
+          label="Hough Vote Threshold"
+          value={houghVoteThreshold()}
+          onChange={setHoughVoteThreshold}
+        />
+        <Param
+          label="Merge Theta Threshold"
+          value={mergeThetaThreshold()}
+          onChange={setMergeThetaThreshold}
+        />
+        <Param
+          label="Grayscale % from Red"
+          value={grayscaleRed()}
+          onChange={setGrayscaleRed}
+        />
+        <Param
+          label="Grayscale % from Green"
+          value={grayscaleGreen()}
+          onChange={setGrayscaleGreen}
+        />
+        <Param
+          label="Grayscale % from Blue"
+          value={grayscaleBlue()}
+          onChange={setGrayscaleBlue}
+        />
+      </div>
       <KernelParam values={gaussianKernel()} onChange={setGaussianKernel} />
-      <Param
-        label="Hysteresis High"
-        value={hysteresisHigh()}
-        onChange={setHysteresisHigh}
-      />
-      <Param
-        label="Hysteresis Low"
-        value={hysteresisLow()}
-        onChange={setHysteresisLow}
-      />
-      <Param
-        label="Grayscale % from Red"
-        value={grayscaleRed()}
-        onChange={setGrayscaleRed}
-      />
-      <Param
-        label="Grayscale % from Green"
-        value={grayscaleGreen()}
-        onChange={setGrayscaleGreen}
-      />
-      <Param
-        label="Grayscale % from Blue"
-        value={grayscaleBlue()}
-        onChange={setGrayscaleBlue}
-      />
-      <Param
-        label="Min Neighbors for Noise Reduction"
-        value={minNeighborsForNoiseReduction()}
-        onChange={setMinNeighborsForNoiseReduction}
-      />
-      <Param
-        label="Hough Vote Threshold"
-        value={houghVoteThreshold()}
-        onChange={setHoughVoteThreshold}
-      />
-      <Param
-        label="Merge Theta Threshold"
-        value={mergeThetaThreshold()}
-        onChange={setMergeThetaThreshold}
-      />
       <Button onClick={() => setRefresh(refresh() + 1)}>Refresh</Button>
       <canvas ref={canvasRef} id="canvas" width="1000" height="1000"></canvas>
     </div>
