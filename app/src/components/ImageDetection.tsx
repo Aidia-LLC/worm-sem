@@ -39,10 +39,9 @@ export const setupCanvas2 = (canvas: HTMLCanvasElement) => {
     const y = e.clientY - rect.top;
     const imgX = Math.round((x / rectWidth) * canvas.width);
     const imgY = Math.round((y / rectHeight) * canvas.height);
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const pixelIndex = (imgY * imageData.width + imgX) * 4;
-    const pixel = imageData.data[pixelIndex];
-    console.log("pixel", pixel);
+    // const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    // const pixelIndex = (imgY * imageData.width + imgX) * 4;
+
     detectTrapezoids(imgX, imgY, ctx);
   });
 
@@ -110,6 +109,11 @@ function getSquare(fullImage: ImageData, x: number, y: number, size: number) {
   for (let i = startX; i < endX; i += 1) {
     for (let j = startY; j < endY; j += 1) {
       const pixelIndex = (j * width + i) * 4;
+      // if within 10 pixels to x, y push as value of 0
+      // if (Math.abs(i - x) < 10 && Math.abs(j - y) < 10) {
+      //   square.push(0);
+      //   continue;
+      // }
       square.push(imageData[pixelIndex]);
     }
   }
@@ -447,27 +451,29 @@ function CartesionLines(
 }
 
 function Merge(lines: LineSegment[]): LineSegment[] {
-  // add weighted average of lines with similar theta
-  const mergedLines: LineSegment[] = [];
+  const distance = 15
+  const mergedLines: (LineSegment & {count: number})[] = [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     let merged = false;
     for (let j = 0; j < mergedLines.length; j++) {
       const mergedLine = mergedLines[j];
-      if (Math.abs(line.theta - mergedLine.theta) < 1) {
-        mergedLine.x1 = Math.round((line.x1 + mergedLine.x1) / 2);
-        mergedLine.y1 = Math.round((line.y1 + mergedLine.y1) / 2);
-        mergedLine.x2 = Math.round((line.x2 + mergedLine.x2) / 2);
-        mergedLine.y2 = Math.round((line.y2 + mergedLine.y2) / 2);
+      if (Math.sqrt((line.x1 - mergedLine.x1) ** 2 + (line.y1 - mergedLine.y1)**2) < distance && Math.sqrt((line.x2 - mergedLine.x2) ** 2 + (line.y2 - mergedLine.y2)**2) < distance) {
+        console.log('merging', line, mergedLine)
+        const count = mergedLine.count || 1;
+        mergedLine.x1 = Math.round((line.x1 + mergedLine.x1 * count) / (1 + count));
+        mergedLine.y1 = Math.round((line.y1 + mergedLine.y1 * count) / (1 + count));
+        mergedLine.x2 = Math.round((line.x2 + mergedLine.x2 * count) / (1 + count));
+        mergedLine.y2 = Math.round((line.y2 + mergedLine.y2 * count) / (1 + count));
         merged = true;
         break;
       }
     }
     if (!merged) {
-      mergedLines.push(line);
+      mergedLines.push({...line, count: 1});
     }
   }
-  return lines;
+  return mergedLines;
 }
 
 function pixelsPerLine(
@@ -494,12 +500,10 @@ function pixelsPerLine(
       x += xStep;
       y += yStep;
     }
-    if (pixels > 10) {
-      goodLines.push(line);
-      console.log({ pixels, line, ratio: pixels / length });
-    }
+    goodLines.push({...line, pixels});
   }
-  return goodLines;
+  const maxPixels = Math.max(...goodLines.map(line => line.pixels));
+  return goodLines.filter(line => line.pixels > maxPixels * .35);
 }
 
 type LineSegment = {
