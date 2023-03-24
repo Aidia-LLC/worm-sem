@@ -8,6 +8,13 @@ const Param = (props: {
 }) => {
   const [currentValue, setCurrentValue] = createSignal(props.value);
 
+  createEffect(() => {
+    const propValue = props.value;
+    untrack(() => {
+      if (propValue !== currentValue()) setCurrentValue(props.value);
+    });
+  });
+
   let inputRef!: HTMLInputElement;
 
   return (
@@ -45,6 +52,15 @@ const KernelParam = (props: {
   let corners!: HTMLInputElement;
   let edges!: HTMLInputElement;
   let center!: HTMLInputElement;
+
+  createEffect(() => {
+    const [latestCorner, latestEdge, latestCenter] = props.values;
+    untrack(() => {
+      if (latestCorner !== cornerVal()) setCornerVal(props.values[0]);
+      if (latestEdge !== edgeVal()) setEdgeVal(props.values[1]);
+      if (latestCenter !== centerVal()) setCenterVal(props.values[2]);
+    });
+  });
 
   const changed = () => {
     return (
@@ -110,23 +126,50 @@ const KernelParam = (props: {
   );
 };
 
+const defaultOptions: Options = {
+  squareSize: 100,
+  gaussianKernel: [1 / 16, 1 / 8, 1 / 4],
+  hysteresisHigh: 0.1,
+  hysteresisLow: 0.03,
+  grayscaleRed: 0.2126,
+  grayscaleGreen: 0.7152,
+  grayscaleBlue: 0.0722,
+  minNeighborsForNoiseReduction: 5,
+  houghVoteThreshold: 0.65,
+  mergeThetaThreshold: 1,
+};
+
 export const Canvas = () => {
   let canvasRef!: HTMLCanvasElement;
 
   const [refresh, setRefresh] = createSignal(0);
-  const [squareSize, setSquareSize] = createSignal(100);
+  const [squareSize, setSquareSize] = createSignal(defaultOptions.squareSize);
   const [gaussianKernel, setGaussianKernel] = createSignal<
     [number, number, number]
-  >([1 / 16, 1 / 8, 1 / 4]);
-  const [hysteresisHigh, setHysteresisHigh] = createSignal(0.1);
-  const [hysteresisLow, setHysteresisLow] = createSignal(0.03);
-  const [grayscaleRed, setGrayscaleRed] = createSignal(0.2126);
-  const [grayscaleGreen, setGrayscaleGreen] = createSignal(0.7152);
-  const [grayscaleBlue, setGrayscaleBlue] = createSignal(0.0722);
+  >(defaultOptions.gaussianKernel);
+  const [hysteresisHigh, setHysteresisHigh] = createSignal(
+    defaultOptions.hysteresisHigh
+  );
+  const [hysteresisLow, setHysteresisLow] = createSignal(
+    defaultOptions.hysteresisLow
+  );
+  const [grayscaleRed, setGrayscaleRed] = createSignal(
+    defaultOptions.grayscaleRed
+  );
+  const [grayscaleGreen, setGrayscaleGreen] = createSignal(
+    defaultOptions.grayscaleGreen
+  );
+  const [grayscaleBlue, setGrayscaleBlue] = createSignal(
+    defaultOptions.grayscaleBlue
+  );
   const [minNeighborsForNoiseReduction, setMinNeighborsForNoiseReduction] =
-    createSignal(5);
-  const [houghVoteThreshold, setHoughVoteThreshold] = createSignal(0.65);
-  const [mergeThetaThreshold, setMergeThetaThreshold] = createSignal(1);
+    createSignal(defaultOptions.minNeighborsForNoiseReduction);
+  const [houghVoteThreshold, setHoughVoteThreshold] = createSignal(
+    defaultOptions.houghVoteThreshold
+  );
+  const [mergeThetaThreshold, setMergeThetaThreshold] = createSignal(
+    defaultOptions.mergeThetaThreshold
+  );
   const [points, setPoints] = createSignal<[number, number][]>([]);
 
   const options = () => ({
@@ -178,6 +221,24 @@ export const Canvas = () => {
   return (
     <div class="flex flex-col gap-3 text-xs">
       <h3 class="font-bold text-xl mt-4">Canvas</h3>
+      <Button
+        onClick={() => {
+          setSquareSize(defaultOptions.squareSize);
+          setGaussianKernel(defaultOptions.gaussianKernel);
+          setHysteresisHigh(defaultOptions.hysteresisHigh);
+          setHysteresisLow(defaultOptions.hysteresisLow);
+          setGrayscaleRed(defaultOptions.grayscaleRed);
+          setGrayscaleGreen(defaultOptions.grayscaleGreen);
+          setGrayscaleBlue(defaultOptions.grayscaleBlue);
+          setMinNeighborsForNoiseReduction(
+            defaultOptions.minNeighborsForNoiseReduction
+          );
+          setHoughVoteThreshold(defaultOptions.houghVoteThreshold);
+          setMergeThetaThreshold(defaultOptions.mergeThetaThreshold);
+        }}
+      >
+        Reset Parameters
+      </Button>
       <div class="grid grid-cols-2 gap-3">
         <Param
           label="Square Size"
@@ -226,10 +287,14 @@ export const Canvas = () => {
         />
       </div>
       <KernelParam values={gaussianKernel()} onChange={setGaussianKernel} />
-      <Button onClick={() => {
-        setPoints([]);
-        setRefresh(refresh() + 1)
-      }}>Clear</Button>
+      <Button
+        onClick={() => {
+          setPoints([]);
+          setRefresh(refresh() + 1);
+        }}
+      >
+        Clear Squares
+      </Button>
       <canvas ref={canvasRef} id="canvas" width="1000" height="1000"></canvas>
     </div>
   );
