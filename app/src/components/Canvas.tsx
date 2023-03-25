@@ -129,14 +129,17 @@ const KernelParam = (props: {
 const defaultOptions: Options = {
   squareSize: 100,
   gaussianKernel: [1 / 16, 1 / 8, 1 / 4],
-  hysteresisHigh: 0.1,
-  hysteresisLow: 0.03,
+  hysteresisHigh: 0.075,
+  hysteresisLow: 0.0275,
   grayscaleRed: 0.2126,
   grayscaleGreen: 0.7152,
   grayscaleBlue: 0.0722,
-  minNeighborsForNoiseReduction: 5,
+  minNeighborsForNoiseReduction: 6,
   houghVoteThreshold: 0.65,
-  mergeThetaThreshold: 1,
+  mergeThetaThreshold: 10,
+  pixelThreshold: 0.35,
+  maxLines: 6,
+  noiseReductionIterations: 15,
 };
 
 export const Canvas = () => {
@@ -170,6 +173,13 @@ export const Canvas = () => {
   const [mergeThetaThreshold, setMergeThetaThreshold] = createSignal(
     defaultOptions.mergeThetaThreshold
   );
+  const [pixelThreshold, setPixelThreshold] = createSignal(
+    defaultOptions.pixelThreshold
+  );
+  const [noiseReductionIterations, setNoiseReductionIterations] = createSignal(
+    defaultOptions.noiseReductionIterations
+  );
+  const [maxLines, setMaxLines] = createSignal(defaultOptions.maxLines);
   const [points, setPoints] = createSignal<[number, number][]>([]);
 
   const options = () => ({
@@ -183,6 +193,9 @@ export const Canvas = () => {
     minNeighborsForNoiseReduction: minNeighborsForNoiseReduction(),
     houghVoteThreshold: houghVoteThreshold(),
     mergeThetaThreshold: mergeThetaThreshold(),
+    pixelThreshold: pixelThreshold(),
+    maxLines: maxLines(),
+    noiseReductionIterations: noiseReductionIterations(),
   });
 
   const handleClick = (e: MouseEvent) => {
@@ -235,6 +248,9 @@ export const Canvas = () => {
           );
           setHoughVoteThreshold(defaultOptions.houghVoteThreshold);
           setMergeThetaThreshold(defaultOptions.mergeThetaThreshold);
+          setPixelThreshold(defaultOptions.pixelThreshold);
+          setMaxLines(defaultOptions.maxLines);
+          setNoiseReductionIterations(defaultOptions.noiseReductionIterations);
         }}
       >
         Reset Parameters
@@ -269,6 +285,21 @@ export const Canvas = () => {
           label="Merge Theta Threshold"
           value={mergeThetaThreshold()}
           onChange={setMergeThetaThreshold}
+        />
+        <Param
+          label="Pixels Per Line Percentage Threshold"
+          value={pixelThreshold()}
+          onChange={setPixelThreshold}
+        />
+        <Param
+          label="Max Lines Per Square"
+          value={maxLines()}
+          onChange={setMaxLines}
+        />
+        <Param
+          label="Noise Reduction Iterations"
+          value={noiseReductionIterations()}
+          onChange={setNoiseReductionIterations}
         />
         <Param
           label="Grayscale % from Red"
@@ -311,6 +342,9 @@ type Options = {
   minNeighborsForNoiseReduction: number;
   houghVoteThreshold: number;
   mergeThetaThreshold: number;
+  pixelThreshold: number;
+  maxLines: number;
+  noiseReductionIterations: number;
 };
 
 export const setupCanvas = (
@@ -348,6 +382,17 @@ export const setupCanvas = (
       }
       newImageData.data.set(pixels);
       ctx.putImageData(newImageData, 0, 0);
+      colorPixelsByDensity(ctx, canvas, options)
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data.filter((_, i) => i % 4 === 0);
+      const betterData = ConnectStrongEdges2(data, canvas.width, canvas.height);
+      const betterStuff = new Uint8ClampedArray(canvas.width * canvas.height * 4);
+      for (let i = 0; i < betterData.length; i += 1) {
+        betterStuff[i * 4] = betterData[i] > 1 ? 255 : 0;
+        betterStuff[i * 4 + 1] = betterData[i] > 1 ? 255 : 0;
+        betterStuff[i * 4 + 2] = betterData[i] > 1 ? 255 : 0;
+        betterStuff[i * 4 + 3] = 255;
+      }
+      newImageData.data.set(betterStuff);
       res();
     };
     img.src = "/img/grab1.png";
@@ -356,6 +401,32 @@ export const setupCanvas = (
   // then draw the trapezoids and find and draw connected trapezoids
   // user can click in middle of drawn trapezoid to delete it
 };
+
+function colorPixelsByDensity(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, options: Options) {
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  // loop through every 5 pixels, scan a 5x5 square around it
+  for (let x = 0; x < canvas.width; x += 2) {
+    for (let y = 0; y < canvas.height; y += 2) {
+      const square = getSquare(imageData, Math.round(x), y, 16);
+      const edgePixels = square.filter((pixel) => pixel > 1).length;
+      const density = edgePixels / (16*16);
+      if (density > 0.3) {
+        // set pixels in the actual image to 0
+        for (let i = 0; i < 16; i++) {
+          for (let j = 0; j < 16; j++) {
+            const index = ((y - 8 + i) * canvas.width + x - 8 + j) * 4;
+            imageData.data[index] = 0;
+            imageData.data[index + 1] = 0;
+            imageData.data[index + 2] = 0;
+            imageData.data[index + 3] = 255;
+          }
+        }
+      }
+    }
+  }
+  ctx.putImageData(imageData, 0, 0);
+}
+
 
 function detectTrapezoids(
   x: number,
@@ -394,8 +465,8 @@ function detectTrapezoids(
     ctx.strokeStyle = "red";
     ctx.stroke();
   }
-  // const vertices = computeVertices(lines);
-  // drawVertices(vertices, ctx, x - options.squareSize / 2, y - options.squareSize / 2);
+  const vertices = computeVertices(lines);
+  drawVertices(vertices, ctx, x - options.squareSize / 2, y - options.squareSize / 2);
 
   // const trapezoids = computeTrapezoids(lineGroups, ctx);
   // console.log("trapezoids", trapezoids);
@@ -608,20 +679,22 @@ function RemoveNoise(
   options: Options
 ): Uint8ClampedArray {
   const data = edgeData;
-  for (let x = 1; x < width - 1; x++) {
-    for (let y = 1; y < height - 1; y++) {
-      const i = y * width + x;
-      if (data[i] === 255) {
-        let count = 0;
-        for (let ky = -2; ky <= 2; ky++) {
-          for (let kx = -2; kx <= 2; kx++) {
-            if (data[(y + ky) * width + x + kx] === 255) {
-              count++;
+  for (let t = 0; t < options.noiseReductionIterations; t++) {
+    for (let x = 1; x < width - 1; x++) {
+      for (let y = 1; y < height - 1; y++) {
+        const i = y * width + x;
+        if (data[i] === 255) {
+          let count = 0;
+          for (let ky = -2; ky <= 2; ky++) {
+            for (let kx = -2; kx <= 2; kx++) {
+              if (data[(y + ky) * width + x + kx] === 255) {
+                count++;
+              }
             }
           }
-        }
-        if (count < options.minNeighborsForNoiseReduction) {
-          data[i] = 0;
+          if (count < options.minNeighborsForNoiseReduction) {
+            data[i] = 0;
+          }
         }
       }
     }
@@ -635,28 +708,88 @@ function ConnectStrongEdges(
   height: number
 ): Uint8ClampedArray {
   const data = edgeData;
-  for (let x = 1; x < width - 1; x++) {
-    for (let y = 1; y < height - 1; y++) {
-      const i = y * width + x;
-      if (data[i] === 255) {
-        // Check if any neighbors 2 away are strong edges, if so make pixel in between a strong edge
-        if (data[(y + 2) * width + x] === 255) {
-          data[(y + 1) * width + x] = 255;
-        }
-        if (data[(y - 2) * width + x] === 255) {
-          data[(y - 1) * width + x] = 255;
-        }
-        if (data[y * width + x + 2] === 255) {
-          data[y * width + x + 1] = 255;
-        }
-        if (data[y * width + x - 2] === 255) {
-          data[y * width + x - 1] = 255;
+  for (let t = 0; t < 2; t++) {
+    for (let x = 1; x < width - 1; x++) {
+      for (let y = 1; y < height - 1; y++) {
+        const i = y * width + x;
+        if (data[i] === 255) {
+          // Check if any neighbors 2 away are strong edges, if so make pixel in between a strong edge
+          if (data[(y + 2) * width + x] === 255) {
+            data[(y + 1) * width + x] = 255;
+          }
+          if (data[(y - 2) * width + x] === 255) {
+            data[(y - 1) * width + x] = 255;
+          }
+          if (data[y * width + x + 2] === 255) {
+            data[y * width + x + 1] = 255;
+          }
+          if (data[y * width + x - 2] === 255) {
+            data[y * width + x - 1] = 255;
+          }
+          // check diagonals
+          if (data[(y + 2) * width + x + 2] === 255) {
+            data[(y + 1) * width + x + 1] = 255;
+          }
+          if (data[(y + 2) * width + x - 2] === 255) {
+            data[(y + 1) * width + x - 1] = 255;
+          }
+          if (data[(y - 2) * width + x + 2] === 255) {
+            data[(y - 1) * width + x + 1] = 255;
+          }
+          if (data[(y - 2) * width + x - 2] === 255) {
+            data[(y - 1) * width + x - 1] = 255;
+          }
         }
       }
     }
   }
-  return edgeData;
+  return edgeData
 }
+
+function ConnectStrongEdges2(
+  edgeData: Uint8ClampedArray,
+  width: number,
+  height: number
+): Uint8ClampedArray {
+  const data = edgeData;
+  for (let t = 0; t < 2; t++) {
+    for (let x = 1; x < width - 1; x++) {
+      for (let y = 1; y < height - 1; y++) {
+        const i = y * width + x;
+        if (data[i] === 255) {
+          // Check if any neighbors 2 away are strong edges, if so make pixel in between a strong edge
+          if (data[(y + 2) * width + x] === 255) {
+            data[(y + 1) * width + x] = 255;
+          }
+          if (data[(y - 2) * width + x] === 255) {
+            data[(y - 1) * width + x] = 255;
+          }
+          if (data[y * width + x + 2] === 255) {
+            data[y * width + x + 1] = 255;
+          }
+          if (data[y * width + x - 2] === 255) {
+            data[y * width + x - 1] = 255;
+          }
+          // check diagonals
+          if (data[(y + 2) * width + x + 2] === 255) {
+            data[(y + 1) * width + x + 1] = 255;
+          }
+          if (data[(y + 2) * width + x - 2] === 255) {
+            data[(y + 1) * width + x - 1] = 255;
+          }
+          if (data[(y - 2) * width + x + 2] === 255) {
+            data[(y - 1) * width + x + 1] = 255;
+          }
+          if (data[(y - 2) * width + x - 2] === 255) {
+            data[(y - 1) * width + x - 1] = 255;
+          }
+        }
+      }
+    }
+  }
+  return edgeData
+}
+
 
 interface IHoughLine {
   theta: number;
@@ -794,28 +927,27 @@ function CartesionLines(
 
 function Merge(lines: LineSegment[], options: Options): LineSegment[] {
   // add weighted average of lines with similar theta
-  const mergedLines: LineSegment[] = [];
+  const mergedLines: (LineSegment & {count: number})[] = [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     let merged = false;
     for (let j = 0; j < mergedLines.length; j++) {
       const mergedLine = mergedLines[j];
-      if (
-        Math.abs(line.theta - mergedLine.theta) < options.mergeThetaThreshold
-      ) {
-        mergedLine.x1 = Math.round((line.x1 + mergedLine.x1) / 2);
-        mergedLine.y1 = Math.round((line.y1 + mergedLine.y1) / 2);
-        mergedLine.x2 = Math.round((line.x2 + mergedLine.x2) / 2);
-        mergedLine.y2 = Math.round((line.y2 + mergedLine.y2) / 2);
+      if (Math.sqrt((line.x1 - mergedLine.x1) ** 2 + (line.y1 - mergedLine.y1)**2) < options.mergeThetaThreshold && Math.sqrt((line.x2 - mergedLine.x2) ** 2 + (line.y2 - mergedLine.y2)**2) < options.mergeThetaThreshold) {
+        const count = mergedLine.count || 1;
+        mergedLine.x1 = Math.round((line.x1 + mergedLine.x1 * count) / (1 + count));
+        mergedLine.y1 = Math.round((line.y1 + mergedLine.y1 * count) / (1 + count));
+        mergedLine.x2 = Math.round((line.x2 + mergedLine.x2 * count) / (1 + count));
+        mergedLine.y2 = Math.round((line.y2 + mergedLine.y2 * count) / (1 + count));
         merged = true;
         break;
       }
     }
     if (!merged) {
-      mergedLines.push(line);
+      mergedLines.push({...line, count: 1});
     }
   }
-  return lines;
+  return mergedLines;
 }
 
 function pixelsPerLine(
@@ -834,20 +966,25 @@ function pixelsPerLine(
     const yStep = dy / length;
     let x = line.x1;
     let y = line.y1;
+    let firstPixel: number[] = []
+    let lastPixel: number[] = [];
     let pixels = 0;
     for (let j = 0; j < length; j++) {
-      if (data[Math.round(y) * options.squareSize + Math.round(x)] === 255) {
+      if (data[Math.round(y) * options.squareSize + Math.round(x)] === 255 || data[Math.round(y) * options.squareSize + Math.round(x + 1)] === 255 || data[Math.round(y) * options.squareSize + Math.round(x - 1)] === 255 || data[Math.round(y + 1) * options.squareSize + Math.round(x)] === 255 || data[Math.round(y - 1) * options.squareSize + Math.round(x)] === 255) {
+        if (firstPixel.length === 0) {
+          firstPixel = [x, y];
+        }
+        lastPixel = [x, y];
         pixels++;
       }
       x += xStep;
       y += yStep;
     }
-    if (pixels > 10) {
-      goodLines.push(line);
-      console.log({ pixels, line, ratio: pixels / length });
-    }
+    goodLines.push({...line, pixels, x1: firstPixel[0], y1: firstPixel[1], x2: lastPixel[0], y2: lastPixel[1], length: Math.sqrt((lastPixel[0] - firstPixel[0]) ** 2 + (lastPixel[1] - firstPixel[1]) ** 2)});
   }
-  return goodLines;
+  const maxPixels = Math.max(...goodLines.map(line => line.pixels));
+  return goodLines.filter(line => line.pixels > maxPixels * options.pixelThreshold && line.length > options.squareSize * 0.25).sort((a,b) => a.pixels - b.pixels).slice(0, options.maxLines);
+  // return goodLines.filter(line => line.pixels > maxPixels * options.pixelThreshold).sort((a,b) => a.pixels - b.pixels).slice(0, options.maxLines);
 }
 
 type LineSegment = {
