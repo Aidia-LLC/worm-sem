@@ -127,13 +127,10 @@ const KernelParam = (props: {
 };
 
 const defaultOptions: Options = {
-  squareSize: 100,
+  squareSize: 90,
   gaussianKernel: [1 / 16, 1 / 8, 1 / 4],
   hysteresisHigh: 0.075,
   hysteresisLow: 0.0275,
-  grayscaleRed: 0.2126,
-  grayscaleGreen: 0.7152,
-  grayscaleBlue: 0.0722,
   minNeighborsForNoiseReduction: 6,
   houghVoteThreshold: 0.65,
   mergeThetaThreshold: 10,
@@ -155,15 +152,6 @@ export const Canvas = () => {
   );
   const [hysteresisLow, setHysteresisLow] = createSignal(
     defaultOptions.hysteresisLow
-  );
-  const [grayscaleRed, setGrayscaleRed] = createSignal(
-    defaultOptions.grayscaleRed
-  );
-  const [grayscaleGreen, setGrayscaleGreen] = createSignal(
-    defaultOptions.grayscaleGreen
-  );
-  const [grayscaleBlue, setGrayscaleBlue] = createSignal(
-    defaultOptions.grayscaleBlue
   );
   const [minNeighborsForNoiseReduction, setMinNeighborsForNoiseReduction] =
     createSignal(defaultOptions.minNeighborsForNoiseReduction);
@@ -187,9 +175,6 @@ export const Canvas = () => {
     gaussianKernel: gaussianKernel(),
     hysteresisHigh: hysteresisHigh(),
     hysteresisLow: hysteresisLow(),
-    grayscaleRed: grayscaleRed(),
-    grayscaleGreen: grayscaleGreen(),
-    grayscaleBlue: grayscaleBlue(),
     minNeighborsForNoiseReduction: minNeighborsForNoiseReduction(),
     houghVoteThreshold: houghVoteThreshold(),
     mergeThetaThreshold: mergeThetaThreshold(),
@@ -207,10 +192,6 @@ export const Canvas = () => {
     const y = e.clientY - rect.top;
     const imgX = Math.round((x / rectWidth) * canvasRef.width);
     const imgY = Math.round((y / rectHeight) * canvasRef.height);
-    const imageData = ctx.getImageData(0, 0, canvasRef.width, canvasRef.height);
-    const pixelIndex = (imgY * imageData.width + imgX) * 4;
-    const pixel = imageData.data[pixelIndex];
-    console.log("pixel", pixel);
     setPoints([...points(), [imgX, imgY]]);
     detectTrapezoids(imgX, imgY, ctx, options());
   };
@@ -222,7 +203,6 @@ export const Canvas = () => {
     await setupCanvas(canvasRef, o);
     untrack(() => {
       const ctx = canvasRef.getContext("2d")!;
-      console.log("points", points());
       for (const [x, y] of points()) detectTrapezoids(x, y, ctx, o);
     });
   });
@@ -240,9 +220,6 @@ export const Canvas = () => {
           setGaussianKernel(defaultOptions.gaussianKernel);
           setHysteresisHigh(defaultOptions.hysteresisHigh);
           setHysteresisLow(defaultOptions.hysteresisLow);
-          setGrayscaleRed(defaultOptions.grayscaleRed);
-          setGrayscaleGreen(defaultOptions.grayscaleGreen);
-          setGrayscaleBlue(defaultOptions.grayscaleBlue);
           setMinNeighborsForNoiseReduction(
             defaultOptions.minNeighborsForNoiseReduction
           );
@@ -301,21 +278,6 @@ export const Canvas = () => {
           value={noiseReductionIterations()}
           onChange={setNoiseReductionIterations}
         />
-        <Param
-          label="Grayscale % from Red"
-          value={grayscaleRed()}
-          onChange={setGrayscaleRed}
-        />
-        <Param
-          label="Grayscale % from Green"
-          value={grayscaleGreen()}
-          onChange={setGrayscaleGreen}
-        />
-        <Param
-          label="Grayscale % from Blue"
-          value={grayscaleBlue()}
-          onChange={setGrayscaleBlue}
-        />
       </div>
       <KernelParam values={gaussianKernel()} onChange={setGaussianKernel} />
       <Button
@@ -336,9 +298,6 @@ type Options = {
   gaussianKernel: [number, number, number];
   hysteresisHigh: number;
   hysteresisLow: number;
-  grayscaleRed: number;
-  grayscaleGreen: number;
-  grayscaleBlue: number;
   minNeighborsForNoiseReduction: number;
   houghVoteThreshold: number;
   mergeThetaThreshold: number;
@@ -362,15 +321,17 @@ export const setupCanvas = (
       canvas.height = img.height;
       ctx.drawImage(img, 0, 0);
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const grayImageData = grayscale(imageData, options, ctx);
-      // console.log("grayImageData", grayImageData);
+      const grayImageData = grayscale(imageData, ctx);
+
       //Apply a gausian blur
       const blurImageData1 = gaussianBlur(grayImageData, ctx, options);
       const blurImageData = gaussianBlur(blurImageData1, ctx, options);
 
       ctx.putImageData(blurImageData, 0, 0);
 
-      const edgeData = canny(blurImageData, options);
+      const Noisy = canny(blurImageData, options);
+      const Weak = RemoveNoise(Noisy, blurImageData.width, blurImageData.height, options);
+      const edgeData = ConnectStrongEdges(Weak, blurImageData.width, blurImageData.height);
       //convert edgeData from uint8clampedarray to imageData
       const newImageData = ctx.createImageData(canvas.width, canvas.height);
       const pixels = new Uint8ClampedArray(canvas.width * canvas.height * 4);
@@ -382,7 +343,8 @@ export const setupCanvas = (
       }
       newImageData.data.set(pixels);
       ctx.putImageData(newImageData, 0, 0);
-      colorPixelsByDensity(ctx, canvas, options)
+      // This uses edge pixel density to remove the spots in the middle of the trapezoids
+      colorPixelsByDensity(ctx, canvas)
       const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data.filter((_, i) => i % 4 === 0);
       const betterData = ConnectStrongEdges2(data, canvas.width, canvas.height);
       const betterStuff = new Uint8ClampedArray(canvas.width * canvas.height * 4);
@@ -397,12 +359,9 @@ export const setupCanvas = (
     };
     img.src = "/img/grab1.png";
   });
-  // when the edge data is drawn, prmpt user to click in the middle of trapezoids
-  // then draw the trapezoids and find and draw connected trapezoids
-  // user can click in middle of drawn trapezoid to delete it
 };
 
-function colorPixelsByDensity(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, options: Options) {
+function colorPixelsByDensity(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   // loop through every 5 pixels, scan a 5x5 square around it
   for (let x = 0; x < canvas.width; x += 2) {
@@ -450,6 +409,7 @@ function detectTrapezoids(
   ctx.closePath();
 
   const lines = hough(square, options);
+
   const goodLines = pixelsPerLine(lines, square, options);
   // draw each line
   for (const line of goodLines) {
@@ -465,26 +425,50 @@ function detectTrapezoids(
     ctx.strokeStyle = "red";
     ctx.stroke();
   }
-  const vertices = computeVertices(lines);
-  drawVertices(vertices, ctx, x - options.squareSize / 2, y - options.squareSize / 2);
+  const vertices = computeVertices(goodLines).map((vertex) => ({x: vertex.x + x - options.squareSize / 2, y: vertex.y + y - options.squareSize / 2}));
 
-  // const trapezoids = computeTrapezoids(lineGroups, ctx);
-  // console.log("trapezoids", trapezoids);
+  drawVertices(vertices, ctx);
+
+  const trapezoid = computeTrapezoid(vertices, ctx);
+  console.log("trapezoid", trapezoid);
   // drawTrapezoids(trapezoids, ctx);
   // const connectedTrapezoids = findConnectedTrapezoids(trapezoids, x, y);
   // console.log("connectedTrapezoids", connectedTrapezoids);
   // drawConnectedTrapezoids(connectedTrapezoids, ctx);
 }
 
+function computeTrapezoid(vertices: Vertex[], ctx: CanvasRenderingContext2D) {
+  if (vertices.length < 4) {
+    return [];
+  }
+  const sums = vertices.map((vertex) => vertex.x + vertex.y);
+  const topLeft = vertices[sums.indexOf(Math.min(...sums))];
+  const bottomRight = vertices[sums.indexOf(Math.max(...sums))];
+  const differences = vertices.map((vertex) => vertex.x - vertex.y);
+  const topRight = vertices[differences.indexOf(Math.max(...differences))];
+  const bottomLeft = vertices[differences.indexOf(Math.min(...differences))];
+
+  if (vertices.length === 4) {
+    ctx.beginPath();
+    ctx.moveTo(topLeft.x, topLeft.y);
+    ctx.lineTo(topRight.x, topRight.y);
+    ctx.lineTo(bottomRight.x, bottomRight.y);
+    ctx.lineTo(bottomLeft.x, bottomLeft.y);
+    ctx.lineTo(topLeft.x, topLeft.y);
+    ctx.strokeStyle = "red";
+    ctx.stroke();
+  }
+  return {top: {x1: topLeft.x, y1: topLeft.y, x2: topRight.x, y2: topRight.y}, bottom: {x1: bottomLeft.x, y1: bottomLeft.y, x2: bottomRight.x, y2: bottomRight.y}, left: {x1: topLeft.x, y1: topLeft.y, x2: bottomLeft.x, y2: bottomLeft.y}, right: {x1: topRight.x, y1: topRight.y, x2: bottomRight.x, y2: bottomRight.y}};
+}
+
+
 function drawVertices(
   vertices: Vertex[],
   ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number
 ) {
   for (const vertex of vertices) {
     ctx.beginPath();
-    ctx.arc(vertex.x + x, vertex.y + y, 5, 0, 2 * Math.PI);
+    ctx.arc(vertex.x, vertex.y, 5, 0, 2 * Math.PI);
     ctx.fillStyle = "red";
     ctx.fill();
     ctx.closePath();
@@ -519,7 +503,6 @@ function getSquare(fullImage: ImageData, x: number, y: number, size: number) {
 
 function grayscale(
   imageData: ImageData,
-  options: Options,
   ctx?: CanvasRenderingContext2D
 ) {
   // console.log("grayscale before", imageData);
@@ -534,9 +517,9 @@ function grayscale(
     const g = data[i + 1];
     const b = data[i + 2];
     const gray =
-      options.grayscaleRed * r +
-      options.grayscaleGreen * g +
-      options.grayscaleBlue * b;
+      .2126 * r +
+      .7152 * g +
+      .0722 * b;
     grayData[i] = gray;
     grayData[i + 1] = gray;
     grayData[i + 2] = gray;
@@ -669,7 +652,7 @@ function canny(grayImageData: ImageData, options: Options) {
       edgeData[i] = 0;
     }
   }
-  return RemoveNoise(edgeData, width, height, options);
+  return edgeData
 }
 
 function RemoveNoise(
@@ -699,7 +682,7 @@ function RemoveNoise(
       }
     }
   }
-  return ConnectStrongEdges(edgeData, width, height); // How much does this help?
+  return edgeData;
 }
 
 function ConnectStrongEdges(
@@ -1011,6 +994,11 @@ function computeVertices(lines: LineSegment[]) {
       }
     }
   }
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    vertices.push({ x: line.x1, y: line.y1 });
+    vertices.push({ x: line.x2, y: line.y2 });
+  }
   // Remove duplicates and similar points
   vertices = vertices.filter((vertex, index) => {
     for (let i = 0; i < index; i++) {
@@ -1022,7 +1010,6 @@ function computeVertices(lines: LineSegment[]) {
     }
     return true;
   });
-  console.log({ vertices });
   return vertices;
 }
 
