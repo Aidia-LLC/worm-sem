@@ -127,7 +127,7 @@ const KernelParam = (props: {
 };
 
 const defaultOptions: Options = {
-  squareSize: 80,
+  squareSize: 70,
   gaussianKernel: [1 / 16, 1 / 8, 1 / 4],
   hysteresisHigh: 0.075,
   hysteresisLow: 0.0275,
@@ -459,32 +459,68 @@ function detectTrapezoids(
   const trapezoid: Trapezoid = computeTrapezoid(vertices, ctx);
   const newTrapezoid = DirectSearchOptimization(getPointsOnTrapezoid, trapezoid, square, options, ctx, x, y);
   console.log([newTrapezoid])
-  ctx.beginPath();
-  ctx.moveTo(newTrapezoid.top.x1, newTrapezoid.top.y1);
-  ctx.lineTo(newTrapezoid.top.x2, newTrapezoid.top.y2);
-  ctx.lineTo(newTrapezoid.bottom.x2, newTrapezoid.bottom.y2);
-  ctx.lineTo(newTrapezoid.bottom.x1, newTrapezoid.bottom.y1);
-  ctx.lineTo(newTrapezoid.top.x1, newTrapezoid.top.y1);
-  ctx.strokeStyle = "red";
-  ctx.stroke();
-  ctx.rect(newTrapezoid.top.x1, newTrapezoid.top.y1, 2, 2);
-  ctx.rect(newTrapezoid.bottom.x1, newTrapezoid.bottom.y1, 2, 2);
-  ctx.rect(newTrapezoid.top.x2, newTrapezoid.top.y2, 2, 2);
-  ctx.rect(newTrapezoid.bottom.x2, newTrapezoid.bottom.y2, 2, 2);
-  ctx.fillStyle = "red";
-  ctx.fill();
-  ctx.closePath();
+  DrawTrapezoid(newTrapezoid, ctx);
 
-  // const test = RANSAC(ctx, getSquare(imageData, x, y - options.squareSize * .75, options.squareSize), calculateArea(trapezoid), options, x - options.squareSize / 2, y - (options.squareSize / 2) - options.squareSize * .75);
+  // const xShift = newTrapezoid.top.y1 - newTrapezoid.top.y2
+  // const yShift = Math.round((newTrapezoid.top.y1 + newTrapezoid.top.y2)/2 - (newTrapezoid.bottom.y1 + newTrapezoid.bottom.y2)/2) - 5
+  // const newSquareSize = options.squareSize
+  // const newX = x - xShift
+  // const newY = y + yShift
+  // const square2 = getSquare(imageData, newX, newY, newSquareSize);
+  // const test = RANSAC(ctx, square2, calculateArea(newTrapezoid), options, newX - newSquareSize / 2, newY - (newSquareSize / 2), newSquareSize);
   // ctx.beginPath();
-  // ctx.rect(x - options.squareSize / 2, y - options.squareSize / 2 - options.squareSize * .75, options.squareSize, options.squareSize);
+  // ctx.rect(newX - newSquareSize / 2, newY - newSquareSize / 2, newSquareSize, newSquareSize);
   // ctx.strokeStyle = "red";
   // ctx.stroke();
   // ctx.closePath();
   // console.log("test", test);
-  // const connectedTrapezoids = findConnectedTrapezoids(trapezoid, ctx, x, y, options.squareSize + 20, options);
-  // console.log("connectedTrapezoids", connectedTrapezoids);
-  // drawConnectedTrapezoids(connectedTrapezoids, ctx);
+  // let newTest: Trapezoid | undefined;
+  // if (test) newTest = DirectSearchOptimization(getPointsOnTrapezoid, convertLocalToGlobal(test, newX - newSquareSize/2, newY - newSquareSize/2), square2, options, ctx, newX, newY, newSquareSize);
+  // if (newTest) DrawTrapezoid(newTest, ctx);
+  // console.log("newTest", newTest);
+
+  const connectedTrapezoids = findConnectedTrapezoids(newTrapezoid, ctx, x, y, options.squareSize + 20, options, imageData);
+  console.log("connectedTrapezoids", connectedTrapezoids);
+}
+
+function convertLocalToGlobal(trapezoid: Trapezoid, x: number, y:number): Trapezoid {
+  return {
+    top: {
+      x1: trapezoid.top.x1 + x,
+      y1: trapezoid.top.y1 + y,
+      x2: trapezoid.top.x2 + x,
+      y2: trapezoid.top.y2 + y,
+    },
+    bottom: {
+      x1: trapezoid.bottom.x1 + x,
+      y1: trapezoid.bottom.y1 + y,
+      x2: trapezoid.bottom.x2 + x,
+      y2: trapezoid.bottom.y2 + y,
+    },
+    left: {
+      x1: trapezoid.left.x1 + x,
+      y1: trapezoid.left.y1 + y,
+      x2: trapezoid.left.x2 + x,
+      y2: trapezoid.left.y2 + y,
+    },
+    right: {
+      x1: trapezoid.right.x1 + x,
+      y1: trapezoid.right.y1 + y,
+      x2: trapezoid.right.x2 + x,
+      y2: trapezoid.right.y2 + y,
+    },
+  } as Trapezoid;
+}
+
+function DrawTrapezoid(trapezoid: Trapezoid, ctx: CanvasRenderingContext2D, color: string = "green") {
+  ctx.beginPath();
+  ctx.moveTo(trapezoid.top.x1, trapezoid.top.y1);
+  ctx.lineTo(trapezoid.top.x2, trapezoid.top.y2);
+  ctx.lineTo(trapezoid.bottom.x2, trapezoid.bottom.y2);
+  ctx.lineTo(trapezoid.bottom.x1, trapezoid.bottom.y1);
+  ctx.lineTo(trapezoid.top.x1, trapezoid.top.y1);
+  ctx.strokeStyle = color;
+  ctx.stroke();
 }
 
 function calculateArea(trapezoid: Trapezoid): number {
@@ -511,40 +547,80 @@ function calculateArea(trapezoid: Trapezoid): number {
   return Math.max(area1, area2);
 }
 
-// function findConnectedTrapezoids(trapezoid: Trapezoid, ctx: CanvasRenderingContext2D, x: number, y: number, squareSize: number, options: Options) {
-//   // check for trapezoids recursively in the 4 directions
-//   let trapezoids: Trapezoid[] = [];
-//   recurseSearchTrapezoid(x, y, 0, -squareSize, trapezoid, ctx, options, trapezoids)?.forEach((t) => trapezoids.push(t));
-//   recurseSearchTrapezoid(x, y, 0, squareSize, trapezoid, ctx, options, trapezoids)?.forEach((t) => trapezoids.push(t));
-//   recurseSearchTrapezoid(x, y, -squareSize, 0, trapezoid, ctx, options, trapezoids)?.forEach((t) => trapezoids.push(t));
-//   recurseSearchTrapezoid(x, y, squareSize, 0, trapezoid, ctx, options, trapezoids)?.forEach((t) => trapezoids.push(t));
-//   return trapezoids;
-// }
+function findConnectedTrapezoids(trapezoid: Trapezoid, ctx: CanvasRenderingContext2D, x: number, y: number, squareSize: number, options: Options, imageData: ImageData) {
+  // check for trapezoids recursively in the 4 directions
+  let trapezoids: Trapezoid[] = [];
+  // const xShift = trapezoid.top.y1 - trapezoid.top.y2
+  const yShift = Math.round((trapezoid.top.y1 + trapezoid.top.y2)/2 - (trapezoid.bottom.y1 + trapezoid.bottom.y2)/2) - 20
 
-// function recurseSearchTrapezoid(x: number, y: number, deltaX: number, deltaY:number, trapezoid: any, ctx: CanvasRenderingContext2D, options: Options, trapezoids: Trapezoid[]) {
-//   if(!trapezoid || !deltaX || !deltaY) return trapezoids
-//   const imageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
-//   // get a square of pixels around the clicked point
-//   const square = getSquare(imageData, x + deltaX, y + deltaY, options.squareSize);
-//   const nextTrapezoid = RANSAC(ctx, square, trapezoid);
-//   if (nextTrapezoid) {
-//     trapezoids.push(nextTrapezoid);
-//     recurseSearchTrapezoid(x + deltaX, y + deltaY, deltaX, deltaY, nextTrapezoid, ctx, options, trapezoids);
-//   }
-// }
+  recurseSearchTrapezoid(x, y, 0, yShift, trapezoid, ctx, options, trapezoids, 0)?.forEach((t) => trapezoids.push(t));
+  recurseSearchTrapezoid(x, y, 0, -yShift, trapezoid, ctx, options, trapezoids, 0)?.forEach((t) => trapezoids.push(t));
+  return trapezoids;
+}
 
-function RANSAC(ctx: CanvasRenderingContext2D, edgePixels: Uint8ClampedArray, trapezoidArea: number, options: Options, x: number, y: number) {
-  const areaThreshold = trapezoidArea * 0.8;
-  const iterations = 10000;
+function recurseSearchTrapezoid(x: number, y: number, deltaX: number, deltaY:number, trapezoid: any, ctx: CanvasRenderingContext2D, options: Options, trapezoids: Trapezoid[], count: number) : Trapezoid[] {
+  if(!trapezoid || count > 5) return trapezoids
+  const imageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
+  // get a square of pixels around the clicked point
+  const square = getSquare(imageData, x + deltaX, y + deltaY, options.squareSize);
+  // const nextTrapezoid = RANSAC(ctx, square, calculateArea(trapezoid), options, x + deltaX - options.squareSize / 2, y + deltaY - (options.squareSize / 2), options.squareSize);
+  // if (nextTrapezoid) {
+  //   DrawTrapezoid(nextTrapezoid, ctx, 'red');
+  // }
+  // let newTest: Trapezoid | undefined;
+  // if (nextTrapezoid) newTest = DirectSearchOptimization(getPointsOnTrapezoid, convertLocalToGlobal(nextTrapezoid, x + deltaX - options.squareSize/2, y + deltaY - options.squareSize/2), square, options, ctx, x + deltaX, y + deltaY, options.squareSize);
+  const shiftedTrapezoid = {
+    top: {
+      x1: trapezoid.top.x1 + deltaX,
+      y1: trapezoid.top.y1 + deltaY,
+      x2: trapezoid.top.x2 + deltaX,
+      y2: trapezoid.top.y2 + deltaY,
+    },
+    bottom: {
+      x1: trapezoid.bottom.x1 + deltaX,
+      y1: trapezoid.bottom.y1 + deltaY,
+      x2: trapezoid.bottom.x2 + deltaX,
+      y2: trapezoid.bottom.y2 + deltaY,
+    },
+    left: {
+      x1: trapezoid.left.x1 + deltaX,
+      y1: trapezoid.left.y1 + deltaY,
+      x2: trapezoid.left.x2 + deltaX,
+      y2: trapezoid.left.y2 + deltaY,
+    },
+    right: {
+      x1: trapezoid.right.x1 + deltaX,
+      y1: trapezoid.right.y1 + deltaY,
+      x2: trapezoid.right.x2 + deltaX,
+      y2: trapezoid.right.y2 + deltaY,
+    },
+  }
+  console.log('trapezoid', trapezoid)
+  console.log('shiftedTrapezoid', shiftedTrapezoid)
+  const newTest = FixedDirectSearchOptimization(getPointsOnTrapezoid, shiftedTrapezoid, square, options, ctx, x + deltaX, y + deltaY, options.squareSize);
+  if (newTest) {
+    DrawTrapezoid(newTest, ctx);
+    trapezoids.push(newTest);
+    // const xShift = deltaX < 0 ? trapezoid.top.y1 - trapezoid.top.y2 : -trapezoid.top.y1 + trapezoid.top.y2
+    const temp = Math.round((trapezoid.top.y1 + trapezoid.top.y2)/2 - (trapezoid.bottom.y1 + trapezoid.bottom.y2)/2) - 10
+    const yShift = deltaY < 0 ? temp : -temp
+    return recurseSearchTrapezoid(x + 0, y + yShift, deltaX, deltaY, newTest, ctx, options, trapezoids, count+1);
+  }
+  return trapezoids
+}
+
+function RANSAC(ctx: CanvasRenderingContext2D, edgePixels: Uint8ClampedArray, trapezoidArea: number, options: Options, x: number, y: number, squareSize?: number) {
+  const areaThreshold = [trapezoidArea * 0.9, trapezoidArea * 1.1];
+  const iterations = 50000;
   let bestTrapezoid: Trapezoid | undefined;
   let bestFit: number | undefined;
   for (let i = 0; i < iterations; i++) {
-    const sample: Vertex[] = getSemiRandomSample(4, options.squareSize);
+    const sample: Vertex[] = getSemiRandomSample(4, squareSize ?? options.squareSize);
     // If sample not within 20% of area, continue
     const trapezoid = computeTrapezoid(sample);
     const area = calculateArea(trapezoid);
-    if (area < areaThreshold || area > trapezoidArea * 1.2) continue;
-    const trapezoidFit = fitTrapezoid(trapezoid, edgePixels, options, ctx, x, y);
+    if (area < areaThreshold[0] || area > areaThreshold[1]) continue;
+    const trapezoidFit = fitTrapezoid(trapezoid, edgePixels, options, ctx, x, y, squareSize);
     if (trapezoidFit && (!bestFit || trapezoidFit < bestFit)) {
       bestTrapezoid = trapezoid;
       bestFit = trapezoidFit;
@@ -581,11 +657,11 @@ function getSemiRandomSample<Vertex>(size: number, width: number): Vertex[] {
   return sample;
 }
 
-function fitTrapezoid(trapezoid: Trapezoid, edgeData: Uint8ClampedArray, options: Options, ctx: CanvasRenderingContext2D, x1: number, y1: number): number | null {
+function fitTrapezoid(trapezoid: Trapezoid, edgeData: Uint8ClampedArray, options: Options, ctx: CanvasRenderingContext2D, x1: number, y1: number, squareSize?: number): number | null {
   // Implement least-squares fitting algorithm to on trapezoid and edge pixels
   // and return the r2 value
   let r = 0
-  const width = options.squareSize;
+  const width = squareSize ?? options.squareSize;
   for (let y = 0; y < width; y++) {
     for (let x = 0; x < width; x++) {
       const index = (y * width + x);
@@ -672,12 +748,39 @@ function getIntersection(line1: Pick<LineSegment, "x1" | "x2" | "y1" | "y2">, li
   return { x, y };
 }
 
-function DirectSearchOptimization(ft: (data: Uint8ClampedArray, trapezoid: Trapezoid, options: Options, x: number, y: number, ctx: CanvasRenderingContext2D) => number, trapezoid: Trapezoid, data: Uint8ClampedArray, options: Options, ctx: CanvasRenderingContext2D, x: number, y: number) {
+
+function FixedDirectSearchOptimization(ft: (data: Uint8ClampedArray, trapezoid: Trapezoid, options: Options, x: number, y: number, ctx: CanvasRenderingContext2D, squareSize?: number) => number, trapezoid: Trapezoid, data: Uint8ClampedArray, options: Options, ctx: CanvasRenderingContext2D, x: number, y: number, squareSize?:number) {
   // Move each vertex in trapezoid by 5 pixels in 16 directions, take the best one
   let vertices = [{ x: trapezoid.top.x1, y: trapezoid.top.y1 }, { x: trapezoid.top.x2, y: trapezoid.top.y2 }, { x: trapezoid.bottom.x1, y: trapezoid.bottom.y1 }, { x: trapezoid.bottom.x2, y: trapezoid.bottom.y2 } ];
-  let bestFt: number = ft(data, trapezoid, options, x, y, ctx);
-  let improvement = 0
-  for (let k = 0; k < 12; k++) {
+  let bestFt: number = ft(data, trapezoid, options, x, y, ctx, squareSize);
+  for (let k = 0; k < 4; k++) {
+      let bestVertices: Point[] | undefined;
+      for (let j = 0; j < 16; j++) {
+        const direction = j * Math.PI / 8;
+        const dx = Math.cos(direction) * (((k % 3) + 1) * 2);
+        const dy = Math.sin(direction) * (((k % 3) + 1) * 2);
+        const shiftedVertices: Point[] = vertices.map(v => ({ x: v.x + dx, y: v.y + dy }));
+        const shiftedT: Trapezoid = computeTrapezoid(shiftedVertices)
+        const newFt = ft(data, shiftedT, options, x, y, ctx, squareSize);
+        // console.log({newFt, newVertex})
+        if (bestFt === undefined || newFt > bestFt) {
+          bestFt = newFt;
+          bestVertices = shiftedVertices;
+        }
+      }
+      if (bestVertices) {
+        // @ts-ignore
+        vertices = bestVertices;
+      }
+  }
+  return computeTrapezoid(vertices.map(v => ({ y: Math.round(v.y + y), x: Math.round(v.x + x) })));
+}
+
+function DirectSearchOptimization(ft: (data: Uint8ClampedArray, trapezoid: Trapezoid, options: Options, x: number, y: number, ctx: CanvasRenderingContext2D, squareSize?: number) => number, trapezoid: Trapezoid, data: Uint8ClampedArray, options: Options, ctx: CanvasRenderingContext2D, x: number, y: number, squareSize?:number) {
+  // Move each vertex in trapezoid by 5 pixels in 16 directions, take the best one
+  let vertices = [{ x: trapezoid.top.x1, y: trapezoid.top.y1 }, { x: trapezoid.top.x2, y: trapezoid.top.y2 }, { x: trapezoid.bottom.x1, y: trapezoid.bottom.y1 }, { x: trapezoid.bottom.x2, y: trapezoid.bottom.y2 } ];
+  let bestFt: number = ft(data, trapezoid, options, x, y, ctx, squareSize);
+  for (let k = 0; k < 4; k++) {
     for (let i = 0; i < vertices.length; i++) {
       let bestVertex: Vertex | undefined;
       const vertex = vertices[i];
@@ -686,14 +789,13 @@ function DirectSearchOptimization(ft: (data: Uint8ClampedArray, trapezoid: Trape
         const dx = Math.cos(direction) * (((k % 3) + 1) * 2);
         const dy = Math.sin(direction) * (((k % 3) + 1) * 2);
         const newVertex: Vertex = { x: Math.round(vertex.x + dx), y: Math.round(vertex.y + dy) };
-        if (newVertex.x < x - options.squareSize/2 || newVertex.x >= options.squareSize/2 + x || newVertex.y < y - options.squareSize/2 || newVertex.y >= options.squareSize/2 + y) {
+        if (newVertex.x < x - (squareSize ?? options.squareSize)/2 || newVertex.x >= (squareSize ?? options.squareSize)/2 + x || newVertex.y < y - (squareSize ?? options.squareSize)/2 || newVertex.y >= (squareSize ?? options.squareSize)/2 + y) {
           continue;
         }
         const newTrapezoid = computeTrapezoid(vertices.map((v, index) => index === i ? newVertex : { x: Math.round(v.x), y: Math.round(v.y) }));
-        const newFt = ft(data, newTrapezoid, options, x, y, ctx);
+        const newFt = ft(data, newTrapezoid, options, x, y, ctx, squareSize);
         // console.log({newFt, newVertex})
         if (bestFt === undefined || newFt > bestFt) {
-          improvement = bestFt === undefined ? 100 : newFt - bestFt;
           bestFt = newFt;
           bestVertex = newVertex;
         }
@@ -707,7 +809,7 @@ function DirectSearchOptimization(ft: (data: Uint8ClampedArray, trapezoid: Trape
   return computeTrapezoid(vertices.map(v => ({ x: Math.round(v.y - y + x), y: Math.round(v.x - x + y) })));
 }
 
-function getPointsOnTrapezoid(data: Uint8ClampedArray, trapezoid: Trapezoid, options: Options, xx: number, yy: number, ctx: CanvasRenderingContext2D): number {
+function getPointsOnTrapezoid(data: Uint8ClampedArray, trapezoid: Trapezoid, options: Options, xx: number, yy: number, ctx: CanvasRenderingContext2D, squareSize?:number): number {
   // Find the actual number of edge pixels in each line
   const lines = [trapezoid.top, trapezoid.bottom, trapezoid.left, trapezoid.right];
   let points = 0;
@@ -718,12 +820,12 @@ function getPointsOnTrapezoid(data: Uint8ClampedArray, trapezoid: Trapezoid, opt
     const length = Math.sqrt(dx * dx + dy * dy);
     const xStep = dx / length;
     const yStep = dy / length;
-    let x = line.x1 - xx + options.squareSize / 2;
-    let y = line.y1 - yy + options.squareSize / 2;
+    let x = line.x1 - xx + (squareSize ?? options.squareSize) / 2;
+    let y = line.y1 - yy + (squareSize ?? options.squareSize) / 2;
     // console.log({x, y})
     for (let j = 0; j < length; j++) {
-      // if (data[Math.round(y) * options.squareSize + Math.round(x)] === 255) {
-      if (data[Math.round(y) * options.squareSize + Math.round(x)] === 255 || data[Math.round(y) * options.squareSize + Math.round(x + 1)] === 255 || data[Math.round(y) * options.squareSize + Math.round(x - 1)] === 255 || data[Math.round(y + 1) * options.squareSize + Math.round(x)] === 255 || data[Math.round(y - 1) * options.squareSize + Math.round(x)] === 255) {
+      // if (data[Math.round(y) * (squareSize ?? options.squareSize) + Math.round(x)] === 255) {
+      if (data[Math.round(y) * (squareSize ?? options.squareSize) + Math.round(x)] === 255 || data[Math.round(y) * (squareSize ?? options.squareSize) + Math.round(x + 1)] === 255 || data[Math.round(y) * (squareSize ?? options.squareSize) + Math.round(x - 1)] === 255 || data[Math.round(y + 1) * (squareSize ?? options.squareSize) + Math.round(x)] === 255 || data[Math.round(y - 1) * (squareSize ?? options.squareSize) + Math.round(x)] === 255) {
         points++;
         
       }
