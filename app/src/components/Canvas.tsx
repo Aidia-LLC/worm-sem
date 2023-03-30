@@ -460,7 +460,6 @@ function detectTrapezoids(
   const newTrapezoid = DirectSearchOptimization(getPointsOnTrapezoid, trapezoid, square, options, ctx, x, y);
   console.log([newTrapezoid])
   DrawTrapezoid(newTrapezoid, ctx);
-
   // const xShift = newTrapezoid.top.y1 - newTrapezoid.top.y2
   // const yShift = Math.round((newTrapezoid.top.y1 + newTrapezoid.top.y2)/2 - (newTrapezoid.bottom.y1 + newTrapezoid.bottom.y2)/2) - 5
   // const newSquareSize = options.squareSize
@@ -551,7 +550,7 @@ function findConnectedTrapezoids(trapezoid: Trapezoid, ctx: CanvasRenderingConte
   // check for trapezoids recursively in the 4 directions
   let trapezoids: Trapezoid[] = [];
   // const xShift = trapezoid.top.y1 - trapezoid.top.y2
-  const yShift = Math.round((trapezoid.top.y1 + trapezoid.top.y2)/2 - (trapezoid.bottom.y1 + trapezoid.bottom.y2)/2) - 20
+  const yShift = Math.round((trapezoid.top.y1 + trapezoid.top.y2)/2 - (trapezoid.bottom.y1 + trapezoid.bottom.y2)/2) - 5
 
   recurseSearchTrapezoid(x, y, 0, yShift, trapezoid, ctx, options, trapezoids, 0)?.forEach((t) => trapezoids.push(t));
   recurseSearchTrapezoid(x, y, 0, -yShift, trapezoid, ctx, options, trapezoids, 0)?.forEach((t) => trapezoids.push(t));
@@ -773,7 +772,7 @@ function FixedDirectSearchOptimization(ft: (data: Uint8ClampedArray, trapezoid: 
         vertices = bestVertices;
       }
   }
-  return computeTrapezoid(vertices.map(v => ({ y: Math.round(v.y + y), x: Math.round(v.x + x) })));
+  return computeTrapezoid(vertices);
 }
 
 function DirectSearchOptimization(ft: (data: Uint8ClampedArray, trapezoid: Trapezoid, options: Options, x: number, y: number, ctx: CanvasRenderingContext2D, squareSize?: number) => number, trapezoid: Trapezoid, data: Uint8ClampedArray, options: Options, ctx: CanvasRenderingContext2D, x: number, y: number, squareSize?:number) {
