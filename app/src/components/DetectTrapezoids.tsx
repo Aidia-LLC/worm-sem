@@ -14,7 +14,7 @@ type Options = {
   densitySize: number;
 };
 
-export default function DetectTrapezoid(x: number, y: number, ctx: CanvasRenderingContext2D, options: Options): Trapezoid {
+export default function DetectTrapezoid(x: number, y: number, ctx: CanvasRenderingContext2D, options: Options) {
   const imageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
   const square = getSquare(imageData, x, y, options.squareSize);
   ctx.beginPath();
@@ -37,7 +37,7 @@ export default function DetectTrapezoid(x: number, y: number, ctx: CanvasRenderi
   }));
   const trapezoid: Trapezoid = computeTrapezoid(vertices);
   // DrawTrapezoid(trapezoid, ctx, 'yellow');
-  const newTrapezoid = DirectSearchOptimization(
+  const { trapezoid: newTrapezoid, fit } = DirectSearchOptimization(
     getPointsOnTrapezoid,
     trapezoid,
     square,
@@ -48,7 +48,7 @@ export default function DetectTrapezoid(x: number, y: number, ctx: CanvasRenderi
   );
   console.log([newTrapezoid]);
   DrawTrapezoid(newTrapezoid, ctx, 'blue');
-  return newTrapezoid;
+  return { trapezoid: newTrapezoid, fit };
 }
 
 function getSquare(fullImage: ImageData, x: number, y: number, size: number) {
@@ -475,7 +475,7 @@ function DirectSearchOptimization(
       }
     }
   }
-  return computeTrapezoid(vertices);
+  return { trapezoid: computeTrapezoid(vertices), fit: bestFt };
 }
 
 function getPointsOnTrapezoid(
@@ -533,17 +533,6 @@ function getPointsOnTrapezoid(
   }
   return points;
 }
-
-// function drawSquare(square: Uint8ClampedArray, ctx: CanvasRenderingContext2D, width: number) {
-//   for (let i = 0; i < square.length; i++) {
-//     if (square[i] === 255) {
-//       ctx.beginPath();
-//       ctx.rect(i % width, Math.floor(i / width), 1, 1);
-//       ctx.strokeStyle = "red";
-//       ctx.stroke();
-//     }
-//   }
-// }
 
 function computeTrapezoid(
   vertices: Vertex[],
