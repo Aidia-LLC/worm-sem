@@ -31,36 +31,23 @@ export default function DetectTrapezoid(x: number, y: number, ctx: CanvasRenderi
   const lines = hough(square, options);
 
   const goodLines = pixelsPerLine(lines, square, options);
-  for (const line of goodLines) {
-    ctx.beginPath();
-    ctx.moveTo(
-      line.x1 + x - options.squareSize / 2,
-      line.y1 + y - options.squareSize / 2
-    );
-    ctx.lineTo(
-      line.x2 + x - options.squareSize / 2,
-      line.y2 + y - options.squareSize / 2
-    );
-    ctx.strokeStyle = "red";
-    ctx.stroke();
-  }
   const vertices = computeVertices(goodLines).map((vertex) => ({
     x: vertex.x + x - options.squareSize / 2,
     y: vertex.y + y - options.squareSize / 2,
   }));
-
   const trapezoid: Trapezoid = computeTrapezoid(vertices);
+  // DrawTrapezoid(trapezoid, ctx, 'yellow');
   const newTrapezoid = DirectSearchOptimization(
     getPointsOnTrapezoid,
     trapezoid,
     square,
     options,
-    ctx,
+    // ctx,
     x,
     y
   );
   console.log([newTrapezoid]);
-  DrawTrapezoid(newTrapezoid, ctx);
+  DrawTrapezoid(newTrapezoid, ctx, 'blue');
   return newTrapezoid;
 }
 
@@ -73,8 +60,8 @@ function getSquare(fullImage: ImageData, x: number, y: number, size: number) {
   const startY = Math.max(0, y - size / 2);
   const endX = Math.min(width, x + size / 2);
   const endY = Math.min(height, y + size / 2);
-  for (let i = startX; i < endX; i += 1) {
-    for (let j = startY; j < endY; j += 1) {
+  for (let j = startY; j < endY; j += 1) {
+    for (let i = startX; i < endX; i += 1) {
       const pixelIndex = (j * width + i) * 4;
       square.push(imageData[pixelIndex]);
     }
@@ -111,7 +98,7 @@ type Vertex = {
 function hough(
   data: Uint8ClampedArray,
   options: Options,
-  thetaStep = Math.PI / 180
+  thetaStep = Math.PI / 180,
 ): LineSegment[] {
   // Calculate the maximum possible distance in the image
   const width = options.squareSize;
@@ -125,8 +112,8 @@ function hough(
   }
 
   // Iterate over all edge pixels
-  for (let x = 0; x < width; x++) {
-    for (let y = 0; y < height; y++) {
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
       const i = y * width + x;
       const edgeValue = data[i];
 
@@ -232,7 +219,7 @@ function CartesionLines(
         x2 = (r - y2 * Math.sin(theta)) / Math.cos(theta);
       }
     }
-    cartesionLines.push({ theta, r, x1: y1, y1: x1, x2: y2, y2: x2 });
+    cartesionLines.push({ theta, r, x1, y1, x2, y2 });
   }
   return Merge(cartesionLines, options);
 }
@@ -427,13 +414,13 @@ function DirectSearchOptimization(
     options: Options,
     x: number,
     y: number,
-    ctx: CanvasRenderingContext2D,
+    // ctx: CanvasRenderingContext2D,
     squareSize?: number
   ) => number,
   trapezoid: Trapezoid,
   data: Uint8ClampedArray,
   options: Options,
-  ctx: CanvasRenderingContext2D,
+  // ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   squareSize?: number
@@ -445,15 +432,16 @@ function DirectSearchOptimization(
     { x: trapezoid.bottom.x1, y: trapezoid.bottom.y1 },
     { x: trapezoid.bottom.x2, y: trapezoid.bottom.y2 },
   ];
-  let bestFt: number = ft(data, trapezoid, options, x, y, ctx, squareSize);
-  for (let k = 0; k < 4; k++) {
+  let bestFt: number = ft(data, trapezoid, options, x, y, squareSize);
+  console.log("bestFt init", bestFt, trapezoid);
+  for (let k = 0; k < 16; k++) {
     for (let i = 0; i < vertices.length; i++) {
       let bestVertex: Vertex | undefined;
       const vertex = vertices[i];
       for (let j = 0; j < 16; j++) {
         const direction = (j * Math.PI) / 8;
-        const dx = Math.cos(direction) * (((k % 3) + 1) * 1);
-        const dy = Math.sin(direction) * (((k % 3) + 1) * 1);
+        const dx = Math.cos(direction) * (((k % 4) + 1) * 2);
+        const dy = Math.sin(direction) * (((k % 4) + 1) * 2);
         const newVertex: Vertex = {
           x: Math.round(vertex.x + dx),
           y: Math.round(vertex.y + dy),
@@ -471,10 +459,11 @@ function DirectSearchOptimization(
             index === i ? newVertex : { x: Math.round(v.x), y: Math.round(v.y) }
           )
         );
-        const newFt = ft(data, newTrapezoid, options, x, y, ctx, squareSize);
-        // console.log({newFt, newVertex})
+
+        const newFt = ft(data, newTrapezoid, options, x, y, squareSize);
         if (bestFt === undefined || newFt > bestFt) {
           bestFt = newFt;
+          console.log({newFt})
           bestVertex = newVertex;
         }
       }
@@ -486,12 +475,7 @@ function DirectSearchOptimization(
       }
     }
   }
-  return computeTrapezoid(
-    vertices.map((v) => ({
-      x: Math.round(v.y - y + x),
-      y: Math.round(v.x - x + y),
-    }))
-  );
+  return computeTrapezoid(vertices);
 }
 
 function getPointsOnTrapezoid(
@@ -500,7 +484,7 @@ function getPointsOnTrapezoid(
   options: Options,
   xx: number,
   yy: number,
-  ctx: CanvasRenderingContext2D,
+  // ctx: CanvasRenderingContext2D,
   squareSize?: number
 ): number {
   // Find the actual number of edge pixels in each line
@@ -520,40 +504,46 @@ function getPointsOnTrapezoid(
     const yStep = dy / length;
     let x = line.x1 - xx + (squareSize ?? options.squareSize) / 2;
     let y = line.y1 - yy + (squareSize ?? options.squareSize) / 2;
-    // let x = line.x1
-    // let y = line.y1
-    // ctx.rect(x, y, 1, 1);
-    // ctx.strokeStyle = "blue";
-    // ctx.stroke();
-
-    console.log({x, y})
     for (let j = 0; j < length; j++) {
-      // if (data[Math.round(y) * (squareSize ?? options.squareSize) + Math.round(x)] === 255) {
+      if(!(x+xStep*j > 0 && x+xStep*j < (squareSize ?? options.squareSize) && y+yStep*j > 0 && y+yStep*j < (squareSize ?? options.squareSize))) continue
       if (
         data[
-          Math.round(y) * (squareSize ?? options.squareSize) + Math.round(x)
+          Math.round(y + (yStep * j)) * (squareSize ?? options.squareSize) + Math.round(x + (xStep*j))
         ] === 255 ||
         data[
-          Math.round(y) * (squareSize ?? options.squareSize) + Math.round(x + 1)
+          Math.round(y + (yStep * j)) * (squareSize ?? options.squareSize) + Math.round(x + (xStep*j) + 1)
         ] === 255 ||
         data[
-          Math.round(y) * (squareSize ?? options.squareSize) + Math.round(x - 1)
+          Math.round(y + (yStep * j)) * (squareSize ?? options.squareSize) + Math.round(x + (xStep*j) - 1)
         ] === 255 ||
         data[
-          Math.round(y + 1) * (squareSize ?? options.squareSize) + Math.round(x)
+          Math.round(y + (yStep * j) + 1) * (squareSize ?? options.squareSize) + Math.round(x + (xStep*j))
         ] === 255 ||
         data[
-          Math.round(y - 1) * (squareSize ?? options.squareSize) + Math.round(x)
+          Math.round(y + (yStep * j) - 1) * (squareSize ?? options.squareSize) + Math.round(x + (xStep*j))
         ] === 255
       ) {
         points++;
+        // ctx.beginPath();
+        // ctx.rect(Math.round(x + xStep*j) + xx - options.squareSize / 2, Math.round(y + yStep*j) + yy - options.squareSize/2, 1, 1);
+        // ctx.strokeStyle = "red";
+        // ctx.stroke();
       }
-      x += xStep;
-      y += yStep;
     }
   }
   return points;
 }
+
+// function drawSquare(square: Uint8ClampedArray, ctx: CanvasRenderingContext2D, width: number) {
+//   for (let i = 0; i < square.length; i++) {
+//     if (square[i] === 255) {
+//       ctx.beginPath();
+//       ctx.rect(i % width, Math.floor(i / width), 1, 1);
+//       ctx.strokeStyle = "red";
+//       ctx.stroke();
+//     }
+//   }
+// }
 
 function computeTrapezoid(
   vertices: Vertex[],
