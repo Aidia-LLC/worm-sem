@@ -183,6 +183,8 @@ export const Canvas = () => {
   const [densitySize, setDensitySize] = createSignal(
     defaultOptions.densitySize
   );
+  const [trapezoids, setTrapezoids] = createSignal<Trapezoid[]>([]);
+  const [edgeData, setEdgeData] = createSignal<ImageData>();
 
   const options = () => ({
     squareSize: squareSize(),
@@ -219,6 +221,7 @@ export const Canvas = () => {
       options(),
       fit
     );
+    setTrapezoids([...connectedTrapezoids, trapezoid]);
     console.log("connectedTrapezoids", connectedTrapezoids);
   };
 
@@ -234,8 +237,107 @@ export const Canvas = () => {
   });
 
   onMount(() => {
-    canvasRef.addEventListener("click", handleClick);
+    canvasRef.addEventListener("mousedown", handleMouseDown);
   });
+
+  function handleMouseDown(e: MouseEvent) {
+    // get the mouse cursor position at startup:
+    const rect = canvasRef.getBoundingClientRect();
+    const rectWidth = rect.right - rect.left;
+    const rectHeight = rect.bottom - rect.top;
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const imgX = Math.round((x / rectWidth) * canvasRef.width);
+    const imgY = Math.round((y / rectHeight) * canvasRef.height);
+    if (!edgeData()) {
+      const ctx = canvasRef.getContext("2d")!;
+      const imageData = ctx.getImageData(0, 0, canvasRef.width, canvasRef.height);
+      setEdgeData(imageData);
+    }
+    // find if the nearest vertex is close enough
+    const { nearestDistance } = findNearestVertex(imgX, imgY, trapezoids());
+    console.log({ nearestDistance, imgX, imgY })
+    if (nearestDistance < 25) {
+      // start dragging
+      canvasRef.addEventListener("mousemove", handleMouseMove);
+      canvasRef.addEventListener("mouseup", handleMouseUp);
+      // prevent the selection of the canvas:
+      e.preventDefault();
+
+    } else {
+      handleClick(e);
+    }
+  }
+
+  function handleMouseMove(e: MouseEvent) {
+    // calculate the new cursor position:
+    const rect = canvasRef.getBoundingClientRect();
+    const rectWidth = rect.right - rect.left;
+    const rectHeight = rect.bottom - rect.top;
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const imgX = Math.round((x / rectWidth) * canvasRef.width);
+    const imgY = Math.round((y / rectHeight) * canvasRef.height);
+    // find if the nearest vertex is close enough
+    const { nearestVertex, nearestDistance } = findNearestVertex(imgX, imgY, trapezoids());
+    if (nearestDistance < 3) return;
+    if (nearestVertex) {
+      const ctx = canvasRef.getContext("2d")!;
+      console.log({ nearestVertex, imgX, imgY })
+      const trapezoid = trapezoids().find(t => t.top.x1 === nearestVertex.x && t.top.y1 === nearestVertex.y || t.top.x2 === nearestVertex.x && t.top.y2 === nearestVertex.y || t.bottom.x1 === nearestVertex.x && t.bottom.y1 === nearestVertex.y || t.bottom.x2 === nearestVertex.x && t.bottom.y2 === nearestVertex.y);
+      if(!trapezoid) return;
+      const newTrapezoid = moveVertex(trapezoid, nearestVertex, imgX, imgY);
+      const newTrapezoids = trapezoids().map(t => t.top.x1 === nearestVertex.x && t.top.y1 === nearestVertex.y || t.top.x2 === nearestVertex.x && t.top.y2 === nearestVertex.y || t.bottom.x1 === nearestVertex.x && t.bottom.y1 === nearestVertex.y || t.bottom.x2 === nearestVertex.x && t.bottom.y2 === nearestVertex.y ? newTrapezoid : t);
+      setTrapezoids(newTrapezoids);
+      ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
+      ctx.putImageData(edgeData()!, 0, 0);
+      for (const trapezoid of newTrapezoids) {
+        DrawTrapezoid(trapezoid, ctx);
+      }
+    }
+    refresh();
+  }
+
+  function moveVertex(trapezoid: Trapezoid, vertex: Vertex, x: number, y:number) {
+    const newTrapezoid = { ...trapezoid };
+    if (newTrapezoid.top.x1 === vertex.x && newTrapezoid.top.y1 === vertex.y) {
+      newTrapezoid.top.x1 = x;
+      newTrapezoid.top.y1 = y;
+    } else if (newTrapezoid.top.x2 === vertex.x && newTrapezoid.top.y2 === vertex.y) {
+      newTrapezoid.top.x2 = x;
+      newTrapezoid.top.y2 = y;
+    } else if (newTrapezoid.bottom.x1 === vertex.x && newTrapezoid.bottom.y1 === vertex.y) {
+      newTrapezoid.bottom.x1 = x;
+      newTrapezoid.bottom.y1 = y;
+    } else if (newTrapezoid.bottom.x2 === vertex.x && newTrapezoid.bottom.y2 === vertex.y) {
+      newTrapezoid.bottom.x2 = x;
+      newTrapezoid.bottom.y2 = y;
+    }
+    return newTrapezoid;
+  }
+
+  function handleMouseUp() {
+    canvasRef.removeEventListener("mousemove", handleMouseMove);
+    canvasRef.removeEventListener("mouseup", handleMouseUp);
+  }
+
+  function findNearestVertex(x: number, y: number, trapezoids: Trapezoid[]) {
+    let nearestVertex: Vertex | undefined;
+    let nearestDistance = Infinity;
+    for (const trapezoid of trapezoids) {
+      const vertices = [{ x: trapezoid.top.x1, y: trapezoid.top.y1 }, { x: trapezoid.top.x2, y: trapezoid.top.y2 }, { x: trapezoid.bottom.x1, y: trapezoid.bottom.y1 }, { x: trapezoid.bottom.x2, y: trapezoid.bottom.y2 }]
+      for (const vertex of vertices) {
+        const distance = Math.sqrt(
+          Math.pow(vertex.x - x, 2) + Math.pow(vertex.y - y, 2)
+        );
+        if (distance < nearestDistance) {
+          nearestVertex = vertex;
+          nearestDistance = distance;
+        }
+      }
+    }
+    return {nearestDistance, nearestVertex}
+  }
 
   const updateParams = () => {
     let [gauss0, gauss1, gauss2] = gaussianKernel();

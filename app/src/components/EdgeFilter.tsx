@@ -62,7 +62,8 @@ export default function EdgeFilter(canvas: HTMLCanvasElement, options: any, imag
         betterStuff[i * 4 + 2] = betterData[i] > 1 ? 255 : 0;
         betterStuff[i * 4 + 3] = 255;
       }
-      newImageData.data.set(betterStuff);
+  newImageData.data.set(betterStuff);
+  return betterStuff
 }
 
 function colorPixelsByDensity(
