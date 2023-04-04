@@ -213,6 +213,10 @@ export const Canvas = () => {
     const imgY = Math.round((y / rectHeight) * canvasRef.height);
     setPoints([...points(), [imgX, imgY]]);
     const { trapezoid, fit } = DetectTrapezoids(imgX, imgY, ctx, options());
+    // if trapezoid is bad or not found, try finding it with the RANSAC algorithm
+    const valid = trapezoid && trapezoidIsValid(trapezoid, ctx, imgX, imgY, options(), fit);
+    if (!valid) {
+    }
     const connectedTrapezoids = findConnectedTrapezoids(
       trapezoid,
       ctx,
@@ -224,6 +228,27 @@ export const Canvas = () => {
     setTrapezoids([...connectedTrapezoids, trapezoid]);
     console.log("connectedTrapezoids", connectedTrapezoids);
   };
+
+  function trapezoidIsValid(trapezoid: Trapezoid, ctx: CanvasRenderingContext2D, x: number, y: number, options: Options, fit: number) {
+    const { squareSize } = options;
+    const { top, bottom } = trapezoid;
+    const { x1, y1 } = top;
+    const { x2, y2 } = top;
+    const { x1: x3, y1: y3 } = bottom;
+    const { x2: x4, y2: y4 } = bottom;
+    const width = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+    const height = Math.sqrt((x3 - x2) ** 2 + (y3 - y2) ** 2);
+    const area = width * height;
+    const areaThreshold = squareSize ** 2 * 0.5;
+    const areaValid = area > areaThreshold;
+    const fitValid = Math.abs(fit) > 25;
+    const xThreshold = 0.5;
+    const yThreshold = 0.5;
+    const xValid = Math.abs(x - x1) < xThreshold && Math.abs(x - x4) < xThreshold;
+    const yValid = Math.abs(y - y1) < yThreshold && Math.abs(y - y2) < yThreshold;
+    const valid = areaValid && fitValid && xValid && yValid;
+    return valid;
+  }
 
   createEffect(async () => {
     console.log("refreshing");
@@ -484,38 +509,38 @@ export const setupCanvas = (
   });
 };
 
-// function convertLocalToGlobal(
-//   trapezoid: Trapezoid,
-//   x: number,
-//   y: number
-// ): Trapezoid {
-//   return {
-//     top: {
-//       x1: trapezoid.top.x1 + x,
-//       y1: trapezoid.top.y1 + y,
-//       x2: trapezoid.top.x2 + x,
-//       y2: trapezoid.top.y2 + y,
-//     },
-//     bottom: {
-//       x1: trapezoid.bottom.x1 + x,
-//       y1: trapezoid.bottom.y1 + y,
-//       x2: trapezoid.bottom.x2 + x,
-//       y2: trapezoid.bottom.y2 + y,
-//     },
-//     left: {
-//       x1: trapezoid.left.x1 + x,
-//       y1: trapezoid.left.y1 + y,
-//       x2: trapezoid.left.x2 + x,
-//       y2: trapezoid.left.y2 + y,
-//     },
-//     right: {
-//       x1: trapezoid.right.x1 + x,
-//       y1: trapezoid.right.y1 + y,
-//       x2: trapezoid.right.x2 + x,
-//       y2: trapezoid.right.y2 + y,
-//     },
-//   } as Trapezoid;
-// }
+function convertLocalToGlobal(
+  trapezoid: Trapezoid,
+  x: number,
+  y: number
+): Trapezoid {
+  return {
+    top: {
+      x1: trapezoid.top.x1 + x,
+      y1: trapezoid.top.y1 + y,
+      x2: trapezoid.top.x2 + x,
+      y2: trapezoid.top.y2 + y,
+    },
+    bottom: {
+      x1: trapezoid.bottom.x1 + x,
+      y1: trapezoid.bottom.y1 + y,
+      x2: trapezoid.bottom.x2 + x,
+      y2: trapezoid.bottom.y2 + y,
+    },
+    left: {
+      x1: trapezoid.left.x1 + x,
+      y1: trapezoid.left.y1 + y,
+      x2: trapezoid.left.x2 + x,
+      y2: trapezoid.left.y2 + y,
+    },
+    right: {
+      x1: trapezoid.right.x1 + x,
+      y1: trapezoid.right.y1 + y,
+      x2: trapezoid.right.x2 + x,
+      y2: trapezoid.right.y2 + y,
+    },
+  } as Trapezoid;
+}
 
 function DrawTrapezoid(
   trapezoid: Trapezoid,
@@ -533,53 +558,53 @@ function DrawTrapezoid(
   ctx.stroke();
 }
 
-// function calculateArea(trapezoid: Trapezoid): number {
-//   const a = Math.sqrt(
-//     (trapezoid.top.x1 - trapezoid.top.x2) ** 2 +
-//       (trapezoid.top.y1 - trapezoid.top.y2) ** 2
-//   );
-//   const b = Math.sqrt(
-//     (trapezoid.bottom.x1 - trapezoid.bottom.x2) ** 2 +
-//       (trapezoid.bottom.y1 - trapezoid.bottom.y2) ** 2
-//   );
-//   const c = Math.sqrt(
-//     (trapezoid.left.x1 - trapezoid.left.x2) ** 2 +
-//       (trapezoid.left.y1 - trapezoid.left.y2) ** 2
-//   );
-//   const d = Math.sqrt(
-//     (trapezoid.right.x1 - trapezoid.right.x2) ** 2 +
-//       (trapezoid.right.y1 - trapezoid.right.y2) ** 2
-//   );
-//   // Calculate the semiperimeter of the quadrilateral
-//   const s = (a + b + c + d) / 2;
+function calculateArea(trapezoid: Trapezoid): number {
+  const a = Math.sqrt(
+    (trapezoid.top.x1 - trapezoid.top.x2) ** 2 +
+      (trapezoid.top.y1 - trapezoid.top.y2) ** 2
+  );
+  const b = Math.sqrt(
+    (trapezoid.bottom.x1 - trapezoid.bottom.x2) ** 2 +
+      (trapezoid.bottom.y1 - trapezoid.bottom.y2) ** 2
+  );
+  const c = Math.sqrt(
+    (trapezoid.left.x1 - trapezoid.left.x2) ** 2 +
+      (trapezoid.left.y1 - trapezoid.left.y2) ** 2
+  );
+  const d = Math.sqrt(
+    (trapezoid.right.x1 - trapezoid.right.x2) ** 2 +
+      (trapezoid.right.y1 - trapezoid.right.y2) ** 2
+  );
+  // Calculate the semiperimeter of the quadrilateral
+  const s = (a + b + c + d) / 2;
 
-//   // Calculate the area using Brahmagupta's formula
-//   const area1 = Math.sqrt((s - a) * (s - b) * (s - c) * (s - d));
+  // Calculate the area using Brahmagupta's formula
+  const area1 = Math.sqrt((s - a) * (s - b) * (s - c) * (s - d));
 
-//   const a2 = Math.sqrt(
-//     (trapezoid.top.x1 - trapezoid.top.x2) ** 2 +
-//       (trapezoid.top.y1 - trapezoid.top.y2) ** 2
-//   );
-//   const b2 = Math.sqrt(
-//     (trapezoid.bottom.x1 - trapezoid.bottom.x2) ** 2 +
-//       (trapezoid.bottom.y1 - trapezoid.bottom.y2) ** 2
-//   );
-//   const c2 = Math.sqrt(
-//     (trapezoid.left.x1 - trapezoid.left.x2) ** 2 +
-//       (trapezoid.left.y1 - trapezoid.left.y2) ** 2
-//   );
-//   const d2 = Math.sqrt(
-//     (trapezoid.right.x1 - trapezoid.right.x2) ** 2 +
-//       (trapezoid.right.y1 - trapezoid.right.y2) ** 2
-//   );
-//   // Calculate the semiperimeter of the quadrilateral
-//   const s2 = (a2 + b2 + c2 + d2) / 2;
+  const a2 = Math.sqrt(
+    (trapezoid.top.x1 - trapezoid.top.x2) ** 2 +
+      (trapezoid.top.y1 - trapezoid.top.y2) ** 2
+  );
+  const b2 = Math.sqrt(
+    (trapezoid.bottom.x1 - trapezoid.bottom.x2) ** 2 +
+      (trapezoid.bottom.y1 - trapezoid.bottom.y2) ** 2
+  );
+  const c2 = Math.sqrt(
+    (trapezoid.left.x1 - trapezoid.left.x2) ** 2 +
+      (trapezoid.left.y1 - trapezoid.left.y2) ** 2
+  );
+  const d2 = Math.sqrt(
+    (trapezoid.right.x1 - trapezoid.right.x2) ** 2 +
+      (trapezoid.right.y1 - trapezoid.right.y2) ** 2
+  );
+  // Calculate the semiperimeter of the quadrilateral
+  const s2 = (a2 + b2 + c2 + d2) / 2;
 
-//   // Calculate the area using Brahmagupta's formula
-//   const area2 = Math.sqrt((s2 - a2) * (s2 - b2) * (s2 - c2) * (s2 - d2));
+  // Calculate the area using Brahmagupta's formula
+  const area2 = Math.sqrt((s2 - a2) * (s2 - b2) * (s2 - c2) * (s2 - d2));
 
-//   return Math.max(area1, area2);
-// }
+  return Math.max(area1, area2);
+}
 
 function findConnectedTrapezoids(
   trapezoid: Trapezoid,
