@@ -185,6 +185,9 @@ export const Canvas = () => {
   );
   const [trapezoids, setTrapezoids] = createSignal<Trapezoid[]>([]);
   const [edgeData, setEdgeData] = createSignal<ImageData>();
+  const [clickedPoint, setClickedPoint] = createSignal<Vertex>();
+  const [fixTrapezoids, setFixTrapezoids] = createSignal(false);
+  const [matchedPoints, setMatchedPoints] = createSignal<Vertex[]>([]);
 
   const options = () => ({
     squareSize: squareSize(),
@@ -290,6 +293,7 @@ export const Canvas = () => {
     const y = e.clientY - rect.top;
     const imgX = Math.round((x / rectWidth) * canvasRef.width);
     const imgY = Math.round((y / rectHeight) * canvasRef.height);
+    if(fixTrapezoids()) { pointMatching(imgX, imgY); return; }
     if (!edgeData()) {
       const ctx = canvasRef.getContext("2d")!;
       const imageData = ctx.getImageData(0, 0, canvasRef.width, canvasRef.height);
@@ -298,7 +302,9 @@ export const Canvas = () => {
     // find if the nearest vertex is close enough
     const { nearestDistance } = findNearestVertex(imgX, imgY, trapezoids());
     console.log({ nearestDistance, imgX, imgY })
-    if (nearestDistance < 25) {
+    const { inTrapezoid } = isPointInTrapezoid(imgX, imgY, trapezoids());
+    if (nearestDistance < 20 || inTrapezoid) {
+      setClickedPoint({ x: imgX, y: imgY });
       // start dragging
       canvasRef.addEventListener("mousemove", handleMouseMove);
       canvasRef.addEventListener("mouseup", handleMouseUp);
@@ -308,6 +314,93 @@ export const Canvas = () => {
     } else {
       handleClick(e);
     }
+  }
+
+  function pointMatching(x: number, y: number) {
+    const ctx = canvasRef.getContext("2d")!;
+    const { trapezoid, inTrapezoid } = isPointInTrapezoid(x, y, trapezoids());
+    if (!inTrapezoid || !trapezoid) return;
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, 2 * Math.PI);
+    ctx.fillStyle = "red";
+    ctx.fill();
+    ctx.closePath();
+    // find distance from point to every vertex, and the center of the trapezoid
+    const center = {x: (trapezoid.top.x1 + trapezoid.top.x2 + trapezoid.bottom.x1 + trapezoid.bottom.x2) / 4, y: (trapezoid.top.y1 + trapezoid.top.y2 + trapezoid.bottom.y1 + trapezoid.bottom.y2) / 4}
+    const topLeft = Math.sqrt((x - trapezoid.top.x1) ** 2 + (y - trapezoid.top.y1) ** 2);
+    const topRight = Math.sqrt((x - trapezoid.top.x2) ** 2 + (y - trapezoid.top.y2) ** 2);
+    const bottomLeft = Math.sqrt((x - trapezoid.bottom.x1) ** 2 + (y - trapezoid.bottom.y1) ** 2);
+    const bottomRight = Math.sqrt((x - trapezoid.bottom.x2) ** 2 + (y - trapezoid.bottom.y2) ** 2);
+    const centerDist = Math.sqrt((x - center.x) ** 2 + (y - center.y) ** 2);
+    const distances = [topLeft, topRight, bottomLeft, bottomRight, centerDist];
+    const minDist = Math.min(...distances);
+    let dx = 0;
+    let dy = 0;
+    switch (distances.indexOf(minDist)) {
+      case 0:
+        dx = trapezoid.top.x1 - x;
+        dy = trapezoid.top.y1 - y;
+        break;
+      case 1:
+        dx = trapezoid.top.x2 - x;
+        dy = trapezoid.top.y2 - y;
+        break;
+      case 2:
+        dx = trapezoid.bottom.x1 - x;
+        dy = trapezoid.bottom.y1 - y;
+        break;
+      case 3:
+        dx = trapezoid.bottom.x2 - x;
+        dy = trapezoid.bottom.y2 - y;
+        break;
+      case 4:
+        dx = center.x - x;
+        dy = center.y - y;
+        break;
+    }
+    let points: Vertex[] = []
+    // find corresponding points on every other trapezoid
+    for (const otherTrapezoid of trapezoids()) {
+      if (otherTrapezoid === trapezoid) continue;
+      switch (distances.indexOf(minDist)) {
+        case 0:
+          points.push({ x: otherTrapezoid.top.x1 - dx, y: otherTrapezoid.top.y1 - dy });
+          break;
+        case 1:
+          points.push({ x: otherTrapezoid.top.x2 - dx, y: otherTrapezoid.top.y2 - dy });
+          break;
+        case 2:
+          points.push({ x: otherTrapezoid.bottom.x1 - dx, y: otherTrapezoid.bottom.y1 - dy });
+          break;
+        case 3:
+          points.push({ x: otherTrapezoid.bottom.x2 - dx, y: otherTrapezoid.bottom.y2 - dy });
+          break;
+        case 4:
+          points.push({ x: (otherTrapezoid.top.x1 + otherTrapezoid.top.x2 + otherTrapezoid.bottom.x1 + otherTrapezoid.bottom.x2) / 4 - dx, y: (otherTrapezoid.top.y1 + otherTrapezoid.top.y2 + otherTrapezoid.bottom.y1 + otherTrapezoid.bottom.y2) / 4 - dy });
+          break;
+      }
+    }
+    for (const point of points) {
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+      ctx.fillStyle = "blue";
+      ctx.fill();
+      ctx.closePath();
+    }
+    setMatchedPoints((prev) => [...prev, { x, y }, ...points]);
+  }
+
+
+  function isPointInTrapezoid(x: number, y: number, trapezoids: Trapezoid[]) {
+    for (const trapezoid of trapezoids) {
+      const { top, bottom, left, right } = trapezoid;
+      if (y < top.y1 && y < top.y2) continue;
+      if (x < left.x1 && x < left.x2) continue;
+      if (x > right.x1 && x > right.x2) continue;
+      if (y > bottom.y1 && y > bottom.y2) continue;
+      return { inTrapezoid: true, trapezoid };
+    }
+    return { inTrapezoid: false, trapezoid: null };
   }
 
   function handleMouseMove(e: MouseEvent) {
@@ -322,8 +415,8 @@ export const Canvas = () => {
     // find if the nearest vertex is close enough
     const { nearestVertex, nearestDistance } = findNearestVertex(imgX, imgY, trapezoids());
     if (nearestDistance < 3) return;
-    if (nearestVertex) {
-      const ctx = canvasRef.getContext("2d")!;
+    const ctx = canvasRef.getContext("2d")!;
+    if (nearestVertex && nearestDistance < 20) {
       console.log({ nearestVertex, imgX, imgY })
       const trapezoid = trapezoids().find(t => t.top.x1 === nearestVertex.x && t.top.y1 === nearestVertex.y || t.top.x2 === nearestVertex.x && t.top.y2 === nearestVertex.y || t.bottom.x1 === nearestVertex.x && t.bottom.y1 === nearestVertex.y || t.bottom.x2 === nearestVertex.x && t.bottom.y2 === nearestVertex.y);
       if(!trapezoid) return;
@@ -334,6 +427,32 @@ export const Canvas = () => {
       ctx.putImageData(edgeData()!, 0, 0);
       for (const trapezoid of newTrapezoids) {
         DrawTrapezoid(trapezoid, ctx);
+      }
+    } else {
+      const { inTrapezoid, trapezoid } = isPointInTrapezoid(imgX, imgY, trapezoids());
+      if (inTrapezoid && trapezoid) {
+        const dy = imgY - clickedPoint()!.y ?? 0;
+        const dx = imgX - clickedPoint()!.x ?? 0;
+        setClickedPoint({ x: imgX, y: imgY });
+        const newTrapezoid = convertLocalToGlobal(trapezoid, dx, dy);
+        // if new trapezoid is touching the edge of the image, delete it
+        if (newTrapezoid.left.x1 < 0 || newTrapezoid.right.x1 > canvasRef.width || newTrapezoid.left.x2 < 0 || newTrapezoid.right.x2 > canvasRef.width || newTrapezoid.top.y1 < 0 || newTrapezoid.top.y2 < 0 || newTrapezoid.bottom.y1 > canvasRef.height || newTrapezoid.bottom.y2 > canvasRef.height) {
+          const newTrapezoids = trapezoids().filter(t => t.top.x1 !== trapezoid.top.x1 && t.top.y1 !== trapezoid.top.y1 || t.top.x2 !== trapezoid.top.x2 && t.top.y2 !== trapezoid.top.y2 || t.bottom.x1 !== trapezoid.bottom.x1 && t.bottom.y1 !== trapezoid.bottom.y1 || t.bottom.x2 !== trapezoid.bottom.x2 && t.bottom.y2 !== trapezoid.bottom.y2)
+          setTrapezoids(newTrapezoids);
+          ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
+          ctx.putImageData(edgeData()!, 0, 0);
+          for (const trapezoid of newTrapezoids) {
+            DrawTrapezoid(trapezoid, ctx);
+          }
+          return;
+        }
+        const newTrapezoids: Trapezoid[] = trapezoids().map(t => t.top.x1 === trapezoid.top.x1 && t.top.y1 === trapezoid.top.y1 || t.top.x2 === trapezoid.top.x2 && t.top.y2 === trapezoid.top.y2 || t.bottom.x1 === trapezoid.bottom.x1 && t.bottom.y1 === trapezoid.bottom.y1 || t.bottom.x2 === trapezoid.bottom.x2 && t.bottom.y2 === trapezoid.bottom.y2 ? newTrapezoid : t);
+        setTrapezoids(newTrapezoids);
+        ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
+        ctx.putImageData(edgeData()!, 0, 0);
+        for (const t of newTrapezoids) {
+          DrawTrapezoid(t, ctx);
+        }
       }
     }
     refresh();
@@ -360,6 +479,7 @@ export const Canvas = () => {
   function handleMouseUp() {
     canvasRef.removeEventListener("mousemove", handleMouseMove);
     canvasRef.removeEventListener("mouseup", handleMouseUp);
+    setClickedPoint(undefined);
   }
 
   function findNearestVertex(x: number, y: number, trapezoids: Trapezoid[]) {
@@ -477,12 +597,14 @@ export const Canvas = () => {
         onClick={() => {
           setPoints([]);
           setTrapezoids([]);
+          setFixTrapezoids(false);
           setRefresh(refresh() + 1);
         }}
       >
         Clear Squares
       </Button>
       <Button onClick={updateParams}>Randomize Parameters</Button>
+      <Button onClick={() => {setFixTrapezoids(true)}}>Set and Save Trapezoids</Button>
       <canvas ref={canvasRef} id="canvas" width="1000" height="1000"></canvas>
     </div>
   );
@@ -636,7 +758,7 @@ function findConnectedTrapezoids(
   let trapezoids: Trapezoid[] = [];
   // const xShift = trapezoid.top.y1 - trapezoid.top.y2
   const yShift = Math.round((trapezoid.top.y1 + trapezoid.top.y2)/2 - (trapezoid.bottom.y1 + trapezoid.bottom.y2)/2) - 5
-  const xShift = Math.round(trapezoid.top.y1 - trapezoid.top.y2)
+  const xShift = Math.round(((trapezoid.top.y1 - trapezoid.top.y2) + (trapezoid.bottom.y1 - trapezoid.bottom.y2)) /2)
     recurseSearchTrapezoid(
     x,
     y,
@@ -692,18 +814,13 @@ function recurseSearchTrapezoid(
   // ctx.strokeStyle = 'red';
   // ctx.stroke();
   // ctx.closePath();
-  // const nextTrapezoid = RANSAC(ctx, square, calculateArea(trapezoid), options, x + deltaX - squareSize / 2, y + deltaY - (squareSize / 2), squareSize);
-  // if (nextTrapezoid) {
-    // }
-    // let newTest: Trapezoid | undefined;
-    // if (nextTrapezoid) newTest = DirectSearchOptimization(getPointsOnTrapezoid, convertLocalToGlobal(nextTrapezoid, x + deltaX - squareSize/2, y + deltaY - squareSize/2), square, options, ctx, x + deltaX, y + deltaY, squareSize);
-    const shiftedTrapezoid = {
-      top: {
-        x1: trapezoid.top.x1 + deltaX,
-        y1: trapezoid.top.y1 + deltaY,
-        x2: trapezoid.top.x2 + deltaX,
-        y2: trapezoid.top.y2 + deltaY,
-      },
+  const shiftedTrapezoid = {
+    top: {
+      x1: trapezoid.top.x1 + deltaX,
+      y1: trapezoid.top.y1 + deltaY,
+      x2: trapezoid.top.x2 + deltaX,
+      y2: trapezoid.top.y2 + deltaY,
+    },
     bottom: {
       x1: trapezoid.bottom.x1 + deltaX,
       y1: trapezoid.bottom.y1 + deltaY,
@@ -759,23 +876,12 @@ function recurseSearchTrapezoid(
         (secondTest.top.y1 + secondTest.top.y2) / 2 -
           (secondTest.bottom.y1 + secondTest.bottom.y2) / 2
       );
-    // const left = x + deltaX - squareSize / 2;
-    // const right = x + deltaX + squareSize / 2;
-    // if (secondTest.left.x1 < left && secondTest.left.x2 < left) {
-    //   xShift -= 5;
-    // }
-    // if (secondTest.right.x1 > right && secondTest.right.x2 > right) {
-    //   xShift += 5;
-    // }
-    // const top = y + deltaY - squareSize / 2;
-    // const bottom = y + deltaY + squareSize / 2;
-    // if (secondTest.top.y1 < top && secondTest.top.y2 < top) {
-    //   temp += 5;
-    // }
-    // if (secondTest.bottom.y1 > bottom && secondTest.bottom.y2 > bottom) {
-    //   temp -= 5;
-    // }
-    const yShift = deltaY < 0 ? temp : -temp;
+    let yShift = deltaY < 0 ? temp : -temp;
+    const yCenter = Math.round(
+      ((secondTest.top.y1 + secondTest.top.y2) / 2 +
+      (secondTest.bottom.y1 + secondTest.bottom.y2) / 2)/2
+    );
+    yShift += (yCenter - (y + deltaY));
 
     return recurseSearchTrapezoid(
       x + deltaX,
