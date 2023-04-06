@@ -252,6 +252,7 @@ export const Canvas = () => {
         return;
       }
     }
+    console.log({ inTrapezoid, trapezoid })
     const { nearestDistance } = findNearestVertex(
       imgX,
       imgY,
@@ -416,16 +417,17 @@ export const Canvas = () => {
           break;
       }
     }
-    for (const point of points) {
-      ctx.beginPath();
-      ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
-      ctx.fillStyle = "blue";
-      ctx.fill();
-      ctx.closePath();
-    }
+    // for (const point of points) {
+    //   ctx.beginPath();
+    //   ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+    //   ctx.fillStyle = "blue";
+    //   ctx.fill();
+    //   ctx.closePath();
+    // }
     setTrapezoidSets(
       trapezoidSets().map((t) => {
         if (t.trapezoids === trapezoids) {
+          console.log({t})
           return {
             ...t,
             matchedPoints: [{ x, y }, ...points],
