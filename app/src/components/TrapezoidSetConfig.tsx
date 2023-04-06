@@ -1,18 +1,4 @@
-import { Trapezoid, Vertex } from "./Canvas";
-
-export enum Status {
-  Editing,
-  Matching,
-  Saved,
-}
-type TrapezoidSet = {
-  trapezoids: Trapezoid[];
-  id: number;
-  color: string;
-  thickness: number;
-  status: Status;
-  matchedPoints: Vertex[];
-};
+import { Status, TrapezoidSet } from "@dto/trapezoids";
 
 const availableColors = ["red", "blue", "green", "yellow", "purple", "orange"];
 
