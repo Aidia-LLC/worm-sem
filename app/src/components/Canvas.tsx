@@ -1,4 +1,4 @@
-import { createEffect, createSignal, onMount, untrack } from "solid-js";
+import { Show, createEffect, createSignal, onMount, untrack } from "solid-js";
 import { Button } from "./Button";
 import DetectTrapezoids from "./DetectTrapezoids";
 import EdgeFilter from "./EdgeFilter";
@@ -146,7 +146,7 @@ const defaultOptions: Options = {
 
 export const Canvas = () => {
   let canvasRef!: HTMLCanvasElement;
-
+  const [hidden, setHidden] = createSignal(true);
   const [refresh, setRefresh] = createSignal(0);
   const [squareSize, setSquareSize] = createSignal(defaultOptions.squareSize);
   const [gaussianKernel, setGaussianKernel] = createSignal<
@@ -574,44 +574,43 @@ export const Canvas = () => {
   return (
     <div class="flex flex-col gap-3 text-xs">
       <h3 class="font-bold text-xl mt-4">Canvas</h3>
-      <Button
-        onClick={() => {
-          setSquareSize(defaultOptions.squareSize);
-          setGaussianKernel(defaultOptions.gaussianKernel);
-          setHysteresisHigh(defaultOptions.hysteresisHigh);
-          setHysteresisLow(defaultOptions.hysteresisLow);
-          setMinNeighborsForNoiseReduction(
-            defaultOptions.minNeighborsForNoiseReduction
-          );
-          setHoughVoteThreshold(defaultOptions.houghVoteThreshold);
-          setMergeThetaThreshold(defaultOptions.mergeThetaThreshold);
-          setPixelThreshold(defaultOptions.pixelThreshold);
-          setMaxLines(defaultOptions.maxLines);
-          setNoiseReductionIterations(defaultOptions.noiseReductionIterations);
-        }}
-      >
-        Reset Parameters
-      </Button>
       <div class="grid grid-cols-2 gap-3">
+        {/* toggle for hidden() */}
+        <div class="flex flex-col gap-3">
+          <p>For fine tuning of all other parameters:</p>
+          <Button onClick={() => setHidden(!hidden())}>
+            {hidden() ? "Show" : "Hide"} Extra Parameters
+          </Button>
+        </div>
+        <div class='flex-col'>
+        <p>This sets the size of the red bounding box where the algorithm searches for a trapezoid.</p>
         <Param
           label="Square Size"
           value={squareSize()}
           onChange={setSquareSize}
-        />
-        <Param
-          label="Min Neighbors for Noise Reduction"
-          value={minNeighborsForNoiseReduction()}
-          onChange={setMinNeighborsForNoiseReduction}
-        />
+          />
+        </div>
+        <div class='flex=col'>
+        <p>This sets the low-end threshold for determining if a pixel is on an edge. If the pictures contrast is lower than usual, this may need to be lowered.</p>
         <Param
           label="Hysteresis Low"
           value={hysteresisLow()}
           onChange={setHysteresisLow}
-        />
+          />
+        </div>
+        <div class='flex-col'>
+        <p>This sets the high-end threshold for determining if a pixel is on an edge. If the pictures contrast is higher than usual, this may need to be raised.</p>
         <Param
           label="Hysteresis High"
           value={hysteresisHigh()}
           onChange={setHysteresisHigh}
+          />
+          </div>
+        <Show when={!hidden()}>
+        <Param
+          label="Min Neighbors for Noise Reduction"
+          value={minNeighborsForNoiseReduction()}
+          onChange={setMinNeighborsForNoiseReduction}
         />
         <Param
           label="Hough Vote Threshold"
@@ -653,8 +652,30 @@ export const Canvas = () => {
           value={densitySize()}
           onChange={setDensitySize}
         />
+      </Show>
       </div>
-      <KernelParam values={gaussianKernel()} onChange={setGaussianKernel} />
+      <Show when={!hidden()}>
+        <KernelParam values={gaussianKernel()} onChange={setGaussianKernel} />
+        <Button onClick={updateParams}>Randomize Parameters</Button>
+        <Button
+          onClick={() => {
+            setSquareSize(defaultOptions.squareSize);
+            setGaussianKernel(defaultOptions.gaussianKernel);
+            setHysteresisHigh(defaultOptions.hysteresisHigh);
+            setHysteresisLow(defaultOptions.hysteresisLow);
+            setMinNeighborsForNoiseReduction(
+              defaultOptions.minNeighborsForNoiseReduction
+            );
+            setHoughVoteThreshold(defaultOptions.houghVoteThreshold);
+            setMergeThetaThreshold(defaultOptions.mergeThetaThreshold);
+            setPixelThreshold(defaultOptions.pixelThreshold);
+            setMaxLines(defaultOptions.maxLines);
+            setNoiseReductionIterations(defaultOptions.noiseReductionIterations);
+          }}
+        >
+          Reset Parameters
+        </Button>
+      </Show>
       <Button
         onClick={() => {
           setPoints([]);
@@ -665,7 +686,6 @@ export const Canvas = () => {
       >
         Clear Squares
       </Button>
-      <Button onClick={updateParams}>Randomize Parameters</Button>
       <Button onClick={() => {setFixTrapezoids(true)}}>Set and Save Trapezoids</Button>
       <canvas ref={canvasRef} id="canvas" width="1000" height="1000"></canvas>
     </div>
