@@ -35,6 +35,7 @@ export const TrapezoidSetConfig = (props: {
           value={props.trapezoidSet.color}
           onChange={(e) => {
             props.setTrapezoidSet({
+              id: props.trapezoidSet.id,
               color: e.currentTarget.value,
             });
           }}
@@ -53,6 +54,7 @@ export const TrapezoidSetConfig = (props: {
           class="p-2 rounded-md border border-gray-300"
           onChange={(e) => {
             props.setTrapezoidSet({
+              id: props.trapezoidSet.id,
               thickness: parseInt(e.currentTarget.value),
             });
           }}
@@ -70,6 +72,7 @@ export const TrapezoidSetConfig = (props: {
               onChange={(e) => {
                 if (e.currentTarget.checked)
                   props.setTrapezoidSet({
+                    id: props.trapezoidSet.id,
                     status: Status.Editing,
                   });
               }}

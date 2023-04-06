@@ -44,6 +44,12 @@ export const Canvas = () => {
   const [imageToggle, setImageToggle] = createSignal(false);
   const [trapezoidSets, setTrapezoidSets] = createSignal<TrapezoidSet[]>([]);
 
+  createEffect(() => {
+    trapezoidSets();
+    imageToggle();
+    draw();
+  });
+
   const [options, setOptions, resetOptions] = createOptionsStore();
 
   const handleClick = (e: MouseEvent) => {
@@ -196,7 +202,7 @@ export const Canvas = () => {
           ctx.stroke();
         }
       }
-    }
+    };
     if (!imageToggle()) {
       if (!edgeData()) return;
       ctx.putImageData(edgeData()!, 0, 0);
@@ -240,7 +246,7 @@ export const Canvas = () => {
     );
     if (inTrapezoid && trapezoid) {
       const { trapezoidSet } = findTrapezoidSet(trapezoid);
-      console.log({trapezoidSet})
+      console.log({ trapezoidSet });
       if (trapezoidSet && trapezoidSet.status === Status.Matching) {
         pointMatching(imgX, imgY, trapezoidSet);
         return;
@@ -297,7 +303,6 @@ export const Canvas = () => {
             return t;
           })
         );
-        draw();
       }
     }
     const ctx = canvasRef.getContext("2d")!;
@@ -490,7 +495,6 @@ export const Canvas = () => {
               return t;
             })
           );
-          draw();
           return;
         }
       }
@@ -529,7 +533,6 @@ export const Canvas = () => {
                 : t
             )
           );
-          draw();
           handleMouseUp();
           return;
         }
@@ -550,7 +553,6 @@ export const Canvas = () => {
               : t
           )
         );
-        draw();
         return;
       }
     }
@@ -586,7 +588,6 @@ export const Canvas = () => {
           : t
       );
       setTrapezoidSets(newTrapezoids); //TODO double check
-      draw();
     }
     refresh();
   }
@@ -797,7 +798,6 @@ export const Canvas = () => {
       <Button
         onClick={() => {
           setImageToggle(!imageToggle());
-          draw();
         }}
       >
         Show {imageToggle() ? "Edge Data" : "Original"} Image{" "}
