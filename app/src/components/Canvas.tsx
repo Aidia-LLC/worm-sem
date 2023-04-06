@@ -317,6 +317,24 @@ export const Canvas = () => {
   }
 
   function pointMatching(x: number, y: number) {
+    if (matchedPoints().length !== 0) {
+      // find closest matched point
+      const { nearestDistance, nearestPoint } = findNearestPoint(x, y, matchedPoints());
+      if (nearestDistance < 15) {
+        // click and drag
+        canvasRef.addEventListener("mousemove", handleMouseMove);
+        canvasRef.addEventListener("mouseup", handleMouseUp);
+        setClickedPoint(nearestPoint);
+        return;
+      }
+      else {
+        setMatchedPoints([])
+        const ctx = canvasRef.getContext("2d")!;
+        ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
+        ctx.putImageData(edgeData()!, 0, 0);
+        for (const trapezoid of trapezoids()) DrawTrapezoid(trapezoid, ctx);
+      }
+    }
     const ctx = canvasRef.getContext("2d")!;
     const { trapezoid, inTrapezoid } = isPointInTrapezoid(x, y, trapezoids());
     if (!inTrapezoid || !trapezoid) return;
@@ -412,6 +430,33 @@ export const Canvas = () => {
     const y = e.clientY - rect.top;
     const imgX = Math.round((x / rectWidth) * canvasRef.width);
     const imgY = Math.round((y / rectHeight) * canvasRef.height);
+    if (fixTrapezoids()) {
+      const { nearestPoint, nearestDistance } = findNearestPoint(imgX, imgY, matchedPoints());
+      const ctx = canvasRef.getContext("2d")!;
+      if (nearestPoint && nearestDistance < 15) {
+        console.log({ nearestPoint, imgX, imgY })
+        const newMatchedPoints = matchedPoints().map(point => {
+          if (point.x === nearestPoint.x && point.y === nearestPoint.y) {
+            return { x: imgX, y: imgY };
+          }
+          return point;
+        });
+        setMatchedPoints(newMatchedPoints);
+        ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
+        ctx.putImageData(edgeData()!, 0, 0);
+        for (const trapezoid of trapezoids()) {
+          DrawTrapezoid(trapezoid, ctx);
+        }
+        for (const point of newMatchedPoints) {
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+          ctx.fillStyle = "blue";
+          ctx.fill();
+          ctx.closePath();
+        }
+        return;
+      }
+    }
     // find if the nearest vertex is close enough
     const { nearestVertex, nearestDistance } = findNearestVertex(imgX, imgY, trapezoids());
     if (nearestDistance < 3) return;
@@ -480,6 +525,7 @@ export const Canvas = () => {
   function handleMouseUp() {
     canvasRef.removeEventListener("mousemove", handleMouseMove);
     canvasRef.removeEventListener("mouseup", handleMouseUp);
+    
     setClickedPoint(undefined);
   }
 
@@ -499,6 +545,21 @@ export const Canvas = () => {
       }
     }
     return {nearestDistance, nearestVertex}
+  }
+
+  function findNearestPoint(x: number, y: number, points: Vertex[]) {
+    let nearestPoint: Vertex | undefined;
+    let nearestDistance = Infinity;
+    for (const point of points) {
+      const distance = Math.sqrt(
+        Math.pow(point.x - x, 2) + Math.pow(point.y - y, 2)
+      );
+      if (distance < nearestDistance) {
+        nearestPoint = point;
+        nearestDistance = distance;
+      }
+    }
+    return {nearestDistance, nearestPoint}
   }
 
   const updateParams = () => {
