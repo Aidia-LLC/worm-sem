@@ -10,184 +10,12 @@ import { Status, TrapezoidSetConfig } from "./TrapezoidSetConfig";
 
 const IMAGE_TEST = "/img/grab_6.jpeg";
 
-<<<<<<< HEAD
-enum Status {
-  Editing,
-  Matching,
-  Saved
-}
-
-type TrapezoidSet = {
-  trapezoids: Trapezoid[];
-  id: number;
-  color: string;
-  thickness: number;
-  status: Status;
-  matchedPoints: Vertex[];
-};
-
-const Param = (props: {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-}) => {
-  const [currentValue, setCurrentValue] = createSignal(props.value);
-
-  createEffect(() => {
-    const propValue = props.value;
-    untrack(() => {
-      if (propValue !== currentValue()) setCurrentValue(props.value);
-    });
-  });
-
-  let inputRef!: HTMLInputElement;
-
-  return (
-    <div class="flex flex-row items-center gap-2">
-      <label class="font-bold">{props.label}</label>
-      <input
-        type="number"
-        value={props.value}
-        class="w-full"
-        ref={inputRef}
-        onChange={(e) => setCurrentValue(parseFloat(e.currentTarget.value))}
-      />
-      <button
-        onClick={() => props.onChange(currentValue())}
-        class="text-white font-bold py-2 px-4 rounded"
-        classList={{
-          "bg-orange-500 hover:bg-orange-700": props.value !== currentValue(),
-          "bg-blue-500 hover:bg-blue-700": props.value === currentValue(),
-        }}
-      >
-        Set
-      </button>
-    </div>
-  );
-};
-
-const KernelParam = (props: {
-  values: number[];
-  onChange: (values: number[]) => void;
-}) => {
-  const [cornerVal, setCornerVal] = createSignal(props.values[0]);
-  const [edgeVal, setEdgeVal] = createSignal(props.values[1]);
-  const [centerVal, setCenterVal] = createSignal(props.values[2]);
-
-  let corners!: HTMLInputElement;
-  let edges!: HTMLInputElement;
-  let center!: HTMLInputElement;
-
-  createEffect(() => {
-    const [latestCorner, latestEdge, latestCenter] = props.values;
-    untrack(() => {
-      if (latestCorner !== cornerVal()) setCornerVal(props.values[0]);
-      if (latestEdge !== edgeVal()) setEdgeVal(props.values[1]);
-      if (latestCenter !== centerVal()) setCenterVal(props.values[2]);
-    });
-  });
-
-  const changed = () => {
-    return (
-      cornerVal() !== props.values[0] ||
-      edgeVal() !== props.values[1] ||
-      centerVal() !== props.values[2]
-    );
-  };
-
-  return (
-    <div class="flex flex-row items-center gap-2">
-      <label class="font-bold">Gaussian Kernel</label>
-      <div class="grid grid-cols-3 gap-2">
-        {Array.from({ length: 9 }).map((_, index) => {
-          if (index === 0 || index === 1 || index === 4) {
-            return (
-              <input
-                type="number"
-                class="text-center"
-                value={
-                  index === 0
-                    ? cornerVal()
-                    : index === 4
-                    ? centerVal()
-                    : edgeVal()
-                }
-                ref={index === 0 ? corners : index === 4 ? center : edges}
-                onChange={(e) => {
-                  if (index === 0)
-                    setCornerVal(parseFloat(e.currentTarget.value));
-                  if (index === 1)
-                    setEdgeVal(parseFloat(e.currentTarget.value));
-                  if (index === 4)
-                    setCenterVal(parseFloat(e.currentTarget.value));
-                }}
-              />
-            );
-          }
-          return (
-            <div class="flex items-center justify-center">
-              {index % 2 === 1
-                ? edgeVal()
-                : index === 4
-                ? centerVal()
-                : cornerVal()}
-            </div>
-          );
-        })}
-      </div>
-      <button
-        onClick={() => {
-          props.onChange([cornerVal(), edgeVal(), centerVal()]);
-        }}
-        class="text-white font-bold py-2 px-4 rounded"
-        classList={{
-          "bg-orange-500 hover:bg-orange-700": changed(),
-          "bg-blue-500 hover:bg-blue-700": !changed(),
-        }}
-      >
-        Set
-      </button>
-    </div>
-  );
-};
-
-const defaultOptions: Options = {
-  squareSize: 80,
-  gaussianKernel: [0.06242931069425457, 0.1247976249479739, 0.2524974040020353],
-  hysteresisHigh: 0.075,
-  hysteresisLow: 0.0275,
-  minNeighborsForNoiseReduction: 6,
-  houghVoteThreshold: 0.65,
-  mergeThetaThreshold: 10,
-  pixelThreshold: 0.35,
-  maxLines: 6,
-  noiseReductionIterations: 15,
-  densityThreshold: 0.3080404237765713,
-  densityStep: 2,
-  densitySize: 16,
-};
-
-=======
->>>>>>> 3b1a8da78f6b45d3d0722d8c90b6ada27d43c37f
 export const Canvas = () => {
   let canvasRef!: HTMLCanvasElement;
   const [hidden, setHidden] = createSignal(true);
   const [refresh, setRefresh] = createSignal(0);
 
   const [points, setPoints] = createSignal<[number, number][]>([]);
-<<<<<<< HEAD
-  const [densityThreshold, setDensityThreshold] = createSignal(
-    defaultOptions.densityThreshold
-  );
-  const [densityStep, setDensityStep] = createSignal(
-    defaultOptions.densityStep
-  );
-  const [densitySize, setDensitySize] = createSignal(
-    defaultOptions.densitySize
-  );
-=======
-  const [trapezoids, setTrapezoids] = createSignal<Trapezoid[]>([]);
->>>>>>> 3b1a8da78f6b45d3d0722d8c90b6ada27d43c37f
   const [edgeData, setEdgeData] = createSignal<ImageData>();
   const [clickedPoint, setClickedPoint] = createSignal<Vertex>();
   const [imageToggle, setImageToggle] = createSignal(false);
@@ -206,16 +34,11 @@ export const Canvas = () => {
     const imgX = Math.round((x / rectWidth) * canvasRef.width);
     const imgY = Math.round((y / rectHeight) * canvasRef.height);
     setPoints([...points(), [imgX, imgY]]);
-<<<<<<< HEAD
-    let { trapezoid, fit } = DetectTrapezoids(imgX, imgY, ctx, options());
-    const valid = trapezoid && trapezoidIsValid(trapezoid, ctx, imgX, imgY, options(), fit);
-=======
     let { trapezoid, fit } = detectTrapezoid(imgX, imgY, ctx, options.options);
     // if trapezoid is bad or not found, try finding it with the RANSAC algorithm
     const valid =
       trapezoid &&
       trapezoidIsValid(trapezoid, ctx, imgX, imgY, options.options, fit);
->>>>>>> 3b1a8da78f6b45d3d0722d8c90b6ada27d43c37f
     if (!valid) {
       const square = getSquare(
         imageData,
@@ -232,10 +55,6 @@ export const Canvas = () => {
         imgY - options.options.squareSize / 2
       )!;
       if (!trapezoid) return;
-<<<<<<< HEAD
-      trapezoid = convertLocalToGlobal(trapezoid, imgX - options().squareSize / 2, imgY - options().squareSize / 2);
-      const { trapezoid: newTrapezoid } = DirectSearchOptimization(
-=======
       // console.log("RANSAC trapezoid", trapezoid);
       trapezoid = convertLocalToGlobal(
         trapezoid,
@@ -243,8 +62,7 @@ export const Canvas = () => {
         imgY - options.options.squareSize / 2
       );
       // DrawTrapezoid(trapezoid, ctx, "blue");
-      const { trapezoid: newTrapezoid, fit } = DirectSearchOptimization(
->>>>>>> 3b1a8da78f6b45d3d0722d8c90b6ada27d43c37f
+      const { trapezoid: newTrapezoid } = DirectSearchOptimization(
         getPointsOnTrapezoid,
         trapezoid,
         square,
@@ -319,11 +137,7 @@ export const Canvas = () => {
     setEdgeData(imageData);
     untrack(() => {
       const ctx = canvasRef.getContext("2d")!;
-<<<<<<< HEAD
-      for (const [x, y] of points()) DetectTrapezoids(x, y, ctx, o);
-=======
-      for (const { x, y } of matchedPoints()) detectTrapezoid(x, y, ctx, o);
->>>>>>> 3b1a8da78f6b45d3d0722d8c90b6ada27d43c37f
+      for (const [x, y] of points()) detectTrapezoid(x, y, ctx, o);
     });
   });
 
@@ -337,7 +151,6 @@ export const Canvas = () => {
       const ctx = canvasRef.getContext("2d")!;
       ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
       ctx.putImageData(edgeData()!, 0, 0);
-<<<<<<< HEAD
       for (const trapezoidSet of trapezoidSets()) {
         const { trapezoids, color, thickness } = trapezoidSet;
         for (const trapezoid of trapezoids) DrawTrapezoid(trapezoid, ctx, color, thickness);
@@ -346,13 +159,6 @@ export const Canvas = () => {
           ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
           ctx.stroke();
         }
-=======
-      for (const trapezoid of trapezoids()) DrawTrapezoid(trapezoid, ctx);
-      for (const { x, y } of matchedPoints()) {
-        ctx.beginPath();
-        ctx.arc(x, y, 5, 0, 2 * Math.PI);
-        ctx.stroke();
->>>>>>> 3b1a8da78f6b45d3d0722d8c90b6ada27d43c37f
       }
     } else {
       const ctx = canvasRef.getContext("2d")!;
@@ -365,7 +171,6 @@ export const Canvas = () => {
             ctx.canvas.width = img.width;
             ctx.canvas.height = img.height;
             ctx.drawImage(img, 0, 0);
-<<<<<<< HEAD
             for (const trapezoidSet of trapezoidSets()) {
               const { trapezoids, color, thickness } = trapezoidSet;
               for (const trapezoid of trapezoids) DrawTrapezoid(trapezoid, ctx, color, thickness);
@@ -374,14 +179,6 @@ export const Canvas = () => {
                 ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
                 ctx.stroke();
               }
-=======
-            for (const trapezoid of trapezoids())
-              DrawTrapezoid(trapezoid, ctx, "red", 5);
-            for (const { x, y } of matchedPoints()) {
-              ctx.beginPath();
-              ctx.arc(x, y, 5, 0, 2 * Math.PI);
-              ctx.stroke();
->>>>>>> 3b1a8da78f6b45d3d0722d8c90b6ada27d43c37f
             }
           };
           img.src = IMAGE_TEST;
@@ -390,15 +187,7 @@ export const Canvas = () => {
       img.src = IMAGE_TEST;
       draw();
     }
-<<<<<<< HEAD
   }
-=======
-  });
-
-  onMount(() => {
-    canvasRef.addEventListener("mousedown", handleMouseDown);
-  });
->>>>>>> 3b1a8da78f6b45d3d0722d8c90b6ada27d43c37f
 
   function handleMouseDown(e: MouseEvent) {
     const rect = canvasRef.getBoundingClientRect();
@@ -408,13 +197,6 @@ export const Canvas = () => {
     const y = e.clientY - rect.top;
     const imgX = Math.round((x / rectWidth) * canvasRef.width);
     const imgY = Math.round((y / rectHeight) * canvasRef.height);
-<<<<<<< HEAD
-=======
-    if (fixTrapezoids()) {
-      pointMatching(imgX, imgY);
-      return;
-    }
->>>>>>> 3b1a8da78f6b45d3d0722d8c90b6ada27d43c37f
     if (!edgeData()) {
       const ctx = canvasRef.getContext("2d")!;
       const imageData = ctx.getImageData(
@@ -455,23 +237,13 @@ export const Canvas = () => {
     const { trapezoids } = trapezoidSet;
     if (trapezoidSet.matchedPoints.length !== 0) {
       // find closest matched point
-<<<<<<< HEAD
       const { nearestDistance, nearestPoint } = findNearestPoint(x, y, trapezoidSet.matchedPoints);
       if (nearestDistance < 10) {
-=======
-      const { nearestDistance, nearestPoint } = findNearestPoint(
-        x,
-        y,
-        matchedPoints()
-      );
-      if (nearestDistance < 15) {
->>>>>>> 3b1a8da78f6b45d3d0722d8c90b6ada27d43c37f
         // click and drag
         canvasRef.addEventListener("mousemove", handleMouseMove);
         canvasRef.addEventListener("mouseup", handleMouseUp);
         setClickedPoint(nearestPoint);
         return;
-<<<<<<< HEAD
       }
       else {
         setTrapezoidSets(trapezoidSets().map((t) => {
@@ -484,37 +256,6 @@ export const Canvas = () => {
           return t;
         }));
         draw()
-=======
-      } else {
-        setMatchedPoints([]);
-        const ctx = canvasRef.getContext("2d")!;
-        ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
-        if (imageToggle()) {
-          const img = new Image();
-          img.onload = function () {
-            if (!ctx) return;
-            ctx.canvas.width = img.width;
-            ctx.canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
-            for (const trapezoid of trapezoids())
-              DrawTrapezoid(trapezoid, ctx, "red", 5);
-            for (const point of matchedPoints()) {
-              ctx.beginPath();
-              ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
-              ctx.stroke();
-            }
-          };
-          img.src = IMAGE_TEST;
-        } else {
-          ctx.putImageData(edgeData()!, 0, 0);
-          for (const trapezoid of trapezoids()) DrawTrapezoid(trapezoid, ctx);
-          for (const point of matchedPoints()) {
-            ctx.beginPath();
-            ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
-            ctx.stroke();
-          }
-        }
->>>>>>> 3b1a8da78f6b45d3d0722d8c90b6ada27d43c37f
       }
     }
     const ctx = canvasRef.getContext("2d")!;
@@ -667,7 +408,6 @@ export const Canvas = () => {
     const y = e.clientY - rect.top;
     const imgX = Math.round((x / rectWidth) * canvasRef.width);
     const imgY = Math.round((y / rectHeight) * canvasRef.height);
-<<<<<<< HEAD
     // are they dragging a point?
     const { inTrapezoid, trapezoid } = isPointInTrapezoid(imgX, imgY, trapezoidSets().map((t) => t.trapezoids).flat());
     const { nearestVertex, nearestDistance } = findNearestVertex(imgX, imgY, trapezoidSets().map((t) => t.trapezoids).flat());
@@ -697,117 +437,11 @@ export const Canvas = () => {
       }
       // Dragging a trapezoid
       else if (nearestVertex && nearestDistance > 15 && trapezoidSet) {
-=======
-    if (fixTrapezoids()) {
-      const { nearestPoint, nearestDistance } = findNearestPoint(
-        imgX,
-        imgY,
-        matchedPoints()
-      );
-      const ctx = canvasRef.getContext("2d")!;
-      if (nearestPoint && nearestDistance < 15) {
-        // console.log({ nearestPoint, imgX, imgY })
-        const newMatchedPoints = matchedPoints().map((point) => {
-          if (point.x === nearestPoint.x && point.y === nearestPoint.y) {
-            return { x: imgX, y: imgY };
-          }
-          return point;
-        });
-        setMatchedPoints(newMatchedPoints);
-        ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
-        if (imageToggle()) {
-          const img = new Image();
-          img.onload = function () {
-            if (!ctx) return;
-            ctx.canvas.width = img.width;
-            ctx.canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
-            for (const trapezoid of trapezoids()) DrawTrapezoid(trapezoid, ctx);
-            for (const point of newMatchedPoints) {
-              ctx.beginPath();
-              ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
-              ctx.fillStyle = "blue";
-              ctx.fill();
-              ctx.closePath();
-            }
-          };
-          img.src = IMAGE_TEST;
-        } else {
-          ctx.putImageData(edgeData()!, 0, 0);
-          for (const trapezoid of trapezoids()) {
-            DrawTrapezoid(trapezoid, ctx);
-          }
-          for (const point of newMatchedPoints) {
-            ctx.beginPath();
-            ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
-            ctx.fillStyle = "blue";
-            ctx.fill();
-            ctx.closePath();
-          }
-        }
-        return;
-      }
-    }
-    // find if the nearest vertex is close enough
-    const { nearestVertex, nearestDistance } = findNearestVertex(
-      imgX,
-      imgY,
-      trapezoids()
-    );
-    if (nearestDistance < 3) return;
-    const ctx = canvasRef.getContext("2d")!;
-    if (nearestVertex && nearestDistance < 15) {
-      // console.log({ nearestVertex, imgX, imgY })
-      const trapezoid = trapezoids().find(
-        (t) =>
-          (t.top.x1 === nearestVertex.x && t.top.y1 === nearestVertex.y) ||
-          (t.top.x2 === nearestVertex.x && t.top.y2 === nearestVertex.y) ||
-          (t.bottom.x1 === nearestVertex.x &&
-            t.bottom.y1 === nearestVertex.y) ||
-          (t.bottom.x2 === nearestVertex.x && t.bottom.y2 === nearestVertex.y)
-      );
-      if (!trapezoid) return;
-      const newTrapezoid = moveVertex(trapezoid, nearestVertex, imgX, imgY);
-      const newTrapezoids = trapezoids().map((t) =>
-        (t.top.x1 === nearestVertex.x && t.top.y1 === nearestVertex.y) ||
-        (t.top.x2 === nearestVertex.x && t.top.y2 === nearestVertex.y) ||
-        (t.bottom.x1 === nearestVertex.x && t.bottom.y1 === nearestVertex.y) ||
-        (t.bottom.x2 === nearestVertex.x && t.bottom.y2 === nearestVertex.y)
-          ? newTrapezoid
-          : t
-      );
-      setTrapezoids(newTrapezoids);
-      ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
-      if (imageToggle()) {
-        const img = new Image();
-        img.onload = function () {
-          if (!ctx) return;
-          ctx.canvas.width = img.width;
-          ctx.canvas.height = img.height;
-          ctx.drawImage(img, 0, 0);
-          for (const trapezoid of newTrapezoids) DrawTrapezoid(trapezoid, ctx);
-        };
-        img.src = IMAGE_TEST;
-      } else {
-        ctx.putImageData(edgeData()!, 0, 0);
-        for (const trapezoid of newTrapezoids) {
-          DrawTrapezoid(trapezoid, ctx);
-        }
-      }
-    } else {
-      const { inTrapezoid, trapezoid } = isPointInTrapezoid(
-        imgX,
-        imgY,
-        trapezoids()
-      );
-      if (inTrapezoid && trapezoid) {
->>>>>>> 3b1a8da78f6b45d3d0722d8c90b6ada27d43c37f
         const dy = imgY - clickedPoint()!.y ?? 0;
         const dx = imgX - clickedPoint()!.x ?? 0;
         setClickedPoint({ x: imgX, y: imgY });
         const newTrapezoid = convertLocalToGlobal(trapezoid, dx, dy);
         // if new trapezoid is touching the edge of the image, delete it
-<<<<<<< HEAD
         if (newTrapezoid.left.x1 < 0 || newTrapezoid.right.x1 > canvasRef.width || newTrapezoid.left.x2 < 0 || newTrapezoid.right.x2 > canvasRef.width || newTrapezoid.top.y1 < 0 || newTrapezoid.top.y2 < 0 || newTrapezoid.bottom.y1 > canvasRef.height || newTrapezoid.bottom.y2 > canvasRef.height) {
           const newTrapezoids = trapezoidSet.trapezoids.filter(t => t.top.x1 !== trapezoid.top.x1 && t.top.y1 !== trapezoid.top.y1 || t.top.x2 !== trapezoid.top.x2 && t.top.y2 !== trapezoid.top.y2 || t.bottom.x1 !== trapezoid.bottom.x1 && t.bottom.y1 !== trapezoid.bottom.y1 || t.bottom.x2 !== trapezoid.bottom.x2 && t.bottom.y2 !== trapezoid.bottom.y2)
           setTrapezoidSets(trapezoidSets().map(t => t.trapezoids === trapezoidSet.trapezoids ? { ...t, trapezoids: newTrapezoids } : t));
@@ -819,80 +453,6 @@ export const Canvas = () => {
         setTrapezoidSets(trapezoidSets().map(t => t.trapezoids === trapezoidSet.trapezoids ? { ...t, trapezoids: newTrapezoids } : t));
         draw();
         return;
-=======
-        if (
-          newTrapezoid.left.x1 < 0 ||
-          newTrapezoid.right.x1 > canvasRef.width ||
-          newTrapezoid.left.x2 < 0 ||
-          newTrapezoid.right.x2 > canvasRef.width ||
-          newTrapezoid.top.y1 < 0 ||
-          newTrapezoid.top.y2 < 0 ||
-          newTrapezoid.bottom.y1 > canvasRef.height ||
-          newTrapezoid.bottom.y2 > canvasRef.height
-        ) {
-          const newTrapezoids = trapezoids().filter(
-            (t) =>
-              (t.top.x1 !== trapezoid.top.x1 &&
-                t.top.y1 !== trapezoid.top.y1) ||
-              (t.top.x2 !== trapezoid.top.x2 &&
-                t.top.y2 !== trapezoid.top.y2) ||
-              (t.bottom.x1 !== trapezoid.bottom.x1 &&
-                t.bottom.y1 !== trapezoid.bottom.y1) ||
-              (t.bottom.x2 !== trapezoid.bottom.x2 &&
-                t.bottom.y2 !== trapezoid.bottom.y2)
-          );
-          setTrapezoids(newTrapezoids);
-          ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
-          if (imageToggle()) {
-            const img = new Image();
-            img.onload = function () {
-              if (!ctx) return;
-              ctx.canvas.width = img.width;
-              ctx.canvas.height = img.height;
-              ctx.drawImage(img, 0, 0);
-              for (const trapezoid of newTrapezoids)
-                DrawTrapezoid(trapezoid, ctx);
-            };
-            img.src = IMAGE_TEST;
-          } else {
-            ctx.putImageData(edgeData()!, 0, 0);
-            for (const trapezoid of newTrapezoids) {
-              DrawTrapezoid(trapezoid, ctx);
-            }
-          }
-          handleMouseUp();
-          return;
-        }
-        const newTrapezoids: Trapezoid[] = trapezoids().map((t) =>
-          (t.top.x1 === trapezoid.top.x1 && t.top.y1 === trapezoid.top.y1) ||
-          (t.top.x2 === trapezoid.top.x2 && t.top.y2 === trapezoid.top.y2) ||
-          (t.bottom.x1 === trapezoid.bottom.x1 &&
-            t.bottom.y1 === trapezoid.bottom.y1) ||
-          (t.bottom.x2 === trapezoid.bottom.x2 &&
-            t.bottom.y2 === trapezoid.bottom.y2)
-            ? newTrapezoid
-            : t
-        );
-        setTrapezoids(newTrapezoids);
-        ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
-        if (imageToggle()) {
-          const img = new Image();
-          img.onload = function () {
-            if (!ctx) return;
-            ctx.canvas.width = img.width;
-            ctx.canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
-            for (const trapezoid of newTrapezoids)
-              DrawTrapezoid(trapezoid, ctx);
-          };
-          img.src = IMAGE_TEST;
-        } else {
-          ctx.putImageData(edgeData()!, 0, 0);
-          for (const t of newTrapezoids) {
-            DrawTrapezoid(t, ctx);
-          }
-        }
->>>>>>> 3b1a8da78f6b45d3d0722d8c90b6ada27d43c37f
       }
     }
     // Dragging a vertex
@@ -1114,17 +674,7 @@ export const Canvas = () => {
       >
         Clear All
       </Button>
-<<<<<<< HEAD
       <Button onClick={() => { setImageToggle(!imageToggle()); draw() }}>Show {imageToggle() ? 'Edge Data' : 'Original'} Image </Button>
-=======
-      <Button
-        onClick={() => {
-          setFixTrapezoids(true);
-          setImageToggle(true);
-        }}
-      >
-        Set and Save Trapezoids
-      </Button>
       <Button
         onClick={() => {
           setImageToggle(!imageToggle());
@@ -1138,7 +688,6 @@ export const Canvas = () => {
         status: Status.Editing,
         thickness: 2,
       }} setTrapezoidSet={() => {}} />
->>>>>>> 3b1a8da78f6b45d3d0722d8c90b6ada27d43c37f
       <canvas ref={canvasRef} id="canvas" width="1000" height="1000"></canvas>
     </div>
   );
