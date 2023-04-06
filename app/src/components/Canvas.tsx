@@ -303,7 +303,7 @@ export const Canvas = () => {
     const { nearestDistance } = findNearestVertex(imgX, imgY, trapezoids());
     console.log({ nearestDistance, imgX, imgY })
     const { inTrapezoid } = isPointInTrapezoid(imgX, imgY, trapezoids());
-    if (nearestDistance < 20 || inTrapezoid) {
+    if (nearestDistance < 15 || inTrapezoid) {
       setClickedPoint({ x: imgX, y: imgY });
       // start dragging
       canvasRef.addEventListener("mousemove", handleMouseMove);
@@ -416,7 +416,7 @@ export const Canvas = () => {
     const { nearestVertex, nearestDistance } = findNearestVertex(imgX, imgY, trapezoids());
     if (nearestDistance < 3) return;
     const ctx = canvasRef.getContext("2d")!;
-    if (nearestVertex && nearestDistance < 20) {
+    if (nearestVertex && nearestDistance < 15) {
       console.log({ nearestVertex, imgX, imgY })
       const trapezoid = trapezoids().find(t => t.top.x1 === nearestVertex.x && t.top.y1 === nearestVertex.y || t.top.x2 === nearestVertex.x && t.top.y2 === nearestVertex.y || t.bottom.x1 === nearestVertex.x && t.bottom.y1 === nearestVertex.y || t.bottom.x2 === nearestVertex.x && t.bottom.y2 === nearestVertex.y);
       if(!trapezoid) return;
@@ -444,6 +444,7 @@ export const Canvas = () => {
           for (const trapezoid of newTrapezoids) {
             DrawTrapezoid(trapezoid, ctx);
           }
+          handleMouseUp();
           return;
         }
         const newTrapezoids: Trapezoid[] = trapezoids().map(t => t.top.x1 === trapezoid.top.x1 && t.top.y1 === trapezoid.top.y1 || t.top.x2 === trapezoid.top.x2 && t.top.y2 === trapezoid.top.y2 || t.bottom.x1 === trapezoid.bottom.x1 && t.bottom.y1 === trapezoid.bottom.y1 || t.bottom.x2 === trapezoid.bottom.x2 && t.bottom.y2 === trapezoid.bottom.y2 ? newTrapezoid : t);
