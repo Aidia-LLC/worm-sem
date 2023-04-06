@@ -1,4 +1,5 @@
 ﻿using APILib;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.X86;
 
@@ -18,7 +19,7 @@ namespace wormsem.api
         }
 
         public void Connect()
-        {  
+        {
             if (initialized) return;
             long response = api.InitialiseRemoting();
             if (response != 0)
@@ -31,6 +32,33 @@ namespace wormsem.api
             Connect();
         }
 
+        private int ExecuteCommand(string Command)
+        {
+            int ExitCode;
+            ProcessStartInfo ProcessInfo;
+            Process? Process;
+
+            // TODO test if this works on both platforms. can't really test until we're actually hooked up to the API
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                ProcessInfo = new ProcessStartInfo("cmd.exe", "/K " + Command);
+            } else
+            {
+                ProcessInfo = new ProcessStartInfo(Command);
+            }
+            ProcessInfo.CreateNoWindow = true;
+            ProcessInfo.UseShellExecute = true;
+
+            Process = Process.Start(ProcessInfo);
+            if (Process == null)
+                throw new Exception("Unable to start cmd process");
+            Process.WaitForExit();
+            ExitCode = Process.ExitCode;
+            Process.Close();
+
+            return ExitCode;
+        }
+
         public void Grab(string name, string filename, short x, short y, short width, short height, Reduction reduction = Reduction.OVERLAY_PLANE)
         {
             VerifyInitialized();
@@ -38,12 +66,14 @@ namespace wormsem.api
             object nameWrapper = new VariantWrapper(name);
             api.Set("SV_SAMPLE_ID", ref nameWrapper);
 
-            long response = api.Grab(x, y, width, height, (short)reduction, filename);
+            string tifFilename = filename + ".tif";
+            long response = api.Grab(x, y, width, height, (short)reduction, tifFilename);
 
             switch ((ZeissErrorCode)response)
             {
                 case ZeissErrorCode.NO_ERROR:
-                    // Hooray! Success.
+                    // Hooray! Success. Let's convert the tif to png
+                    ExecuteCommand($"ffmpeg -y -v quiet -i {tifFilename} {filename}");
                     break;
                 case ZeissErrorCode.FAILED_TO_GRAB:
                     throw new Exception("Grab command failed.");
