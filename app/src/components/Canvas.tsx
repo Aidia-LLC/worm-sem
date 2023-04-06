@@ -13,7 +13,7 @@ import { Button } from "./Button";
 import EdgeFilter from "./EdgeFilter";
 import { KernelParam } from "./KernelParam";
 import { Param } from "./Param";
-import { TrapezoidSetConfig } from "./TrapezoidSetConfig";
+import { availableColors, TrapezoidSetConfig } from "./TrapezoidSetConfig";
 
 export enum Status {
   Editing,
@@ -111,12 +111,17 @@ export const Canvas = () => {
       options.options,
       fit
     );
+    const colors = new Set(availableColors);
+    trapezoidSets().forEach((set) => {
+      colors.delete(set.color);
+    });
+    const color = colors.size > 0 ? colors.values().next().value : "red";
     setTrapezoidSets((prev) => [
       ...prev,
       {
         trapezoids: [...connectedTrapezoids, trapezoid],
         id: nextId(),
-        color: "red",
+        color,
         thickness: 5,
         status: Status.Editing,
         matchedPoints: [],
@@ -813,6 +818,9 @@ export const Canvas = () => {
               );
               console.log(newTrapezoidSet);
               setTrapezoidSets(newTrapezoidSets);
+            }}
+            onDelete={({ id }) => {
+              setTrapezoidSets(trapezoidSets().filter((t) => t.id !== id));
             }}
           />
         )}
