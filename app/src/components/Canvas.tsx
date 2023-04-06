@@ -108,7 +108,7 @@ export const Canvas = () => {
     setTrapezoidSets((prev) => [
       ...prev,
       {
-        trapezoids: connectedTrapezoids,
+        trapezoids: [...connectedTrapezoids, trapezoid],
         id: nextId(),
         color: "red",
         thickness: 5,
@@ -252,6 +252,7 @@ export const Canvas = () => {
     );
     if (inTrapezoid && trapezoid) {
       const { trapezoidSet } = findTrapezoidSet(trapezoid);
+      console.log({trapezoidSet})
       if (trapezoidSet && trapezoidSet.status === Status.Matching) {
         pointMatching(imgX, imgY, trapezoidSet);
         return;
@@ -821,6 +822,7 @@ export const Canvas = () => {
               const newTrapezoidSets = trapezoidSets().map((t) =>
                 t.id === newTrapezoidSet.id ? { ...t, ...newTrapezoidSet } : t
               );
+              console.log(newTrapezoidSet);
               setTrapezoidSets(newTrapezoidSets);
             }}
           />
