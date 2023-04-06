@@ -1,13 +1,14 @@
+import { detectTrapezoid } from "@logic/trapezoids/detection";
 import { createEffect, createSignal, onMount, Show, untrack } from "solid-js";
 import { Button } from "./Button";
-import DetectTrapezoids from "./DetectTrapezoids";
 import EdgeFilter from "./EdgeFilter";
 import { KernelParam } from "./KernelParam";
 import { Param } from "./Param";
+import { ProcessingOptions } from "@dto/ProcessingOptions";
 
 const IMAGE_TEST = "/img/grab_6.jpeg";
 
-const defaultOptions: Options = {
+const defaultOptions: ProcessingOptions = {
   squareSize: 80,
   gaussianKernel: [0.06242931069425457, 0.1247976249479739, 0.2524974040020353],
   hysteresisHigh: 0.075,
@@ -96,7 +97,7 @@ export const Canvas = () => {
     const imgX = Math.round((x / rectWidth) * canvasRef.width);
     const imgY = Math.round((y / rectHeight) * canvasRef.height);
     setPoints([...points(), [imgX, imgY]]);
-    let { trapezoid, fit } = DetectTrapezoids(imgX, imgY, ctx, options());
+    let { trapezoid, fit } = detectTrapezoid(imgX, imgY, ctx, options());
     // if trapezoid is bad or not found, try finding it with the RANSAC algorithm
     const valid =
       trapezoid && trapezoidIsValid(trapezoid, ctx, imgX, imgY, options(), fit);
@@ -148,7 +149,7 @@ export const Canvas = () => {
     ctx: CanvasRenderingContext2D,
     x: number,
     y: number,
-    options: Options,
+    options: ProcessingOptions,
     fit: number
   ) {
     const { squareSize } = options;
@@ -195,7 +196,7 @@ export const Canvas = () => {
     setEdgeData(imageData);
     untrack(() => {
       const ctx = canvasRef.getContext("2d")!;
-      for (const { x, y } of matchedPoints()) DetectTrapezoids(x, y, ctx, o);
+      for (const { x, y } of matchedPoints()) detectTrapezoid(x, y, ctx, o);
     });
   });
 
@@ -888,25 +889,9 @@ export const Canvas = () => {
   );
 };
 
-type Options = {
-  squareSize: number;
-  gaussianKernel: [number, number, number];
-  hysteresisHigh: number;
-  hysteresisLow: number;
-  minNeighborsForNoiseReduction: number;
-  houghVoteThreshold: number;
-  mergeThetaThreshold: number;
-  pixelThreshold: number;
-  maxLines: number;
-  noiseReductionIterations: number;
-  densityThreshold: number;
-  densityStep: number;
-  densitySize: number;
-};
-
 export const setupCanvas = (
   canvas: HTMLCanvasElement,
-  options: Options
+  options: ProcessingOptions
 ): Promise<void> => {
   const ctx = canvas.getContext("2d")!;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1029,7 +1014,7 @@ function findConnectedTrapezoids(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
-  options: Options,
+  options: ProcessingOptions,
   fit: number
 ) {
   const squareSize = options.squareSize + 10;
@@ -1083,7 +1068,7 @@ function recurseSearchTrapezoid(
   deltaY: number,
   trapezoid: any,
   ctx: CanvasRenderingContext2D,
-  options: Options,
+  options: ProcessingOptions,
   trapezoids: Trapezoid[],
   count: number,
   squareSize: number,
@@ -1195,7 +1180,7 @@ function recurseSearchTrapezoid(
 function getPointsOnTrapezoid(
   data: Uint8ClampedArray,
   trapezoid: Trapezoid,
-  options: Options,
+  options: ProcessingOptions,
   xx: number,
   yy: number,
   ctx: CanvasRenderingContext2D,
@@ -1278,7 +1263,7 @@ function RANSAC(
   ctx: CanvasRenderingContext2D,
   edgePixels: Uint8ClampedArray,
   trapezoidArea: number,
-  options: Options,
+  options: ProcessingOptions,
   x: number,
   y: number,
   squareSize?: number
@@ -1374,7 +1359,7 @@ function getSemiRandomSample<Vertex>(size: number, width: number): Vertex[] {
 function fitTrapezoid(
   trapezoid: Trapezoid,
   edgeData: Uint8ClampedArray,
-  options: Options,
+  options: ProcessingOptions,
   ctx: CanvasRenderingContext2D,
   x1: number,
   y1: number,
@@ -1517,7 +1502,7 @@ function DirectSearchOptimization(
   ft: (
     data: Uint8ClampedArray,
     trapezoid: Trapezoid,
-    options: Options,
+    options: ProcessingOptions,
     x: number,
     y: number,
     ctx: CanvasRenderingContext2D,
@@ -1525,7 +1510,7 @@ function DirectSearchOptimization(
   ) => number,
   trapezoid: Trapezoid,
   data: Uint8ClampedArray,
-  options: Options,
+  options: ProcessingOptions,
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
@@ -1593,7 +1578,7 @@ function FixedDirectSearchOptimization(
   ft: (
     data: Uint8ClampedArray,
     trapezoid: Trapezoid,
-    options: Options,
+    options: ProcessingOptions,
     x: number,
     y: number,
     ctx: CanvasRenderingContext2D,
@@ -1601,7 +1586,7 @@ function FixedDirectSearchOptimization(
   ) => number,
   trapezoid: Trapezoid,
   data: Uint8ClampedArray,
-  options: Options,
+  options: ProcessingOptions,
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
@@ -1647,7 +1632,7 @@ function RecurseDirectSearchOptimization(
   ft: (
     data: Uint8ClampedArray,
     trapezoid: Trapezoid,
-    options: Options,
+    options: ProcessingOptions,
     x: number,
     y: number,
     ctx: CanvasRenderingContext2D,
@@ -1655,7 +1640,7 @@ function RecurseDirectSearchOptimization(
   ) => number,
   trapezoid: Trapezoid,
   data: Uint8ClampedArray,
-  options: Options,
+  options: ProcessingOptions,
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,

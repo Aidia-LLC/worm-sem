@@ -23,6 +23,7 @@
     "paths": {
       "@components/*": ["src/components/*"],
       "@dto/*": ["src/dto/*"],
+      "@logic/*": ["src/logic/*"],
     }
   }
 }

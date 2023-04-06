@@ -14,7 +14,7 @@ type Options = {
   densitySize: number;
 };
 
-export default function DetectTrapezoid(x: number, y: number, ctx: CanvasRenderingContext2D, options: Options) {
+export function detectTrapezoid(x: number, y: number, ctx: CanvasRenderingContext2D, options: Options) {
   const imageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
   const square = getSquare(imageData, x, y, options.squareSize);
   ctx.beginPath();
