@@ -1,3 +1,4 @@
+import { Button } from "./Button";
 import { Trapezoid, Vertex } from "./Canvas";
 
 export enum Status {
@@ -15,18 +16,22 @@ export type TrapezoidSet = {
   matchedPoints: Vertex[];
 };
 
-const availableColors = ["red", "blue", "green", "yellow", "purple", "orange"];
+export const availableColors = ["red", "blue", "green", "yellow", "purple", "orange"];
 
 export const TrapezoidSetConfig = (props: {
   trapezoidSet: Pick<TrapezoidSet, "id" | "color" | "thickness" | "status">;
   setTrapezoidSet: (trapezoidSet: Partial<TrapezoidSet>) => void;
+  onDelete: (trapezoid: Pick<TrapezoidSet, "id">) => void;
 }) => {
   const radioName = () => `status-${props.trapezoidSet.id}`;
 
   return (
     <div class="grid grid-cols-8 gap-3 border-2 p-2 rounded-md pr-4">
-      <div class="flex items-center justify-center font-bold text-lg">
-        Set #{props.trapezoidSet.id}
+      <div class="flex flex-col gap-1 items-center justify-center font-bold text-lg">
+        <span>Set #{props.trapezoidSet.id}</span>
+        <button class='text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-red-500 hover:bg-red-700 active:bg-red-800' onClick={() => props.onDelete(props.trapezoidSet)}>
+          Remove
+        </button>
       </div>
       <div class="flex flex-col gap-2 col-span-2">
         <label class="font-bold">Color</label>
