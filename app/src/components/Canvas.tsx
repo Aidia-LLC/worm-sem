@@ -1,7 +1,13 @@
 import { ProcessingOptions } from "@dto/ProcessingOptions";
-import { Status } from "@dto/trapezoids";
 import { detectTrapezoid } from "@logic/trapezoids/detection";
-import { createEffect, createSignal, onMount, Show, untrack } from "solid-js";
+import {
+  createEffect,
+  createSignal,
+  For,
+  onMount,
+  Show,
+  untrack,
+} from "solid-js";
 import { createOptionsStore } from "src/data/createOptionsStore";
 import { Button } from "./Button";
 import EdgeFilter from "./EdgeFilter";
@@ -9,12 +15,28 @@ import { KernelParam } from "./KernelParam";
 import { Param } from "./Param";
 import { TrapezoidSetConfig } from "./TrapezoidSetConfig";
 
+export enum Status {
+  Editing,
+  Matching,
+  Saved,
+}
+
+export type TrapezoidSet = {
+  trapezoids: Trapezoid[];
+  id: number;
+  color: string;
+  thickness: number;
+  status: Status;
+  matchedPoints: Vertex[];
+};
+
 const IMAGE_TEST = "/img/grab_6.jpeg";
 
 export const Canvas = () => {
   let canvasRef!: HTMLCanvasElement;
   const [hidden, setHidden] = createSignal(true);
   const [refresh, setRefresh] = createSignal(0);
+  const [nextId, setNextId] = createSignal(1);
 
   const [points, setPoints] = createSignal<[number, number][]>([]);
   const [edgeData, setEdgeData] = createSignal<ImageData>();
@@ -83,7 +105,18 @@ export const Canvas = () => {
       options.options,
       fit
     );
-    setTrapezoidSets((prev) => [...prev, { trapezoids: connectedTrapezoids, id: imgX ** 2 + imgY ** 3, color: "red", thickness: 5, status: Status.Editing, matchedPoints: [] }]);
+    setTrapezoidSets((prev) => [
+      ...prev,
+      {
+        trapezoids: connectedTrapezoids,
+        id: nextId(),
+        color: "red",
+        thickness: 5,
+        status: Status.Editing,
+        matchedPoints: [],
+      },
+    ]);
+    setNextId((prev) => prev + 1);
   };
 
   function trapezoidIsValid(
@@ -145,7 +178,7 @@ export const Canvas = () => {
   onMount(() => {
     canvasRef.addEventListener("mousedown", handleMouseDown);
   });
-  
+
   function draw() {
     if (!imageToggle()) {
       if (!edgeData()) return;
@@ -154,7 +187,8 @@ export const Canvas = () => {
       ctx.putImageData(edgeData()!, 0, 0);
       for (const trapezoidSet of trapezoidSets()) {
         const { trapezoids, color, thickness } = trapezoidSet;
-        for (const trapezoid of trapezoids) DrawTrapezoid(trapezoid, ctx, color, thickness);
+        for (const trapezoid of trapezoids)
+          DrawTrapezoid(trapezoid, ctx, color, thickness);
         for (const point of trapezoidSet.matchedPoints) {
           ctx.beginPath();
           ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
@@ -174,7 +208,8 @@ export const Canvas = () => {
             ctx.drawImage(img, 0, 0);
             for (const trapezoidSet of trapezoidSets()) {
               const { trapezoids, color, thickness } = trapezoidSet;
-              for (const trapezoid of trapezoids) DrawTrapezoid(trapezoid, ctx, color, thickness);
+              for (const trapezoid of trapezoids)
+                DrawTrapezoid(trapezoid, ctx, color, thickness);
               for (const point of trapezoidSet.matchedPoints) {
                 ctx.beginPath();
                 ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
@@ -208,7 +243,13 @@ export const Canvas = () => {
       );
       setEdgeData(imageData);
     }
-    const { inTrapezoid, trapezoid } = isPointInTrapezoid(imgX, imgY, trapezoidSets().map((t) => t.trapezoids).flat());
+    const { inTrapezoid, trapezoid } = isPointInTrapezoid(
+      imgX,
+      imgY,
+      trapezoidSets()
+        .map((t) => t.trapezoids)
+        .flat()
+    );
     if (inTrapezoid && trapezoid) {
       const { trapezoidSet } = findTrapezoidSet(trapezoid);
       if (trapezoidSet && trapezoidSet.status === Status.Matching) {
@@ -216,7 +257,13 @@ export const Canvas = () => {
         return;
       }
     }
-    const { nearestDistance } = findNearestVertex(imgX, imgY, trapezoidSets().map((t) => t.trapezoids).flat());
+    const { nearestDistance } = findNearestVertex(
+      imgX,
+      imgY,
+      trapezoidSets()
+        .map((t) => t.trapezoids)
+        .flat()
+    );
     if (nearestDistance < 15 || inTrapezoid) {
       setClickedPoint({ x: imgX, y: imgY });
       canvasRef.addEventListener("mousemove", handleMouseMove);
@@ -238,25 +285,30 @@ export const Canvas = () => {
     const { trapezoids } = trapezoidSet;
     if (trapezoidSet.matchedPoints.length !== 0) {
       // find closest matched point
-      const { nearestDistance, nearestPoint } = findNearestPoint(x, y, trapezoidSet.matchedPoints);
+      const { nearestDistance, nearestPoint } = findNearestPoint(
+        x,
+        y,
+        trapezoidSet.matchedPoints
+      );
       if (nearestDistance < 10) {
         // click and drag
         canvasRef.addEventListener("mousemove", handleMouseMove);
         canvasRef.addEventListener("mouseup", handleMouseUp);
         setClickedPoint(nearestPoint);
         return;
-      }
-      else {
-        setTrapezoidSets(trapezoidSets().map((t) => {
-          if (t.trapezoids === trapezoids) {
-            return {
-              ...t,
-              matchedPoints: []
+      } else {
+        setTrapezoidSets(
+          trapezoidSets().map((t) => {
+            if (t.trapezoids === trapezoids) {
+              return {
+                ...t,
+                matchedPoints: [],
+              };
             }
-          }
-          return t;
-        }));
-        draw()
+            return t;
+          })
+        );
+        draw();
       }
     }
     const ctx = canvasRef.getContext("2d")!;
@@ -377,15 +429,17 @@ export const Canvas = () => {
       ctx.fill();
       ctx.closePath();
     }
-    setTrapezoidSets(trapezoidSets().map((t) => {
-      if (t.trapezoids === trapezoids) {
-        return {
-          ...t,
-          matchedPoints: [{ x, y }, ...points]
+    setTrapezoidSets(
+      trapezoidSets().map((t) => {
+        if (t.trapezoids === trapezoids) {
+          return {
+            ...t,
+            matchedPoints: [{ x, y }, ...points],
+          };
         }
-      }
-      return t;
-    }));
+        return t;
+      })
+    );
   }
 
   function isPointInTrapezoid(x: number, y: number, trapezoids: Trapezoid[]) {
@@ -410,29 +464,44 @@ export const Canvas = () => {
     const imgX = Math.round((x / rectWidth) * canvasRef.width);
     const imgY = Math.round((y / rectHeight) * canvasRef.height);
     // are they dragging a point?
-    const { inTrapezoid, trapezoid } = isPointInTrapezoid(imgX, imgY, trapezoidSets().map((t) => t.trapezoids).flat());
-    const { nearestVertex, nearestDistance } = findNearestVertex(imgX, imgY, trapezoidSets().map((t) => t.trapezoids).flat());
+    const { inTrapezoid, trapezoid } = isPointInTrapezoid(
+      imgX,
+      imgY,
+      trapezoidSets()
+        .map((t) => t.trapezoids)
+        .flat()
+    );
+    const { nearestVertex, nearestDistance } = findNearestVertex(
+      imgX,
+      imgY,
+      trapezoidSets()
+        .map((t) => t.trapezoids)
+        .flat()
+    );
     if (inTrapezoid && trapezoid) {
       const { trapezoidSet } = findTrapezoidSet(trapezoid);
       if (trapezoidSet && trapezoidSet.status === Status.Matching) {
-        const { nearestPoint, nearestDistance: pointDistance } = findNearestPoint(imgX, imgY, trapezoidSet.matchedPoints);
+        const { nearestPoint, nearestDistance: pointDistance } =
+          findNearestPoint(imgX, imgY, trapezoidSet.matchedPoints);
         if (nearestPoint && pointDistance < 10) {
-          const newMatchedPoints = trapezoidSet.matchedPoints.map(point => {
+          const newMatchedPoints = trapezoidSet.matchedPoints.map((point) => {
             if (point.x === nearestPoint.x && point.y === nearestPoint.y) {
               return { x: imgX, y: imgY };
             }
             return point;
           });
-          setTrapezoidSets(trapezoidSets().map((t) => {
-            if (t.trapezoids === trapezoidSet.trapezoids) {
-              return {
-                ...t,
-                matchedPoints: newMatchedPoints
+          setTrapezoidSets(
+            trapezoidSets().map((t) => {
+              if (t.trapezoids === trapezoidSet.trapezoids) {
+                return {
+                  ...t,
+                  matchedPoints: newMatchedPoints,
+                };
               }
-            }
-            return t;
-          }));
-          draw()
+              return t;
+            })
+          );
+          draw();
           return;
         }
       }
@@ -443,15 +512,55 @@ export const Canvas = () => {
         setClickedPoint({ x: imgX, y: imgY });
         const newTrapezoid = convertLocalToGlobal(trapezoid, dx, dy);
         // if new trapezoid is touching the edge of the image, delete it
-        if (newTrapezoid.left.x1 < 0 || newTrapezoid.right.x1 > canvasRef.width || newTrapezoid.left.x2 < 0 || newTrapezoid.right.x2 > canvasRef.width || newTrapezoid.top.y1 < 0 || newTrapezoid.top.y2 < 0 || newTrapezoid.bottom.y1 > canvasRef.height || newTrapezoid.bottom.y2 > canvasRef.height) {
-          const newTrapezoids = trapezoidSet.trapezoids.filter(t => t.top.x1 !== trapezoid.top.x1 && t.top.y1 !== trapezoid.top.y1 || t.top.x2 !== trapezoid.top.x2 && t.top.y2 !== trapezoid.top.y2 || t.bottom.x1 !== trapezoid.bottom.x1 && t.bottom.y1 !== trapezoid.bottom.y1 || t.bottom.x2 !== trapezoid.bottom.x2 && t.bottom.y2 !== trapezoid.bottom.y2)
-          setTrapezoidSets(trapezoidSets().map(t => t.trapezoids === trapezoidSet.trapezoids ? { ...t, trapezoids: newTrapezoids } : t));
-          draw()
+        if (
+          newTrapezoid.left.x1 < 0 ||
+          newTrapezoid.right.x1 > canvasRef.width ||
+          newTrapezoid.left.x2 < 0 ||
+          newTrapezoid.right.x2 > canvasRef.width ||
+          newTrapezoid.top.y1 < 0 ||
+          newTrapezoid.top.y2 < 0 ||
+          newTrapezoid.bottom.y1 > canvasRef.height ||
+          newTrapezoid.bottom.y2 > canvasRef.height
+        ) {
+          const newTrapezoids = trapezoidSet.trapezoids.filter(
+            (t) =>
+              (t.top.x1 !== trapezoid.top.x1 &&
+                t.top.y1 !== trapezoid.top.y1) ||
+              (t.top.x2 !== trapezoid.top.x2 &&
+                t.top.y2 !== trapezoid.top.y2) ||
+              (t.bottom.x1 !== trapezoid.bottom.x1 &&
+                t.bottom.y1 !== trapezoid.bottom.y1) ||
+              (t.bottom.x2 !== trapezoid.bottom.x2 &&
+                t.bottom.y2 !== trapezoid.bottom.y2)
+          );
+          setTrapezoidSets(
+            trapezoidSets().map((t) =>
+              t.trapezoids === trapezoidSet.trapezoids
+                ? { ...t, trapezoids: newTrapezoids }
+                : t
+            )
+          );
+          draw();
           handleMouseUp();
           return;
         }
-        const newTrapezoids: Trapezoid[] = trapezoidSet.trapezoids.map(t => t.top.x1 === trapezoid.top.x1 && t.top.y1 === trapezoid.top.y1 || t.top.x2 === trapezoid.top.x2 && t.top.y2 === trapezoid.top.y2 || t.bottom.x1 === trapezoid.bottom.x1 && t.bottom.y1 === trapezoid.bottom.y1 || t.bottom.x2 === trapezoid.bottom.x2 && t.bottom.y2 === trapezoid.bottom.y2 ? newTrapezoid : t);
-        setTrapezoidSets(trapezoidSets().map(t => t.trapezoids === trapezoidSet.trapezoids ? { ...t, trapezoids: newTrapezoids } : t));
+        const newTrapezoids: Trapezoid[] = trapezoidSet.trapezoids.map((t) =>
+          (t.top.x1 === trapezoid.top.x1 && t.top.y1 === trapezoid.top.y1) ||
+          (t.top.x2 === trapezoid.top.x2 && t.top.y2 === trapezoid.top.y2) ||
+          (t.bottom.x1 === trapezoid.bottom.x1 &&
+            t.bottom.y1 === trapezoid.bottom.y1) ||
+          (t.bottom.x2 === trapezoid.bottom.x2 &&
+            t.bottom.y2 === trapezoid.bottom.y2)
+            ? newTrapezoid
+            : t
+        );
+        setTrapezoidSets(
+          trapezoidSets().map((t) =>
+            t.trapezoids === trapezoidSet.trapezoids
+              ? { ...t, trapezoids: newTrapezoids }
+              : t
+          )
+        );
         draw();
         return;
       }
@@ -459,15 +568,36 @@ export const Canvas = () => {
     // Dragging a vertex
     if (nearestDistance < 3) return;
     if (nearestVertex && nearestDistance < 15) {
-      const trapezoid = trapezoidSets().map(t => t.trapezoids).flat().find(t => t.top.x1 === nearestVertex.x && t.top.y1 === nearestVertex.y || t.top.x2 === nearestVertex.x && t.top.y2 === nearestVertex.y || t.bottom.x1 === nearestVertex.x && t.bottom.y1 === nearestVertex.y || t.bottom.x2 === nearestVertex.x && t.bottom.y2 === nearestVertex.y);
+      const trapezoid = trapezoidSets()
+        .map((t) => t.trapezoids)
+        .flat()
+        .find(
+          (t) =>
+            (t.top.x1 === nearestVertex.x && t.top.y1 === nearestVertex.y) ||
+            (t.top.x2 === nearestVertex.x && t.top.y2 === nearestVertex.y) ||
+            (t.bottom.x1 === nearestVertex.x &&
+              t.bottom.y1 === nearestVertex.y) ||
+            (t.bottom.x2 === nearestVertex.x && t.bottom.y2 === nearestVertex.y)
+        );
       if (!trapezoid) return;
       const { trapezoidSet } = findTrapezoidSet(trapezoid);
       const newTrapezoid = moveVertex(trapezoid, nearestVertex, imgX, imgY);
-      const newSet = trapezoidSet?.trapezoids.map(t => t.top.x1 === nearestVertex.x && t.top.y1 === nearestVertex.y || t.top.x2 === nearestVertex.x && t.top.y2 === nearestVertex.y || t.bottom.x1 === nearestVertex.x && t.bottom.y1 === nearestVertex.y || t.bottom.x2 === nearestVertex.x && t.bottom.y2 === nearestVertex.y ? newTrapezoid : t);
-      if(!newSet) return;
-      const newTrapezoids = trapezoidSets().map(t => t.trapezoids === trapezoidSet?.trapezoids ? { ...t, trapezoids: newSet } : t);
+      const newSet = trapezoidSet?.trapezoids.map((t) =>
+        (t.top.x1 === nearestVertex.x && t.top.y1 === nearestVertex.y) ||
+        (t.top.x2 === nearestVertex.x && t.top.y2 === nearestVertex.y) ||
+        (t.bottom.x1 === nearestVertex.x && t.bottom.y1 === nearestVertex.y) ||
+        (t.bottom.x2 === nearestVertex.x && t.bottom.y2 === nearestVertex.y)
+          ? newTrapezoid
+          : t
+      );
+      if (!newSet) return;
+      const newTrapezoids = trapezoidSets().map((t) =>
+        t.trapezoids === trapezoidSet?.trapezoids
+          ? { ...t, trapezoids: newSet }
+          : t
+      );
       setTrapezoidSets(newTrapezoids); //TODO double check
-      draw()
+      draw();
     }
     refresh();
   }
@@ -675,23 +805,27 @@ export const Canvas = () => {
       >
         Clear All
       </Button>
-      <Button onClick={() => { setImageToggle(!imageToggle()); draw() }}>Show {imageToggle() ? 'Edge Data' : 'Original'} Image </Button>
       <Button
         onClick={() => {
           setImageToggle(!imageToggle());
+          draw();
         }}
       >
         Show {imageToggle() ? "Edge Data" : "Original"} Image{" "}
       </Button>
-      <TrapezoidSetConfig
-        trapezoidSet={{
-          id: 1,
-          color: "red",
-          status: Status.Editing,
-          thickness: 2,
-        }}
-        setTrapezoidSet={() => {}}
-      />
+      <For each={trapezoidSets()}>
+        {(trapezoidSet) => (
+          <TrapezoidSetConfig
+            trapezoidSet={trapezoidSet}
+            setTrapezoidSet={(newTrapezoidSet) => {
+              const newTrapezoidSets = trapezoidSets().map((t) =>
+                t.id === newTrapezoidSet.id ? { ...t, ...newTrapezoidSet } : t
+              );
+              setTrapezoidSets(newTrapezoidSets);
+            }}
+          />
+        )}
+      </For>
       <canvas ref={canvasRef} id="canvas" width="1000" height="1000"></canvas>
     </div>
   );
