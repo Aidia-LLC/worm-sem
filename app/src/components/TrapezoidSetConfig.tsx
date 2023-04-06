@@ -88,6 +88,7 @@ export const TrapezoidSetConfig = (props: {
               onChange={(e) => {
                 if (e.currentTarget.checked)
                   props.setTrapezoidSet({
+                    id: props.trapezoidSet.id,
                     status: Status.Matching,
                   });
               }}
@@ -103,6 +104,7 @@ export const TrapezoidSetConfig = (props: {
               onChange={(e) => {
                 if (e.currentTarget.checked)
                   props.setTrapezoidSet({
+                    id: props.trapezoidSet.id,
                     status: Status.Saved,
                   });
               }}

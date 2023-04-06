@@ -673,7 +673,6 @@ export const Canvas = () => {
     <div class="flex flex-col gap-3 text-xs">
       <h3 class="font-bold text-xl mt-4">Canvas</h3>
       <div class="grid grid-cols-2 gap-3">
-        {/* toggle for hidden() */}
         <div class="flex flex-col gap-3">
           <p>For fine tuning of all other parameters:</p>
           <Button onClick={() => setHidden(!hidden())}>
