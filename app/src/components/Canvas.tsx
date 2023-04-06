@@ -180,48 +180,36 @@ export const Canvas = () => {
   });
 
   function draw() {
-    if (!imageToggle()) {
-      if (!edgeData()) return;
-      const ctx = canvasRef.getContext("2d")!;
-      ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
-      ctx.putImageData(edgeData()!, 0, 0);
+    const ctx = canvasRef.getContext("2d")!;
+    ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
+    const renderTrapezoids = () => {
       for (const trapezoidSet of trapezoidSets()) {
         const { trapezoids, color, thickness } = trapezoidSet;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = thickness;
         for (const trapezoid of trapezoids)
           DrawTrapezoid(trapezoid, ctx, color, thickness);
         for (const point of trapezoidSet.matchedPoints) {
           ctx.beginPath();
           ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+          ctx.closePath();
           ctx.stroke();
         }
       }
+    }
+    if (!imageToggle()) {
+      if (!edgeData()) return;
+      ctx.putImageData(edgeData()!, 0, 0);
+      renderTrapezoids();
     } else {
-      const ctx = canvasRef.getContext("2d")!;
-      ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
       const img = new Image();
-      async function draw() {
-        return new Promise(() => {
-          img.onload = function () {
-            if (!ctx) return;
-            ctx.canvas.width = img.width;
-            ctx.canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
-            for (const trapezoidSet of trapezoidSets()) {
-              const { trapezoids, color, thickness } = trapezoidSet;
-              for (const trapezoid of trapezoids)
-                DrawTrapezoid(trapezoid, ctx, color, thickness);
-              for (const point of trapezoidSet.matchedPoints) {
-                ctx.beginPath();
-                ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
-                ctx.stroke();
-              }
-            }
-          };
-          img.src = IMAGE_TEST;
-        });
-      }
+      img.onload = () => {
+        ctx.canvas.width = img.width;
+        ctx.canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        renderTrapezoids();
+      };
       img.src = IMAGE_TEST;
-      draw();
     }
   }
 
@@ -316,9 +304,9 @@ export const Canvas = () => {
     if (!inTrapezoid || !trapezoid) return;
     ctx.beginPath();
     ctx.arc(x, y, 5, 0, 2 * Math.PI);
-    ctx.fillStyle = "red";
-    ctx.fill();
+    ctx.fillStyle = trapezoidSet.color;
     ctx.closePath();
+    ctx.fill();
     // find distance from point to every vertex, and the center of the trapezoid
     const center = {
       x:
