@@ -1,4 +1,5 @@
 import { ProcessingOptions } from "@dto/ProcessingOptions";
+import { Status } from "@dto/trapezoids";
 import { detectTrapezoid } from "@logic/trapezoids/detection";
 import { createEffect, createSignal, onMount, Show, untrack } from "solid-js";
 import { createOptionsStore } from "src/data/createOptionsStore";
@@ -6,7 +7,7 @@ import { Button } from "./Button";
 import EdgeFilter from "./EdgeFilter";
 import { KernelParam } from "./KernelParam";
 import { Param } from "./Param";
-import { Status, TrapezoidSetConfig } from "./TrapezoidSetConfig";
+import { TrapezoidSetConfig } from "./TrapezoidSetConfig";
 
 const IMAGE_TEST = "/img/grab_6.jpeg";
 
@@ -682,12 +683,15 @@ export const Canvas = () => {
       >
         Show {imageToggle() ? "Edge Data" : "Original"} Image{" "}
       </Button>
-      <TrapezoidSetConfig trapezoidSet={{
-        id: 1,
-        color: "red",
-        status: Status.Editing,
-        thickness: 2,
-      }} setTrapezoidSet={() => {}} />
+      <TrapezoidSetConfig
+        trapezoidSet={{
+          id: 1,
+          color: "red",
+          status: Status.Editing,
+          thickness: 2,
+        }}
+        setTrapezoidSet={() => {}}
+      />
       <canvas ref={canvasRef} id="canvas" width="1000" height="1000"></canvas>
     </div>
   );
