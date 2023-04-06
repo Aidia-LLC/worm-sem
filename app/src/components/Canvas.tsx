@@ -824,7 +824,7 @@ export const Canvas = () => {
         color: "red",
         status: Status.Editing,
         thickness: 2,
-      }} />
+      }} setTrapezoidSet={() => {}} />
       <canvas ref={canvasRef} id="canvas" width="1000" height="1000"></canvas>
     </div>
   );

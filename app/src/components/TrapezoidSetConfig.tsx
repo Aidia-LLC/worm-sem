@@ -32,6 +32,11 @@ export const TrapezoidSetConfig = (props: {
         <select
           class="p-2 rounded-md border border-gray-300"
           value={props.trapezoidSet.color}
+          onChange={(e) => {
+            props.setTrapezoidSet({
+              color: e.currentTarget.value,
+            });
+          }}
         >
           {availableColors.map((color) => (
             <option value={color}>{color}</option>
@@ -45,6 +50,11 @@ export const TrapezoidSetConfig = (props: {
           type="number"
           value={props.trapezoidSet.thickness}
           class="p-2 rounded-md border border-gray-300"
+          onChange={(e) => {
+            props.setTrapezoidSet({
+              thickness: parseInt(e.currentTarget.value),
+            });
+          }}
         />
       </div>
       <div class="flex flex-col gap-2 justify-between col-span-3">
