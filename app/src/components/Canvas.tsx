@@ -3,6 +3,8 @@ import { Button } from "./Button";
 import DetectTrapezoids from "./DetectTrapezoids";
 import EdgeFilter from "./EdgeFilter";
 
+const IMAGE_TEST = "/img/grab_6.jpeg";
+
 const Param = (props: {
   label: string;
   value: number;
@@ -188,6 +190,7 @@ export const Canvas = () => {
   const [clickedPoint, setClickedPoint] = createSignal<Vertex>();
   const [fixTrapezoids, setFixTrapezoids] = createSignal(false);
   const [matchedPoints, setMatchedPoints] = createSignal<Vertex[]>([]);
+  const [imageToggle, setImageToggle] = createSignal(false);
 
   const options = () => ({
     squareSize: squareSize(),
@@ -221,9 +224,9 @@ export const Canvas = () => {
     const valid = trapezoid && trapezoidIsValid(trapezoid, ctx, imgX, imgY, options(), fit);
     if (!valid) {
       const square = getSquare(imageData, imgX, imgY, options().squareSize);
-      trapezoid = RANSAC(ctx, square, 0, options(), imgX - options().squareSize/2, imgY - options().squareSize/2)!;
-      if(!trapezoid) return;
-      console.log("RANSAC trapezoid", trapezoid);
+      trapezoid = RANSAC(ctx, square, 0, options(), imgX - options().squareSize / 2, imgY - options().squareSize / 2)!;
+      if (!trapezoid) return;
+      // console.log("RANSAC trapezoid", trapezoid);
       trapezoid = convertLocalToGlobal(trapezoid, imgX - options().squareSize / 2, imgY - options().squareSize / 2);
       // DrawTrapezoid(trapezoid, ctx, "blue");
       const { trapezoid: newTrapezoid, fit } = DirectSearchOptimization(
@@ -237,7 +240,7 @@ export const Canvas = () => {
       );
       trapezoid = newTrapezoid;
       DrawTrapezoid(trapezoid, ctx, "yellow");
-      console.log({fit})
+      // console.log({ fit })
     }
     const connectedTrapezoids = findConnectedTrapezoids(
       trapezoid,
@@ -248,7 +251,7 @@ export const Canvas = () => {
       fit
     );
     setTrapezoids((prev) => [...prev, ...connectedTrapezoids, trapezoid]);
-    console.log("connectedTrapezoids", connectedTrapezoids);
+    // console.log("connectedTrapezoids", connectedTrapezoids);
   };
 
   function trapezoidIsValid(trapezoid: Trapezoid, ctx: CanvasRenderingContext2D, x: number, y: number, options: Options, fit: number) {
@@ -265,7 +268,7 @@ export const Canvas = () => {
     const right = Math.sqrt((trapezoid.right.x1 - trapezoid.right.x2) ** 2 + (trapezoid.right.y1 - trapezoid.right.y2) ** 2);
     const sideValid = top > sideThresh && bottom > sideThresh && left > sideThresh && right > sideThresh;
     const valid = areaValid && fitValid && sideValid;
-    console.log({ area, areaValid, fitValid, sideValid, valid })
+    // console.log({ area, areaValid, fitValid, sideValid, valid })
     return valid;
   }
 
@@ -274,11 +277,53 @@ export const Canvas = () => {
     refresh();
     const o = options();
     await setupCanvas(canvasRef, o);
+    const imageData = canvasRef.getContext("2d")!.getImageData(0, 0, canvasRef.width, canvasRef.height);
+    setEdgeData(imageData);
     untrack(() => {
       const ctx = canvasRef.getContext("2d")!;
-      for (const [x, y] of points()) DetectTrapezoids(x, y, ctx, o);
+      for (const {x, y} of matchedPoints()) DetectTrapezoids(x, y, ctx, o);
     });
   });
+
+  createEffect(() => {
+    if (!imageToggle()) {
+      if(!edgeData()) return;
+      const ctx = canvasRef.getContext("2d")!;
+      ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
+      ctx.putImageData(edgeData()!, 0, 0);
+      for (const trapezoid of trapezoids()) DrawTrapezoid(trapezoid, ctx);
+      for (const {x, y} of matchedPoints()) {
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, 2 * Math.PI);
+        ctx.stroke();
+      }
+    } else {
+      const ctx = canvasRef.getContext("2d")!;
+      ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
+      const img = new Image();
+      async function draw() {
+        return new Promise(() => {
+          img.onload = function () {
+            if (!ctx) return;
+            ctx.canvas.width = img.width;
+            ctx.canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            for (const trapezoid of trapezoids()) DrawTrapezoid(trapezoid, ctx, 'red', 5);
+            for (const {x, y} of matchedPoints()) {
+              ctx.beginPath();
+              ctx.arc(x, y, 5, 0, 2 * Math.PI);
+              ctx.stroke();
+            }
+          };
+          img.src = IMAGE_TEST;
+        });
+      }
+      img.src = IMAGE_TEST;
+      draw()
+    }
+  });
+
+
 
   onMount(() => {
     canvasRef.addEventListener("mousedown", handleMouseDown);
@@ -301,7 +346,7 @@ export const Canvas = () => {
     }
     // find if the nearest vertex is close enough
     const { nearestDistance } = findNearestVertex(imgX, imgY, trapezoids());
-    console.log({ nearestDistance, imgX, imgY })
+    // console.log({ nearestDistance, imgX, imgY })
     const { inTrapezoid } = isPointInTrapezoid(imgX, imgY, trapezoids());
     if (nearestDistance < 15 || inTrapezoid) {
       setClickedPoint({ x: imgX, y: imgY });
@@ -331,8 +376,30 @@ export const Canvas = () => {
         setMatchedPoints([])
         const ctx = canvasRef.getContext("2d")!;
         ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
-        ctx.putImageData(edgeData()!, 0, 0);
-        for (const trapezoid of trapezoids()) DrawTrapezoid(trapezoid, ctx);
+        if (imageToggle()) {
+          const img = new Image();
+          img.onload = function () {
+            if (!ctx) return;
+            ctx.canvas.width = img.width;
+            ctx.canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            for (const trapezoid of trapezoids()) DrawTrapezoid(trapezoid, ctx, 'red', 5);
+            for (const point of matchedPoints()) {
+              ctx.beginPath();
+              ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+              ctx.stroke();
+            }
+          }
+          img.src = IMAGE_TEST;
+        } else {
+          ctx.putImageData(edgeData()!, 0, 0);
+          for (const trapezoid of trapezoids()) DrawTrapezoid(trapezoid, ctx);
+          for (const point of matchedPoints()) {
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+            ctx.stroke();
+          }
+        }
       }
     }
     const ctx = canvasRef.getContext("2d")!;
@@ -434,7 +501,7 @@ export const Canvas = () => {
       const { nearestPoint, nearestDistance } = findNearestPoint(imgX, imgY, matchedPoints());
       const ctx = canvasRef.getContext("2d")!;
       if (nearestPoint && nearestDistance < 15) {
-        console.log({ nearestPoint, imgX, imgY })
+        // console.log({ nearestPoint, imgX, imgY })
         const newMatchedPoints = matchedPoints().map(point => {
           if (point.x === nearestPoint.x && point.y === nearestPoint.y) {
             return { x: imgX, y: imgY };
@@ -443,17 +510,36 @@ export const Canvas = () => {
         });
         setMatchedPoints(newMatchedPoints);
         ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
-        ctx.putImageData(edgeData()!, 0, 0);
-        for (const trapezoid of trapezoids()) {
-          DrawTrapezoid(trapezoid, ctx);
-        }
-        for (const point of newMatchedPoints) {
-          ctx.beginPath();
-          ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
-          ctx.fillStyle = "blue";
-          ctx.fill();
-          ctx.closePath();
-        }
+         if (imageToggle()) {
+          const img = new Image();
+          img.onload = function () {
+            if (!ctx) return;
+            ctx.canvas.width = img.width;
+            ctx.canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            for (const trapezoid of trapezoids()) DrawTrapezoid(trapezoid, ctx);
+            for (const point of newMatchedPoints) {
+              ctx.beginPath();
+              ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+              ctx.fillStyle = "blue";
+              ctx.fill();
+              ctx.closePath();
+            }
+          }
+          img.src = IMAGE_TEST;
+         } else {
+           ctx.putImageData(edgeData()!, 0, 0);
+           for (const trapezoid of trapezoids()) {
+             DrawTrapezoid(trapezoid, ctx);
+           }
+           for (const point of newMatchedPoints) {
+             ctx.beginPath();
+             ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+             ctx.fillStyle = "blue";
+             ctx.fill();
+             ctx.closePath();
+           }
+          }
         return;
       }
     }
@@ -462,16 +548,28 @@ export const Canvas = () => {
     if (nearestDistance < 3) return;
     const ctx = canvasRef.getContext("2d")!;
     if (nearestVertex && nearestDistance < 15) {
-      console.log({ nearestVertex, imgX, imgY })
+      // console.log({ nearestVertex, imgX, imgY })
       const trapezoid = trapezoids().find(t => t.top.x1 === nearestVertex.x && t.top.y1 === nearestVertex.y || t.top.x2 === nearestVertex.x && t.top.y2 === nearestVertex.y || t.bottom.x1 === nearestVertex.x && t.bottom.y1 === nearestVertex.y || t.bottom.x2 === nearestVertex.x && t.bottom.y2 === nearestVertex.y);
       if(!trapezoid) return;
       const newTrapezoid = moveVertex(trapezoid, nearestVertex, imgX, imgY);
       const newTrapezoids = trapezoids().map(t => t.top.x1 === nearestVertex.x && t.top.y1 === nearestVertex.y || t.top.x2 === nearestVertex.x && t.top.y2 === nearestVertex.y || t.bottom.x1 === nearestVertex.x && t.bottom.y1 === nearestVertex.y || t.bottom.x2 === nearestVertex.x && t.bottom.y2 === nearestVertex.y ? newTrapezoid : t);
       setTrapezoids(newTrapezoids);
       ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
-      ctx.putImageData(edgeData()!, 0, 0);
-      for (const trapezoid of newTrapezoids) {
-        DrawTrapezoid(trapezoid, ctx);
+      if (imageToggle()) {
+        const img = new Image();
+        img.onload = function () {
+          if (!ctx) return;
+          ctx.canvas.width = img.width;
+          ctx.canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+          for (const trapezoid of newTrapezoids) DrawTrapezoid(trapezoid, ctx);
+        }
+        img.src = IMAGE_TEST;
+      } else {
+        ctx.putImageData(edgeData()!, 0, 0);
+        for (const trapezoid of newTrapezoids) {
+          DrawTrapezoid(trapezoid, ctx);
+        }
       }
     } else {
       const { inTrapezoid, trapezoid } = isPointInTrapezoid(imgX, imgY, trapezoids());
@@ -485,9 +583,21 @@ export const Canvas = () => {
           const newTrapezoids = trapezoids().filter(t => t.top.x1 !== trapezoid.top.x1 && t.top.y1 !== trapezoid.top.y1 || t.top.x2 !== trapezoid.top.x2 && t.top.y2 !== trapezoid.top.y2 || t.bottom.x1 !== trapezoid.bottom.x1 && t.bottom.y1 !== trapezoid.bottom.y1 || t.bottom.x2 !== trapezoid.bottom.x2 && t.bottom.y2 !== trapezoid.bottom.y2)
           setTrapezoids(newTrapezoids);
           ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
+          if (imageToggle()) {
+            const img = new Image();
+            img.onload = function () {
+              if (!ctx) return;
+              ctx.canvas.width = img.width;
+              ctx.canvas.height = img.height;
+              ctx.drawImage(img, 0, 0);
+              for (const trapezoid of newTrapezoids) DrawTrapezoid(trapezoid, ctx);
+            }
+            img.src = IMAGE_TEST;
+          } else {
           ctx.putImageData(edgeData()!, 0, 0);
           for (const trapezoid of newTrapezoids) {
             DrawTrapezoid(trapezoid, ctx);
+          }
           }
           handleMouseUp();
           return;
@@ -495,9 +605,21 @@ export const Canvas = () => {
         const newTrapezoids: Trapezoid[] = trapezoids().map(t => t.top.x1 === trapezoid.top.x1 && t.top.y1 === trapezoid.top.y1 || t.top.x2 === trapezoid.top.x2 && t.top.y2 === trapezoid.top.y2 || t.bottom.x1 === trapezoid.bottom.x1 && t.bottom.y1 === trapezoid.bottom.y1 || t.bottom.x2 === trapezoid.bottom.x2 && t.bottom.y2 === trapezoid.bottom.y2 ? newTrapezoid : t);
         setTrapezoids(newTrapezoids);
         ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
-        ctx.putImageData(edgeData()!, 0, 0);
-        for (const t of newTrapezoids) {
-          DrawTrapezoid(t, ctx);
+        if (imageToggle()) {
+          const img = new Image();
+          img.onload = function () {
+            if (!ctx) return;
+            ctx.canvas.width = img.width;
+            ctx.canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            for (const trapezoid of newTrapezoids) DrawTrapezoid(trapezoid, ctx);
+          }
+          img.src = IMAGE_TEST;
+        } else {
+          ctx.putImageData(edgeData()!, 0, 0);
+          for (const t of newTrapezoids) {
+            DrawTrapezoid(t, ctx);
+          }
         }
       }
     }
@@ -679,6 +801,7 @@ export const Canvas = () => {
       <Button
         onClick={() => {
           setPoints([]);
+          setMatchedPoints([]);
           setTrapezoids([]);
           setFixTrapezoids(false);
           setRefresh(refresh() + 1);
@@ -686,7 +809,8 @@ export const Canvas = () => {
       >
         Clear Squares
       </Button>
-      <Button onClick={() => {setFixTrapezoids(true)}}>Set and Save Trapezoids</Button>
+      <Button onClick={() => { setFixTrapezoids(true); setImageToggle(true) }}>Set and Save Trapezoids</Button>
+      <Button onClick={() => { setImageToggle(!imageToggle()) }}>Show {imageToggle() ? 'Edge Data' : 'Original'} Image </Button>
       <canvas ref={canvasRef} id="canvas" width="1000" height="1000"></canvas>
     </div>
   );
@@ -726,7 +850,7 @@ export const setupCanvas = (
       EdgeFilter(canvas, options, imageData, ctx)
       res();
     };
-    img.src = "/img/grab_6.jpeg";
+    img.src = IMAGE_TEST;
   });
 };
 
@@ -766,7 +890,8 @@ function convertLocalToGlobal(
 function DrawTrapezoid(
   trapezoid: Trapezoid,
   ctx: CanvasRenderingContext2D,
-  color: string = "green"
+  color: string = "green",
+  thickness: number = 1
 ) {
   ctx.beginPath();
   ctx.moveTo(trapezoid.top.x1, trapezoid.top.y1);
@@ -775,7 +900,7 @@ function DrawTrapezoid(
   ctx.lineTo(trapezoid.bottom.x1, trapezoid.bottom.y1);
   ctx.lineTo(trapezoid.top.x1, trapezoid.top.y1);
   ctx.strokeStyle = color;
-  ctx.lineWidth = 1;
+  ctx.lineWidth = thickness;
   ctx.stroke();
 }
 
@@ -1093,7 +1218,7 @@ function RANSAC(
     //   bestFit = trapezoidFit;
     //   // DrawTrapezoid(convertLocalToGlobal(trapezoid, x, y), ctx, 'green');
     // }
-    console.log({points})
+    // console.log({points})
     if (points && (!bestFit || points > bestFit)) {
       bestTrapezoid = trapezoid;
       bestFit = points;
@@ -1313,7 +1438,7 @@ function DirectSearchOptimization(
     { x: trapezoid.bottom.x2, y: trapezoid.bottom.y2 },
   ];
   let bestFt: number = ft(data, trapezoid, options, x, y, ctx, squareSize);
-  console.log("bestFt init", bestFt, trapezoid);
+  // console.log("bestFt init", bestFt, trapezoid);
   for (let k = 0; k < 27; k++) {
     for (let i = 0; i < vertices.length; i++) {
       let bestVertex: Vertex | undefined;
@@ -1354,7 +1479,7 @@ function DirectSearchOptimization(
         vertices = vertices.map((v, index) =>
           index === i ? bestVertex as Vertex : { x: Math.round(v.x), y: Math.round(v.y) }
         );
-        console.log("bestFt", bestFt, vertices)
+        // console.log("bestFt", bestFt, vertices)
       }
     }
   }
@@ -1481,7 +1606,7 @@ function RecurseDirectSearchOptimization(
       }
     }
   }
-  console.log({ bestFt })
+  // console.log({ bestFt })
   return computeTrapezoid(vertices);
 }
 
