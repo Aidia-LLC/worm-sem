@@ -1,68 +1,20 @@
+import { ProcessingOptions } from "@dto/ProcessingOptions";
 import { detectTrapezoid } from "@logic/trapezoids/detection";
 import { createEffect, createSignal, onMount, Show, untrack } from "solid-js";
+import { createOptionsStore } from "src/data/createOptionsStore";
 import { Button } from "./Button";
 import EdgeFilter from "./EdgeFilter";
 import { KernelParam } from "./KernelParam";
 import { Param } from "./Param";
-import { ProcessingOptions } from "@dto/ProcessingOptions";
 
 const IMAGE_TEST = "/img/grab_6.jpeg";
-
-const defaultOptions: ProcessingOptions = {
-  squareSize: 80,
-  gaussianKernel: [0.06242931069425457, 0.1247976249479739, 0.2524974040020353],
-  hysteresisHigh: 0.075,
-  hysteresisLow: 0.0275,
-  minNeighborsForNoiseReduction: 6,
-  houghVoteThreshold: 0.65,
-  mergeThetaThreshold: 10,
-  pixelThreshold: 0.35,
-  maxLines: 6,
-  noiseReductionIterations: 15,
-  densityThreshold: 0.3080404237765713,
-  densityStep: 2,
-  densitySize: 16,
-};
 
 export const Canvas = () => {
   let canvasRef!: HTMLCanvasElement;
   const [hidden, setHidden] = createSignal(true);
   const [refresh, setRefresh] = createSignal(0);
-  const [squareSize, setSquareSize] = createSignal(defaultOptions.squareSize);
-  const [gaussianKernel, setGaussianKernel] = createSignal<
-    [number, number, number]
-  >(defaultOptions.gaussianKernel);
-  const [hysteresisHigh, setHysteresisHigh] = createSignal(
-    defaultOptions.hysteresisHigh
-  );
-  const [hysteresisLow, setHysteresisLow] = createSignal(
-    defaultOptions.hysteresisLow
-  );
-  const [minNeighborsForNoiseReduction, setMinNeighborsForNoiseReduction] =
-    createSignal(defaultOptions.minNeighborsForNoiseReduction);
-  const [houghVoteThreshold, setHoughVoteThreshold] = createSignal(
-    defaultOptions.houghVoteThreshold
-  );
-  const [mergeThetaThreshold, setMergeThetaThreshold] = createSignal(
-    defaultOptions.mergeThetaThreshold
-  );
-  const [pixelThreshold, setPixelThreshold] = createSignal(
-    defaultOptions.pixelThreshold
-  );
-  const [noiseReductionIterations, setNoiseReductionIterations] = createSignal(
-    defaultOptions.noiseReductionIterations
-  );
-  const [maxLines, setMaxLines] = createSignal(defaultOptions.maxLines);
+
   const [points, setPoints] = createSignal<[number, number][]>([]);
-  const [densityThreshold, setDensityThreshold] = createSignal(
-    defaultOptions.densityThreshold
-  );
-  const [densityStep, setDensityStep] = createSignal(
-    defaultOptions.densityStep
-  );
-  const [densitySize, setDensitySize] = createSignal(
-    defaultOptions.densitySize
-  );
   const [trapezoids, setTrapezoids] = createSignal<Trapezoid[]>([]);
   const [edgeData, setEdgeData] = createSignal<ImageData>();
   const [clickedPoint, setClickedPoint] = createSignal<Vertex>();
@@ -70,21 +22,7 @@ export const Canvas = () => {
   const [matchedPoints, setMatchedPoints] = createSignal<Vertex[]>([]);
   const [imageToggle, setImageToggle] = createSignal(false);
 
-  const options = () => ({
-    squareSize: squareSize(),
-    gaussianKernel: gaussianKernel(),
-    hysteresisHigh: hysteresisHigh(),
-    hysteresisLow: hysteresisLow(),
-    minNeighborsForNoiseReduction: minNeighborsForNoiseReduction(),
-    houghVoteThreshold: houghVoteThreshold(),
-    mergeThetaThreshold: mergeThetaThreshold(),
-    pixelThreshold: pixelThreshold(),
-    maxLines: maxLines(),
-    noiseReductionIterations: noiseReductionIterations(),
-    densityThreshold: densityThreshold(),
-    densityStep: densityStep(),
-    densitySize: densitySize(),
-  });
+  const [options, setOptions, resetOptions] = createOptionsStore();
 
   const handleClick = (e: MouseEvent) => {
     const ctx = canvasRef.getContext("2d")!;
@@ -97,36 +35,42 @@ export const Canvas = () => {
     const imgX = Math.round((x / rectWidth) * canvasRef.width);
     const imgY = Math.round((y / rectHeight) * canvasRef.height);
     setPoints([...points(), [imgX, imgY]]);
-    let { trapezoid, fit } = detectTrapezoid(imgX, imgY, ctx, options());
+    let { trapezoid, fit } = detectTrapezoid(imgX, imgY, ctx, options.options);
     // if trapezoid is bad or not found, try finding it with the RANSAC algorithm
     const valid =
-      trapezoid && trapezoidIsValid(trapezoid, ctx, imgX, imgY, options(), fit);
+      trapezoid &&
+      trapezoidIsValid(trapezoid, ctx, imgX, imgY, options.options, fit);
     if (!valid) {
-      const square = getSquare(imageData, imgX, imgY, options().squareSize);
+      const square = getSquare(
+        imageData,
+        imgX,
+        imgY,
+        options.options.squareSize
+      );
       trapezoid = RANSAC(
         ctx,
         square,
         0,
-        options(),
-        imgX - options().squareSize / 2,
-        imgY - options().squareSize / 2
+        options.options,
+        imgX - options.options.squareSize / 2,
+        imgY - options.options.squareSize / 2
       )!;
       if (!trapezoid) return;
       // console.log("RANSAC trapezoid", trapezoid);
       trapezoid = convertLocalToGlobal(
         trapezoid,
-        imgX - options().squareSize / 2,
-        imgY - options().squareSize / 2
+        imgX - options.options.squareSize / 2,
+        imgY - options.options.squareSize / 2
       );
       // DrawTrapezoid(trapezoid, ctx, "blue");
       const { trapezoid: newTrapezoid, fit } = DirectSearchOptimization(
         getPointsOnTrapezoid,
         trapezoid,
         square,
-        options(),
+        options.options,
         ctx,
-        imgX - options().squareSize / 2,
-        imgY - options().squareSize / 2
+        imgX - options.options.squareSize / 2,
+        imgY - options.options.squareSize / 2
       );
       trapezoid = newTrapezoid;
       DrawTrapezoid(trapezoid, ctx, "yellow");
@@ -137,7 +81,7 @@ export const Canvas = () => {
       ctx,
       imgX,
       imgY,
-      options(),
+      options.options,
       fit
     );
     setTrapezoids((prev) => [...prev, ...connectedTrapezoids, trapezoid]);
@@ -188,7 +132,7 @@ export const Canvas = () => {
   createEffect(async () => {
     console.log("refreshing");
     refresh();
-    const o = options();
+    const o = options.options;
     await setupCanvas(canvasRef, o);
     const imageData = canvasRef
       .getContext("2d")!
@@ -731,15 +675,6 @@ export const Canvas = () => {
     return { nearestDistance, nearestPoint };
   }
 
-  const updateParams = () => {
-    let [gauss0, gauss1, gauss2] = gaussianKernel();
-    gauss0 += ((Math.random() - 0.5) / 100) * gauss0;
-    gauss1 += ((Math.random() - 0.5) / 100) * gauss1;
-    gauss2 += ((Math.random() - 0.5) / 100) * gauss2;
-    setGaussianKernel([gauss0, gauss1, gauss2]);
-    setDensityThreshold(densityThreshold() + (Math.random() - 0.5) / 100);
-  };
-
   return (
     <div class="flex flex-col gap-3 text-xs">
       <h3 class="font-bold text-xl mt-4">Canvas</h3>
@@ -758,8 +693,8 @@ export const Canvas = () => {
           </p>
           <Param
             label="Square Size"
-            value={squareSize()}
-            onChange={setSquareSize}
+            value={options.options.squareSize}
+            onChange={(value) => setOptions("options", "squareSize", value)}
           />
         </div>
         <div class="flex=col">
@@ -770,8 +705,8 @@ export const Canvas = () => {
           </p>
           <Param
             label="Hysteresis Low"
-            value={hysteresisLow()}
-            onChange={setHysteresisLow}
+            value={options.options.hysteresisLow}
+            onChange={(value) => setOptions("options", "hysteresisLow", value)}
           />
         </div>
         <div class="flex-col">
@@ -782,81 +717,80 @@ export const Canvas = () => {
           </p>
           <Param
             label="Hysteresis High"
-            value={hysteresisHigh()}
-            onChange={setHysteresisHigh}
+            value={options.options.hysteresisHigh}
+            onChange={(value) => setOptions("options", "hysteresisHigh", value)}
           />
         </div>
         <Show when={!hidden()}>
           <Param
             label="Min Neighbors for Noise Reduction"
-            value={minNeighborsForNoiseReduction()}
-            onChange={setMinNeighborsForNoiseReduction}
+            value={options.options.minNeighborsForNoiseReduction}
+            onChange={(value) =>
+              setOptions("options", "minNeighborsForNoiseReduction", value)
+            }
           />
           <Param
             label="Hough Vote Threshold"
-            value={houghVoteThreshold()}
-            onChange={setHoughVoteThreshold}
+            value={options.options.houghVoteThreshold}
+            onChange={(value) =>
+              setOptions("options", "houghVoteThreshold", value)
+            }
           />
           <Param
             label="Merge Theta Threshold"
-            value={mergeThetaThreshold()}
-            onChange={setMergeThetaThreshold}
+            value={options.options.mergeThetaThreshold}
+            onChange={(value) =>
+              setOptions("options", "mergeThetaThreshold", value)
+            }
           />
           <Param
             label="Pixels Per Line Percentage Threshold"
-            value={pixelThreshold()}
-            onChange={setPixelThreshold}
+            value={options.options.pixelThreshold}
+            onChange={(value) => setOptions("options", "pixelThreshold", value)}
           />
           <Param
             label="Max Lines Per Square"
-            value={maxLines()}
-            onChange={setMaxLines}
+            value={options.options.maxLines}
+            onChange={(value) => setOptions("options", "maxLines", value)}
           />
           <Param
             label="Noise Reduction Iterations"
-            value={noiseReductionIterations()}
-            onChange={setNoiseReductionIterations}
+            value={options.options.noiseReductionIterations}
+            onChange={(value) =>
+              setOptions("options", "noiseReductionIterations", value)
+            }
           />
           <Param
             label="Density Threshold"
-            value={densityThreshold()}
-            onChange={setDensityThreshold}
+            value={options.options.densityThreshold}
+            onChange={(value) =>
+              setOptions("options", "densityThreshold", value)
+            }
           />
           <Param
             label="Density Step"
-            value={densityStep()}
-            onChange={setDensityStep}
+            value={options.options.densityStep}
+            onChange={(value) => setOptions("options", "densityStep", value)}
           />
           <Param
             label="Density Size"
-            value={densitySize()}
-            onChange={setDensitySize}
+            value={options.options.densitySize}
+            onChange={(value) => setOptions("options", "densitySize", value)}
           />
         </Show>
       </div>
       <Show when={!hidden()}>
-        <KernelParam values={gaussianKernel()} onChange={setGaussianKernel} />
-        <Button onClick={updateParams}>Randomize Parameters</Button>
-        <Button
-          onClick={() => {
-            setSquareSize(defaultOptions.squareSize);
-            setGaussianKernel(defaultOptions.gaussianKernel);
-            setHysteresisHigh(defaultOptions.hysteresisHigh);
-            setHysteresisLow(defaultOptions.hysteresisLow);
-            setMinNeighborsForNoiseReduction(
-              defaultOptions.minNeighborsForNoiseReduction
-            );
-            setHoughVoteThreshold(defaultOptions.houghVoteThreshold);
-            setMergeThetaThreshold(defaultOptions.mergeThetaThreshold);
-            setPixelThreshold(defaultOptions.pixelThreshold);
-            setMaxLines(defaultOptions.maxLines);
-            setNoiseReductionIterations(
-              defaultOptions.noiseReductionIterations
-            );
-          }}
-        >
-          Reset Parameters
-        </Button>
+        <KernelParam
+          values={options.options.gaussianKernel}
+          onChange={(value) =>
+            setOptions(
+              "options",
+              "gaussianKernel",
+              value as [number, number, number]
+            )
+          }
+        />
+        <Button onClick={resetOptions}>Reset Parameters</Button>
       </Show>
       <Button
         onClick={() => {
