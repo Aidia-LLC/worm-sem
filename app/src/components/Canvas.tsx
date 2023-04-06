@@ -6,6 +6,7 @@ import { Button } from "./Button";
 import EdgeFilter from "./EdgeFilter";
 import { KernelParam } from "./KernelParam";
 import { Param } from "./Param";
+import { Status, TrapezoidSetConfig } from "./TrapezoidSetConfig";
 
 const IMAGE_TEST = "/img/grab_6.jpeg";
 
@@ -818,6 +819,12 @@ export const Canvas = () => {
       >
         Show {imageToggle() ? "Edge Data" : "Original"} Image{" "}
       </Button>
+      <TrapezoidSetConfig trapezoidSet={{
+        id: 1,
+        color: "red",
+        status: Status.Editing,
+        thickness: 2,
+      }} />
       <canvas ref={canvasRef} id="canvas" width="1000" height="1000"></canvas>
     </div>
   );
@@ -1671,7 +1678,7 @@ function computeTrapezoid(
   };
 }
 
-type Trapezoid = {
+export type Trapezoid = {
   top: Pick<LineSegment, "x1" | "x2" | "y1" | "y2">;
   right: Pick<LineSegment, "x1" | "x2" | "y1" | "y2">;
   left: Pick<LineSegment, "x1" | "x2" | "y1" | "y2">;
@@ -1687,7 +1694,7 @@ type LineSegment = {
   y2: number;
 };
 
-type Vertex = {
+export type Vertex = {
   x: number;
   y: number;
 };
