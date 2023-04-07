@@ -31,12 +31,28 @@ export function detectTrapezoid(x: number, y: number, ctx: CanvasRenderingContex
   const lines = hough(square, options);
 
   const goodLines = pixelsPerLine(lines, square, options);
+  for (const line of goodLines) {
+    ctx.beginPath();
+    ctx.moveTo(line.x1 + x - options.squareSize / 2, line.y1 + y - options.squareSize / 2);
+    ctx.lineTo(line.x2 + x - options.squareSize / 2, line.y2 + y - options.squareSize / 2);
+    ctx.strokeStyle = "red";
+    ctx.stroke();
+    ctx.closePath();
+  }
   const vertices = computeVertices(goodLines).map((vertex) => ({
     x: vertex.x + x - options.squareSize / 2,
     y: vertex.y + y - options.squareSize / 2,
   }));
-  const trapezoid: Trapezoid = computeTrapezoid(vertices);
-  // DrawTrapezoid(trapezoid, ctx, 'yellow');
+  // filter out similar vertices
+  const filteredVertices = vertices.filter((vertex) => {
+    const similarVertices = vertices.filter(
+      (otherVertex) =>
+        Math.abs(vertex.x - otherVertex.x) < 15 && Math.abs(vertex.y - otherVertex.y) < 15
+    );
+    return similarVertices.length === 1;
+  });
+  const trapezoid: Trapezoid | null = computeTrapezoid(filteredVertices);
+  if (!trapezoid) { return {trapezoid: null, fit: null}; }
   const { trapezoid: newTrapezoid, fit } = DirectSearchOptimization(
     getPointsOnTrapezoid,
     trapezoid,
@@ -46,8 +62,6 @@ export function detectTrapezoid(x: number, y: number, ctx: CanvasRenderingContex
     x,
     y
   );
-  console.log([newTrapezoid]);
-  DrawTrapezoid(newTrapezoid, ctx, 'blue');
   return { trapezoid: newTrapezoid, fit };
 }
 
@@ -343,8 +357,8 @@ function computeVertices(lines: LineSegment[]) {
   // Remove duplicates and similar points
   vertices = vertices.filter((vertex, index) => {
     for (let i = 0; i < index; i++) {
-      if (Math.abs(vertex.x - vertices[i].x) < 5) {
-        if (Math.abs(vertex.y - vertices[i].y) < 5) {
+      if (Math.abs(vertex.x - vertices[i].x) < 15) {
+        if (Math.abs(vertex.y - vertices[i].y) < 15) {
           return false;
         }
       }
@@ -459,7 +473,7 @@ function DirectSearchOptimization(
             index === i ? newVertex : { x: Math.round(v.x), y: Math.round(v.y) }
           )
         );
-
+        if (!newTrapezoid) { continue }
         const newFt = ft(data, newTrapezoid, options, x, y, squareSize);
         if (bestFt === undefined || newFt > bestFt) {
           bestFt = newFt;
@@ -536,24 +550,55 @@ function getPointsOnTrapezoid(
 
 function computeTrapezoid(
   vertices: Vertex[],
-  ctx?: CanvasRenderingContext2D
-): Trapezoid {
-  const sums = vertices.map((vertex) => vertex.x + vertex.y);
-  const topLeft = vertices[sums.indexOf(Math.min(...sums))];
-  const bottomRight = vertices[sums.indexOf(Math.max(...sums))];
-  const differences = vertices.map((vertex) => vertex.x - vertex.y);
-  const topRight = vertices[differences.indexOf(Math.max(...differences))];
-  const bottomLeft = vertices[differences.indexOf(Math.min(...differences))];
-
-  if (ctx && vertices.length === 4) {
-    ctx.beginPath();
-    ctx.moveTo(topLeft.x, topLeft.y);
-    ctx.lineTo(topRight.x, topRight.y);
-    ctx.lineTo(bottomRight.x, bottomRight.y);
-    ctx.lineTo(bottomLeft.x, bottomLeft.y);
-    ctx.lineTo(topLeft.x, topLeft.y);
-    ctx.strokeStyle = "red";
-    ctx.stroke();
+  // ctx?: CanvasRenderingContext2D
+): Trapezoid | null {
+  if(vertices.length !== 4) return null
+  //  the shortest edge is the bottom edge
+  const pairs = [
+    [vertices[0], vertices[1]],
+    [vertices[1], vertices[3]],
+    [vertices[3], vertices[2]],
+    [vertices[2], vertices[0]],
+    [vertices[3], vertices[0]],
+    [vertices[2], vertices[1]],
+  ];
+  let shortestEdge: any | undefined;
+  let shortestEdgeLength: number | undefined;
+  for (let i = 0; i < pairs.length; i++) {
+    const pair = pairs[i];
+    const dx = pair[1].x - pair[0].x;
+    const dy = pair[1].y - pair[0].y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    if (shortestEdgeLength === undefined || length < shortestEdgeLength) {
+      shortestEdgeLength = length;
+      shortestEdge = pair;
+    }
+  }
+  let bottomLeft = shortestEdge[0];
+  let bottomRight = shortestEdge[1];
+  if (bottomLeft.x > bottomRight.x) {
+    const temp = bottomLeft;
+    bottomLeft = bottomRight;
+    bottomRight = temp;
+  }
+  let topRight = vertices.find(
+    (v) => v !== bottomLeft && v !== bottomRight
+  ) as Vertex;
+  let topLeft = vertices.find(
+    (v) => v !== bottomLeft && v !== bottomRight && v !== topRight
+  ) as Vertex;
+  if(topRight.x < topLeft.x) {
+    const temp = topRight;
+    topRight = topLeft;
+    topLeft = temp;
+  }
+  if(topLeft.y > bottomLeft.y) {
+    let temp = topLeft;
+    topLeft = bottomLeft;
+    bottomLeft = temp;
+    temp = topRight;
+    topRight = bottomRight;
+    bottomRight = temp;
   }
   return {
     top: { x1: topLeft.x, y1: topLeft.y, x2: topRight.x, y2: topRight.y },

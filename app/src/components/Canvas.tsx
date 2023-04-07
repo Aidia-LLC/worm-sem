@@ -30,7 +30,7 @@ export type TrapezoidSet = {
   matchedPoints: Vertex[];
 };
 
-const IMAGE_TEST = "/img/grab_6.jpeg";
+const IMAGE_TEST = "/img/grab1.png";
 
 export const Canvas = () => {
   let canvasRef!: HTMLCanvasElement;
@@ -43,6 +43,7 @@ export const Canvas = () => {
   const [clickedPoint, setClickedPoint] = createSignal<Vertex>();
   const [imageToggle, setImageToggle] = createSignal(false);
   const [trapezoidSets, setTrapezoidSets] = createSignal<TrapezoidSet[]>([]);
+  const [imageData, setImageData] = createSignal<ImageData>();
 
   createEffect(() => {
     trapezoidSets();
@@ -64,11 +65,12 @@ export const Canvas = () => {
     const imgY = Math.round((y / rectHeight) * canvasRef.height);
     setPoints([...points(), [imgX, imgY]]);
     let { trapezoid, fit } = detectTrapezoid(imgX, imgY, ctx, options.options);
-    // if trapezoid is bad or not found, try finding it with the RANSAC algorithm
     const valid =
       trapezoid &&
       trapezoidIsValid(trapezoid, ctx, imgX, imgY, options.options, fit);
+    console.log("valid", valid)
     if (!valid) {
+      console.log("RANSAC")
       const square = getSquare(
         imageData,
         imgX,
@@ -103,6 +105,16 @@ export const Canvas = () => {
       trapezoid = newTrapezoid;
       DrawTrapezoid(trapezoid, ctx, "yellow");
     }
+    if (!trapezoid) return;
+    if (!fit) {
+      const square = getSquare(
+        imageData,
+        imgX,
+        imgY,
+        options.options.squareSize
+      );
+      fit = getPointsOnTrapezoid(square, trapezoid, options.options, imgX- options.options.squareSize/2, imgY - options.options.squareSize/2, ctx);
+    }
     const connectedTrapezoids = findConnectedTrapezoids(
       trapezoid,
       ctx,
@@ -116,19 +128,46 @@ export const Canvas = () => {
       colors.delete(set.color);
     });
     const color = colors.size > 0 ? colors.values().next().value : "red";
+    const filteredTrapezoids = filterTrapezoids(connectedTrapezoids, trapezoidSets(), ctx);
     setTrapezoidSets((prev) => [
       ...prev,
       {
-        trapezoids: [...connectedTrapezoids, trapezoid],
+        trapezoids: [...filteredTrapezoids, trapezoid],
         id: nextId(),
         color,
         thickness: 5,
         status: Status.Editing,
-        matchedPoints: [],
-      },
+        matchedPoints: [], 
+      } as TrapezoidSet,
     ]);
     setNextId((prev) => prev + 1);
   };
+
+  function filterTrapezoids(
+    trapezoids: Trapezoid[],
+    sets: TrapezoidSet[],
+    ctx: CanvasRenderingContext2D
+  ): Trapezoid[] {
+    const centerPoints = trapezoids.map((t, i) => ({ x: ((t.top.x1 + t.top.x2) / 2 + (t.bottom.x1 + t.bottom.x2) / 2) / 2, y: ((t.top.y1 + t.top.y2) / 2 + (t.bottom.y1 + t.bottom.y2) / 2) / 2, i }));
+    for (const point of centerPoints) {
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+      ctx.fillStyle = "red";
+      ctx.fill();
+    }
+    const setsCenterPoints = sets.map(s => s.trapezoids).flat().map(t => ({ x: ((t.top.x1 + t.top.x2) / 2 + (t.bottom.x1 + t.bottom.x2) / 2) / 2, y: ((t.top.y1 + t.top.y2) / 2 + (t.bottom.y1 + t.bottom.y2) / 2) / 2 }));
+    for (const point of setsCenterPoints) {
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+      ctx.fillStyle = "green";
+      ctx.fill();
+    }
+    const filtered = centerPoints.filter((p) => {
+      const found = setsCenterPoints.find(s => Math.abs(s.x - p.x) < 30 && Math.abs(s.y - p.y) < 30);
+      return !found;
+    });
+    return filtered.map(p => trapezoids[p.i]);
+  }
 
   function trapezoidIsValid(
     trapezoid: Trapezoid,
@@ -136,15 +175,15 @@ export const Canvas = () => {
     x: number,
     y: number,
     options: ProcessingOptions,
-    fit: number
+    fit: number | null
   ) {
     const { squareSize } = options;
     const area = calculateArea(trapezoid);
     const areaThreshold = squareSize ** 2 * 0.2;
     const areaValid = area > areaThreshold;
-    const fitValid = Math.abs(fit) > 25;
+    const fitValid = fit && Math.abs(fit) > 25;
     // make sure each side is at least 1/3 of the square size
-    const sideThresh = squareSize / 10;
+    const sideThresh = squareSize / 6;
     const top = Math.sqrt(
       (trapezoid.top.x1 - trapezoid.top.x2) ** 2 +
         (trapezoid.top.y1 - trapezoid.top.y2) ** 2
@@ -166,7 +205,9 @@ export const Canvas = () => {
       bottom > sideThresh &&
       left > sideThresh &&
       right > sideThresh;
-    const valid = areaValid && fitValid && sideValid;
+    const centerPoint = { x: ((trapezoid.top.x1 + trapezoid.top.x2) / 2 + (trapezoid.bottom.x1 + trapezoid.bottom.x2) / 2) / 2, y: ((trapezoid.top.y1 + trapezoid.top.y2) / 2 + (trapezoid.bottom.y1 + trapezoid.bottom.y2) / 2) / 2 }
+    const centerPointValid = Math.abs(centerPoint.x - x) < 30 && Math.abs(centerPoint.y - y) < 30;
+    const valid = areaValid && fitValid && sideValid && centerPointValid;
     // console.log({ area, areaValid, fitValid, sideValid, valid })
     return valid;
   }
@@ -188,7 +229,24 @@ export const Canvas = () => {
 
   onMount(() => {
     canvasRef.addEventListener("mousedown", handleMouseDown);
+    setOriginalImage()
   });
+
+  async function setOriginalImage() {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      setImageData(imageData);
+    }
+    img.src = IMAGE_TEST;
+    const o = options.options;
+    await setupCanvas(canvasRef, o);
+  }
 
   function draw() {
     const ctx = canvasRef.getContext("2d")!;
@@ -213,14 +271,20 @@ export const Canvas = () => {
       ctx.putImageData(edgeData()!, 0, 0);
       renderTrapezoids();
     } else {
-      const img = new Image();
-      img.onload = () => {
-        ctx.canvas.width = img.width;
-        ctx.canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
+      if (imageData()) {
+        console.log("rendering image")
+        ctx.putImageData(imageData()!, 0, 0);
         renderTrapezoids();
-      };
-      img.src = IMAGE_TEST;
+      } else {
+        const img = new Image();
+        img.onload = () => {
+          ctx.canvas.width = img.width;
+          ctx.canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+          renderTrapezoids();
+        };
+        img.src = IMAGE_TEST;
+      } 
     }
   }
 
@@ -830,23 +894,24 @@ export const Canvas = () => {
   );
 };
 
-export const setupCanvas = (
+export const setupCanvas = async (
   canvas: HTMLCanvasElement,
   options: ProcessingOptions
-): Promise<void> => {
+): Promise<ImageData> => {
   const ctx = canvas.getContext("2d")!;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const img = new Image();
+  let imageData: ImageData
 
-  return new Promise((res) => {
+  return new Promise(() => {
     img.onload = function () {
       if (!ctx) return;
       canvas.width = img.width;
       canvas.height = img.height;
       ctx.drawImage(img, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       EdgeFilter(canvas, options, imageData, ctx);
-      res();
+      return imageData
     };
     img.src = IMAGE_TEST;
   });
@@ -900,6 +965,14 @@ function DrawTrapezoid(
   ctx.strokeStyle = color;
   ctx.lineWidth = thickness;
   ctx.stroke();
+  ctx.closePath();
+  // ctx.beginPath();
+  // ctx.moveTo(trapezoid.top.x1, trapezoid.top.y1);
+  // ctx.lineTo(trapezoid.top.x2, trapezoid.top.y2);
+  // ctx.strokeStyle = 'pink';
+  // ctx.lineWidth = 3;
+  // ctx.stroke();
+  // ctx.closePath();
 }
 
 function calculateArea(trapezoid: Trapezoid): number {
@@ -1066,7 +1139,7 @@ function recurseSearchTrapezoid(
   if (!firstTest) {
     return trapezoids;
   }
-  // DrawTrapezoid(firstTest, ctx, 'yellow');
+  DrawTrapezoid(firstTest, ctx, 'yellow');
   const secondTest = RecurseDirectSearchOptimization(
     getPointsOnTrapezoid,
     firstTest,
@@ -1210,7 +1283,7 @@ function RANSAC(
   squareSize?: number
 ): Trapezoid | undefined {
   const areaThreshold = [trapezoidArea * 0.9, trapezoidArea * 1.1];
-  const iterations = 10000;
+  const iterations = 25000;
   let bestTrapezoid: Trapezoid | undefined;
   let bestFit: number | undefined;
   for (let i = 0; i < iterations; i++) {
@@ -1541,7 +1614,7 @@ function FixedDirectSearchOptimization(
     { x: trapezoid.bottom.x2, y: trapezoid.bottom.y2 },
   ];
   let bestFt: number = ft(data, trapezoid, options, x, y, ctx, squareSize);
-  for (let k = 0; k < 14; k++) {
+  for (let k = 0; k < 7; k++) {
     let bestVertices: Vertex[] | undefined;
     for (let j = 0; j < 16; j++) {
       const direction = (j * Math.PI) / 8;
@@ -1558,6 +1631,32 @@ function FixedDirectSearchOptimization(
       if (bestFt === undefined || newFt > bestFt) {
         bestFt = newFt;
         bestVertices = shiftedVertices;
+      }
+    }
+    if (bestVertices) {
+      // @ts-ignore
+      vertices = bestVertices;
+    }
+  }
+  // Now try rotating the trapezoid up to 30 degrees both directions
+  for (let k = 0; k < 2; k++) {
+    let bestVertices: Vertex[] | undefined;
+    for (let j = 0; j < 30; j++) {
+      let angle = (j * Math.PI) / 180;
+      if (k === 1) {
+        angle = -angle;
+      }
+      const rotatedVertices: Vertex[] = vertices.map((v) => ({
+        x: Math.round((v.x - x) * Math.cos(angle) - (v.y - y) * Math.sin(angle)) + x,
+        y: Math.round((v.x - x) * Math.sin(angle) + (v.y - y) * Math.cos(angle)) + y,
+      }));
+      const rotatedT: Trapezoid = computeTrapezoid(rotatedVertices);
+      // DrawTrapezoid(rotatedT, ctx);
+      const newFt = ft(data, rotatedT, options, x, y, ctx, squareSize);
+      // console.log({newFt, newVertex})
+      if (bestFt === undefined || newFt > bestFt) {
+        bestFt = newFt;
+        bestVertices = rotatedVertices;
       }
     }
     if (bestVertices) {
@@ -1641,24 +1740,54 @@ function RecurseDirectSearchOptimization(
 
 function computeTrapezoid(
   vertices: Vertex[],
-  ctx?: CanvasRenderingContext2D
+  // ctx?: CanvasRenderingContext2D
 ): Trapezoid {
-  const sums = vertices.map((vertex) => vertex.x + vertex.y);
-  const topLeft = vertices[sums.indexOf(Math.min(...sums))];
-  const bottomRight = vertices[sums.indexOf(Math.max(...sums))];
-  const differences = vertices.map((vertex) => vertex.x - vertex.y);
-  const topRight = vertices[differences.indexOf(Math.max(...differences))];
-  const bottomLeft = vertices[differences.indexOf(Math.min(...differences))];
-
-  if (ctx && vertices.length === 4) {
-    ctx.beginPath();
-    ctx.moveTo(topLeft.x, topLeft.y);
-    ctx.lineTo(topRight.x, topRight.y);
-    ctx.lineTo(bottomRight.x, bottomRight.y);
-    ctx.lineTo(bottomLeft.x, bottomLeft.y);
-    ctx.lineTo(topLeft.x, topLeft.y);
-    ctx.strokeStyle = "red";
-    ctx.stroke();
+  //  the shortest edge is the bottom edge
+  const pairs = [
+    [vertices[0], vertices[1]],
+    [vertices[1], vertices[3]],
+    [vertices[3], vertices[2]],
+    [vertices[2], vertices[0]],
+    [vertices[3], vertices[0]],
+    [vertices[2], vertices[1]],
+  ];
+  let shortestEdge: any | undefined;
+  let shortestEdgeLength: number | undefined;
+  for (let i = 0; i < pairs.length; i++) {
+    const pair = pairs[i];
+    const dx = pair[1].x - pair[0].x;
+    const dy = pair[1].y - pair[0].y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    if (shortestEdgeLength === undefined || length < shortestEdgeLength) {
+      shortestEdgeLength = length;
+      shortestEdge = pair;
+    }
+  }
+  let bottomLeft = shortestEdge[0];
+  let bottomRight = shortestEdge[1];
+  if (bottomLeft.x > bottomRight.x) {
+    const temp = bottomLeft;
+    bottomLeft = bottomRight;
+    bottomRight = temp;
+  }
+  let topRight = vertices.find(
+    (v) => v !== bottomLeft && v !== bottomRight
+  ) as Vertex;
+  let topLeft = vertices.find(
+    (v) => v !== bottomLeft && v !== bottomRight && v !== topRight
+  ) as Vertex;
+  if(topRight.x < topLeft.x) {
+    const temp = topRight;
+    topRight = topLeft;
+    topLeft = temp;
+  }
+  if(topLeft.y > bottomLeft.y) {
+    let temp = topLeft;
+    topLeft = bottomLeft;
+    bottomLeft = temp;
+    temp = topRight;
+    topRight = bottomRight;
+    bottomRight = temp;
   }
   return {
     top: { x1: topLeft.x, y1: topLeft.y, x2: topRight.x, y2: topRight.y },
