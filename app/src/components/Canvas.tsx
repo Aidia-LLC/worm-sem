@@ -1667,7 +1667,7 @@ function RecurseDirectSearchOptimization(
       }
     }
   }
-  if (bestFt < fit / 3) return null;
+  if (bestFt < fit / 5) return null;
   return computeTrapezoid(vertices);
 }
 
