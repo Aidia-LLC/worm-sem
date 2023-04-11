@@ -77,7 +77,6 @@
     }
   },
   "dependencies": {
-    "image-size": "^1.0.2",
-    "opencv4js": "^3.4.3"
+    "date-fns": "^2.29.3"
   }
 }

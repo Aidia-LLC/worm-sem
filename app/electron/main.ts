@@ -10,7 +10,7 @@ import {
   Message,
 } from "../src/dto/semClient";
 import { getPlatform } from "./platform";
-import imageSize from 'image-size';
+import { format } from "date-fns";
 
 const isProduction = app.isPackaged;
 
@@ -72,13 +72,8 @@ const init = (childProcess: ChildProcessWithoutNullStreams) => {
         console.log("Received message from C#:", message);
         if (message.code === 200) {
           // grab success
-          // read contents of file from message.payload
           (async () => {
-            const [data, size] = await Promise.all([
-              fs.promises.readFile(message.payload!),
-              imageSize(message.payload!),
-            ])
-            console.log(size)
+            const data = await fs.promises.readFile(message.payload!)
             browserWindow?.webContents.send("SEMClient:Received", {
               ...message,
               payload: Buffer.from(data).toString("base64"),
@@ -100,6 +95,8 @@ const init = (childProcess: ChildProcessWithoutNullStreams) => {
         dialog
           .showSaveDialog(browserWindow!, {
             filters: [{ name: "PNG", extensions: ["png"] }],
+            buttonLabel: "Grab Image",
+            defaultPath: `grab-${format(Date.now(), 'yyyy-MM-dd-HH-mm-ss')}.png`,
           })
           .then((result) => {
             if (!result.canceled && result.filePath) {

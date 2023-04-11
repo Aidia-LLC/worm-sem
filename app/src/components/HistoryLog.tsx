@@ -20,7 +20,7 @@ export const HistoryLog = () => {
             Clear History
           </Button>
         </Show>
-        <Button onClick={() => setShow(!show())}>
+        <Button variant='secondary' onClick={() => setShow(!show())}>
           {show() ? "Hide" : "Show"} History
         </Button>
       </div>
