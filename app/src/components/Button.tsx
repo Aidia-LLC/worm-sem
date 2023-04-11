@@ -5,6 +5,7 @@ export const Button = (props: {
   children: JSXElement;
   variant?: "primary" | "secondary";
   class?: string;
+  disabled?: boolean;
 }) => {
   return (
     <button
@@ -14,7 +15,9 @@ export const Button = (props: {
           !props.variant || props.variant === "primary",
         "bg-gray-500 hover:bg-gray-700 active:bg-gray-800":
           props.variant === "secondary",
+        "cursor-not-allowed opacity-50": props.disabled,
       }}
+      disabled={props.disabled}
       onClick={props.onClick}
     >
       {props.children}

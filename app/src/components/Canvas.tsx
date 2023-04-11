@@ -1,4 +1,5 @@
 import { ProcessingOptions } from "@dto/ProcessingOptions";
+import { base64ToImageSrc } from "@logic/image";
 import { detectTrapezoid } from "@logic/trapezoids/detection";
 import {
   createEffect,
@@ -11,6 +12,7 @@ import {
 import { createOptionsStore } from "src/data/createOptionsStore";
 import { Button } from "./Button";
 import EdgeFilter from "./EdgeFilter";
+import { GrabForm } from "./GrabForm";
 import { KernelParam } from "./KernelParam";
 import { Param } from "./Param";
 import { availableColors, TrapezoidSetConfig } from "./TrapezoidSetConfig";
@@ -30,9 +32,9 @@ export type TrapezoidSet = {
   matchedPoints: Vertex[];
 };
 
-const IMAGE_TEST = "/img/grab1.png";
-
 export const Canvas = () => {
+  const [imageSrc, setImageSrc] = createSignal<string | null>(null);
+
   let canvasRef!: HTMLCanvasElement;
   const [hidden, setHidden] = createSignal(true);
   const [refresh, setRefresh] = createSignal(0);
@@ -108,7 +110,14 @@ export const Canvas = () => {
         imgY,
         options.options.squareSize
       );
-      fit = getPointsOnTrapezoid(square, trapezoid, options.options, imgX- options.options.squareSize/2, imgY - options.options.squareSize/2, ctx);
+      fit = getPointsOnTrapezoid(
+        square,
+        trapezoid,
+        options.options,
+        imgX - options.options.squareSize / 2,
+        imgY - options.options.squareSize / 2,
+        ctx
+      );
     }
     const connectedTrapezoids = findConnectedTrapezoids(
       trapezoid,
@@ -123,7 +132,10 @@ export const Canvas = () => {
       colors.delete(set.color);
     });
     const color = colors.size > 0 ? colors.values().next().value : "red";
-    const filteredTrapezoids = filterTrapezoids(connectedTrapezoids, trapezoidSets());
+    const filteredTrapezoids = filterTrapezoids(
+      connectedTrapezoids,
+      trapezoidSets()
+    );
     setTrapezoidSets((prev) => [
       ...prev,
       {
@@ -132,7 +144,7 @@ export const Canvas = () => {
         color,
         thickness: 5,
         status: Status.Editing,
-        matchedPoints: [], 
+        matchedPoints: [],
       } as TrapezoidSet,
     ]);
     setNextId((prev) => prev + 1);
@@ -140,19 +152,34 @@ export const Canvas = () => {
 
   function filterTrapezoids(
     trapezoids: Trapezoid[],
-    sets: TrapezoidSet[],
+    sets: TrapezoidSet[]
   ): Trapezoid[] {
-    const centerPoints = trapezoids.map((t, i) => ({ x: ((t.top.x1 + t.top.x2) / 2 + (t.bottom.x1 + t.bottom.x2) / 2) / 2, y: ((t.top.y1 + t.top.y2) / 2 + (t.bottom.y1 + t.bottom.y2) / 2) / 2, i }));
-    const setsCenterPoints = sets.map(s => s.trapezoids).flat().map(t => ({ x: ((t.top.x1 + t.top.x2) / 2 + (t.bottom.x1 + t.bottom.x2) / 2) / 2, y: ((t.top.y1 + t.top.y2) / 2 + (t.bottom.y1 + t.bottom.y2) / 2) / 2 }));
+    const centerPoints = trapezoids.map((t, i) => ({
+      x: ((t.top.x1 + t.top.x2) / 2 + (t.bottom.x1 + t.bottom.x2) / 2) / 2,
+      y: ((t.top.y1 + t.top.y2) / 2 + (t.bottom.y1 + t.bottom.y2) / 2) / 2,
+      i,
+    }));
+    const setsCenterPoints = sets
+      .map((s) => s.trapezoids)
+      .flat()
+      .map((t) => ({
+        x: ((t.top.x1 + t.top.x2) / 2 + (t.bottom.x1 + t.bottom.x2) / 2) / 2,
+        y: ((t.top.y1 + t.top.y2) / 2 + (t.bottom.y1 + t.bottom.y2) / 2) / 2,
+      }));
     const filtered = centerPoints.filter((p) => {
-      const found = setsCenterPoints.find(s => Math.abs(s.x - p.x) < 30 && Math.abs(s.y - p.y) < 30);
+      const found = setsCenterPoints.find(
+        (s) => Math.abs(s.x - p.x) < 30 && Math.abs(s.y - p.y) < 30
+      );
       return !found;
     });
     const filtered2 = filtered.filter((p, idx) => {
-      const found = filtered.find((p2, idx2) => idx !== idx2 && Math.abs(p2.x - p.x) < 30 && Math.abs(p2.y - p.y) < 30);
+      const found = filtered.find(
+        (p2, idx2) =>
+          idx !== idx2 && Math.abs(p2.x - p.x) < 30 && Math.abs(p2.y - p.y) < 30
+      );
       return !found;
     });
-    return filtered2.map(p => trapezoids[p.i]);
+    return filtered2.map((p) => trapezoids[p.i]);
   }
 
   function trapezoidIsValid(
@@ -191,8 +218,18 @@ export const Canvas = () => {
       bottom > sideThresh &&
       left > sideThresh &&
       right > sideThresh;
-    const centerPoint = { x: ((trapezoid.top.x1 + trapezoid.top.x2) / 2 + (trapezoid.bottom.x1 + trapezoid.bottom.x2) / 2) / 2, y: ((trapezoid.top.y1 + trapezoid.top.y2) / 2 + (trapezoid.bottom.y1 + trapezoid.bottom.y2) / 2) / 2 }
-    const centerPointValid = Math.abs(centerPoint.x - x) < 30 && Math.abs(centerPoint.y - y) < 30;
+    const centerPoint = {
+      x:
+        ((trapezoid.top.x1 + trapezoid.top.x2) / 2 +
+          (trapezoid.bottom.x1 + trapezoid.bottom.x2) / 2) /
+        2,
+      y:
+        ((trapezoid.top.y1 + trapezoid.top.y2) / 2 +
+          (trapezoid.bottom.y1 + trapezoid.bottom.y2) / 2) /
+        2,
+    };
+    const centerPointValid =
+      Math.abs(centerPoint.x - x) < 30 && Math.abs(centerPoint.y - y) < 30;
     const valid = areaValid && fitValid && sideValid && centerPointValid;
     // console.log({ area, areaValid, fitValid, sideValid, valid })
     return valid;
@@ -201,8 +238,10 @@ export const Canvas = () => {
   createEffect(async () => {
     console.log("refreshing");
     refresh();
+    const src = imageSrc();
+    if (!src) return;
     const o = options.options;
-    await setupCanvas(canvasRef, o);
+    await setupCanvas(canvasRef, o, src);
     const imageData = canvasRef
       .getContext("2d")!
       .getImageData(0, 0, canvasRef.width, canvasRef.height);
@@ -215,10 +254,12 @@ export const Canvas = () => {
 
   onMount(() => {
     canvasRef.addEventListener("mousedown", handleMouseDown);
-    setOriginalImage()
+    setOriginalImage();
   });
 
   async function setOriginalImage() {
+    const src = imageSrc();
+    if (!src) return;
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement("canvas");
@@ -228,10 +269,10 @@ export const Canvas = () => {
       ctx.drawImage(img, 0, 0);
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       setImageData(imageData);
-    }
-    img.src = IMAGE_TEST;
+    };
+    img.src = base64ToImageSrc(src);
     const o = options.options;
-    await setupCanvas(canvasRef, o);
+    await setupCanvas(canvasRef, o, src);
   }
 
   function draw() {
@@ -258,10 +299,12 @@ export const Canvas = () => {
       renderTrapezoids();
     } else {
       if (imageData()) {
-        console.log("rendering image")
+        console.log("rendering image");
         ctx.putImageData(imageData()!, 0, 0);
         renderTrapezoids();
       } else {
+        const src = imageSrc();
+        if (!src) return;
         const img = new Image();
         img.onload = () => {
           ctx.canvas.width = img.width;
@@ -269,8 +312,8 @@ export const Canvas = () => {
           ctx.drawImage(img, 0, 0);
           renderTrapezoids();
         };
-        img.src = IMAGE_TEST;
-      } 
+        img.src = base64ToImageSrc(src);
+      }
     }
   }
 
@@ -307,7 +350,7 @@ export const Canvas = () => {
         return;
       }
     }
-    console.log({ inTrapezoid, trapezoid })
+    console.log({ inTrapezoid, trapezoid });
     const { nearestDistance } = findNearestVertex(
       imgX,
       imgY,
@@ -482,7 +525,7 @@ export const Canvas = () => {
     setTrapezoidSets(
       trapezoidSets().map((t) => {
         if (t.trapezoids === trapezoids) {
-          console.log({t})
+          console.log({ t });
           return {
             ...t,
             matchedPoints: [{ x, y }, ...points],
@@ -728,136 +771,32 @@ export const Canvas = () => {
 
   return (
     <div class="flex flex-col gap-3 text-xs">
-      <h3 class="font-bold text-xl mt-4">Canvas</h3>
-      <div class="grid grid-cols-2 gap-3">
-        <div class="flex flex-col gap-3">
-          <p>For fine tuning of all other parameters:</p>
-          <Button onClick={() => setHidden(!hidden())}>
-            {hidden() ? "Show" : "Hide"} Extra Parameters
+      <Show when={imageSrc()}>
+        <div class="grid grid-cols-3 gap-4 mt-1">
+          <Button onClick={() => setImageSrc(null)}>Clear Image</Button>
+          <div class='w-full flex flex-col'>
+            <Show when={trapezoidSets().length > 0}>
+              <Button
+                onClick={() => {
+                  setPoints([]);
+                  setTrapezoidSets([]);
+                  setRefresh(refresh() + 1);
+                }}
+              >
+                Clear All Sets
+              </Button>
+            </Show>
+          </div>
+          <Button
+            onClick={() => {
+              setImageToggle(!imageToggle());
+            }}
+          >
+            Show {imageToggle() ? "Edge Data" : "Original"} Image{" "}
           </Button>
         </div>
-        <div class="flex-col">
-          <p>
-            This sets the size of the red bounding box where the algorithm
-            searches for a trapezoid.
-          </p>
-          <Param
-            label="Square Size"
-            value={options.options.squareSize}
-            onChange={(value) => setOptions("options", "squareSize", value)}
-          />
-        </div>
-        <div class="flex=col">
-          <p>
-            This sets the low-end threshold for determining if a pixel is on an
-            edge. If the pictures contrast is lower than usual, this may need to
-            be lowered.
-          </p>
-          <Param
-            label="Hysteresis Low"
-            value={options.options.hysteresisLow}
-            onChange={(value) => setOptions("options", "hysteresisLow", value)}
-          />
-        </div>
-        <div class="flex-col">
-          <p>
-            This sets the high-end threshold for determining if a pixel is on an
-            edge. If the pictures contrast is higher than usual, this may need
-            to be raised.
-          </p>
-          <Param
-            label="Hysteresis High"
-            value={options.options.hysteresisHigh}
-            onChange={(value) => setOptions("options", "hysteresisHigh", value)}
-          />
-        </div>
-        <Show when={!hidden()}>
-          <Param
-            label="Min Neighbors for Noise Reduction"
-            value={options.options.minNeighborsForNoiseReduction}
-            onChange={(value) =>
-              setOptions("options", "minNeighborsForNoiseReduction", value)
-            }
-          />
-          <Param
-            label="Hough Vote Threshold"
-            value={options.options.houghVoteThreshold}
-            onChange={(value) =>
-              setOptions("options", "houghVoteThreshold", value)
-            }
-          />
-          <Param
-            label="Merge Theta Threshold"
-            value={options.options.mergeThetaThreshold}
-            onChange={(value) =>
-              setOptions("options", "mergeThetaThreshold", value)
-            }
-          />
-          <Param
-            label="Pixels Per Line Percentage Threshold"
-            value={options.options.pixelThreshold}
-            onChange={(value) => setOptions("options", "pixelThreshold", value)}
-          />
-          <Param
-            label="Max Lines Per Square"
-            value={options.options.maxLines}
-            onChange={(value) => setOptions("options", "maxLines", value)}
-          />
-          <Param
-            label="Noise Reduction Iterations"
-            value={options.options.noiseReductionIterations}
-            onChange={(value) =>
-              setOptions("options", "noiseReductionIterations", value)
-            }
-          />
-          <Param
-            label="Density Threshold"
-            value={options.options.densityThreshold}
-            onChange={(value) =>
-              setOptions("options", "densityThreshold", value)
-            }
-          />
-          <Param
-            label="Density Step"
-            value={options.options.densityStep}
-            onChange={(value) => setOptions("options", "densityStep", value)}
-          />
-          <Param
-            label="Density Size"
-            value={options.options.densitySize}
-            onChange={(value) => setOptions("options", "densitySize", value)}
-          />
-        </Show>
-      </div>
-      <Show when={!hidden()}>
-        <KernelParam
-          values={options.options.gaussianKernel}
-          onChange={(value) =>
-            setOptions(
-              "options",
-              "gaussianKernel",
-              value as [number, number, number]
-            )
-          }
-        />
-        <Button onClick={resetOptions}>Reset Parameters</Button>
       </Show>
-      <Button
-        onClick={() => {
-          setPoints([]);
-          setTrapezoidSets([]);
-          setRefresh(refresh() + 1);
-        }}
-      >
-        Clear All
-      </Button>
-      <Button
-        onClick={() => {
-          setImageToggle(!imageToggle());
-        }}
-      >
-        Show {imageToggle() ? "Edge Data" : "Original"} Image{" "}
-      </Button>
+
       <For each={trapezoidSets()}>
         {(trapezoidSet) => (
           <TrapezoidSetConfig
@@ -875,21 +814,161 @@ export const Canvas = () => {
           />
         )}
       </For>
-      <canvas ref={canvasRef} id="canvas" width="1000" height="1000"></canvas>
+      <canvas
+        ref={canvasRef}
+        id="canvas"
+        width="1000"
+        height="1000"
+        classList={{
+          hidden: !imageSrc(),
+        }}
+      ></canvas>
+      <Show
+        when={imageSrc()}
+        fallback={<GrabForm onGrabbed={(src) => setImageSrc(src)} />}
+      >
+        <>
+          <h3 class="font-bold text-xl mt-4">Options</h3>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="flex flex-col gap-3">
+              <p>For fine tuning of all other parameters:</p>
+              <Button onClick={() => setHidden(!hidden())}>
+                {hidden() ? "Show" : "Hide"} Additional Parameters
+              </Button>
+            </div>
+            <div class="flex-col">
+              <p>
+                This sets the size of the red bounding box where the algorithm
+                searches for a trapezoid.
+              </p>
+              <Param
+                label="Square Size"
+                value={options.options.squareSize}
+                onChange={(value) => setOptions("options", "squareSize", value)}
+              />
+            </div>
+            <div class="flex=col">
+              <p>
+                This sets the low-end threshold for determining if a pixel is on
+                an edge. If the pictures contrast is lower than usual, this may
+                need to be lowered.
+              </p>
+              <Param
+                label="Hysteresis Low"
+                value={options.options.hysteresisLow}
+                onChange={(value) =>
+                  setOptions("options", "hysteresisLow", value)
+                }
+              />
+            </div>
+            <div class="flex-col">
+              <p>
+                This sets the high-end threshold for determining if a pixel is
+                on an edge. If the pictures contrast is higher than usual, this
+                may need to be raised.
+              </p>
+              <Param
+                label="Hysteresis High"
+                value={options.options.hysteresisHigh}
+                onChange={(value) =>
+                  setOptions("options", "hysteresisHigh", value)
+                }
+              />
+            </div>
+            <Show when={!hidden()}>
+              <Param
+                label="Min Neighbors for Noise Reduction"
+                value={options.options.minNeighborsForNoiseReduction}
+                onChange={(value) =>
+                  setOptions("options", "minNeighborsForNoiseReduction", value)
+                }
+              />
+              <Param
+                label="Hough Vote Threshold"
+                value={options.options.houghVoteThreshold}
+                onChange={(value) =>
+                  setOptions("options", "houghVoteThreshold", value)
+                }
+              />
+              <Param
+                label="Merge Theta Threshold"
+                value={options.options.mergeThetaThreshold}
+                onChange={(value) =>
+                  setOptions("options", "mergeThetaThreshold", value)
+                }
+              />
+              <Param
+                label="Pixels Per Line Percentage Threshold"
+                value={options.options.pixelThreshold}
+                onChange={(value) =>
+                  setOptions("options", "pixelThreshold", value)
+                }
+              />
+              <Param
+                label="Max Lines Per Square"
+                value={options.options.maxLines}
+                onChange={(value) => setOptions("options", "maxLines", value)}
+              />
+              <Param
+                label="Noise Reduction Iterations"
+                value={options.options.noiseReductionIterations}
+                onChange={(value) =>
+                  setOptions("options", "noiseReductionIterations", value)
+                }
+              />
+              <Param
+                label="Density Threshold"
+                value={options.options.densityThreshold}
+                onChange={(value) =>
+                  setOptions("options", "densityThreshold", value)
+                }
+              />
+              <Param
+                label="Density Step"
+                value={options.options.densityStep}
+                onChange={(value) =>
+                  setOptions("options", "densityStep", value)
+                }
+              />
+              <Param
+                label="Density Size"
+                value={options.options.densitySize}
+                onChange={(value) =>
+                  setOptions("options", "densitySize", value)
+                }
+              />
+            </Show>
+          </div>
+          <Show when={!hidden()}>
+            <KernelParam
+              values={options.options.gaussianKernel}
+              onChange={(value) =>
+                setOptions(
+                  "options",
+                  "gaussianKernel",
+                  value as [number, number, number]
+                )
+              }
+            />
+            <Button onClick={resetOptions}>Reset Parameters</Button>
+          </Show>
+        </>
+      </Show>
     </div>
   );
 };
 
 export const setupCanvas = async (
   canvas: HTMLCanvasElement,
-  options: ProcessingOptions
-): Promise<ImageData> => {
+  options: ProcessingOptions,
+  src: string
+): Promise<void> => {
   const ctx = canvas.getContext("2d")!;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const img = new Image();
-  let imageData: ImageData
+  let imageData: ImageData;
 
-  return new Promise(() => {
+  return new Promise((resolve) => {
     img.onload = function () {
       if (!ctx) return;
       canvas.width = img.width;
@@ -897,9 +976,12 @@ export const setupCanvas = async (
       ctx.drawImage(img, 0, 0);
       imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       EdgeFilter(canvas, options, imageData, ctx);
-      return imageData
+      resolve();
     };
-    img.src = IMAGE_TEST;
+    img.onerror = (e) => {
+      console.log("IMAGE ERROR", e);
+    };
+    img.src = base64ToImageSrc(src);
   });
 };
 
@@ -1042,7 +1124,7 @@ function findConnectedTrapezoids(
     0,
     squareSize,
     fit
-  )
+  );
   recurseSearchTrapezoid(
     x,
     y,
@@ -1055,7 +1137,7 @@ function findConnectedTrapezoids(
     0,
     squareSize,
     fit
-  )
+  );
   return trapezoids;
 }
 
@@ -1084,7 +1166,7 @@ function recurseSearchTrapezoid(
     ctx,
     x + deltaX - squareSize / 2,
     y + deltaY - squareSize / 2,
-    squareSize,
+    squareSize
   );
   if (!firstTest) {
     return trapezoids;
@@ -1553,7 +1635,7 @@ function FixedDirectSearchOptimization(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
-  squareSize: number,
+  squareSize: number
 ) {
   let vertices = [
     { x: trapezoid.top.x1, y: trapezoid.top.y1 },
@@ -1579,8 +1661,14 @@ function FixedDirectSearchOptimization(
             angle = -angle;
           }
           const rotatedVertices: Vertex[] = shiftedVertices.map((v) => ({
-            x: Math.round((v.x - x) * Math.cos(angle) - (v.y - y) * Math.sin(angle)) + x,
-            y: Math.round((v.x - x) * Math.sin(angle) + (v.y - y) * Math.cos(angle)) + y,
+            x:
+              Math.round(
+                (v.x - x) * Math.cos(angle) - (v.y - y) * Math.sin(angle)
+              ) + x,
+            y:
+              Math.round(
+                (v.x - x) * Math.sin(angle) + (v.y - y) * Math.cos(angle)
+              ) + y,
           }));
           const rotatedT: Trapezoid = computeTrapezoid(rotatedVertices);
           const newFt = ft(data, rotatedT, options, x, y, ctx, squareSize);
@@ -1618,7 +1706,7 @@ function RecurseDirectSearchOptimization(
   x: number,
   y: number,
   squareSize: number,
-  fit: number,
+  fit: number
 ) {
   // Move each vertex in trapezoid by 5 pixels in 16 directions, take the best one
   let vertices = [
@@ -1672,7 +1760,7 @@ function RecurseDirectSearchOptimization(
 }
 
 function computeTrapezoid(
-  vertices: Vertex[],
+  vertices: Vertex[]
   // ctx?: CanvasRenderingContext2D
 ): Trapezoid {
   //  the shortest edge is the bottom edge
@@ -1709,12 +1797,12 @@ function computeTrapezoid(
   let topLeft = vertices.find(
     (v) => v !== bottomLeft && v !== bottomRight && v !== topRight
   ) as Vertex;
-  if(topRight.x < topLeft.x) {
+  if (topRight.x < topLeft.x) {
     const temp = topRight;
     topRight = topLeft;
     topLeft = temp;
   }
-  if(topLeft.y > bottomLeft.y) {
+  if (topLeft.y > bottomLeft.y) {
     let temp = topLeft;
     topLeft = bottomLeft;
     bottomLeft = temp;

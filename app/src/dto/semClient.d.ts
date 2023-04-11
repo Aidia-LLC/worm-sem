@@ -3,6 +3,7 @@ export type Message = {
   id: number;
   code?: number;
   message?: string;
+  payload?: string;
 };
 
 export type MessageReceived = (message: Message) => void;
@@ -36,14 +37,14 @@ export interface GrabCommand extends BaseCommand {
   width: number;
   height: number;
   name: string;
-  filename: string;
+  filename?: string;
   reduction: number;
 }
 
 export interface GrabFullFrameCommand extends BaseCommand {
   type: "grabFullFrame";
   name: string;
-  filename: string;
+  filename?: string;
   reduction: number;
 }
 
