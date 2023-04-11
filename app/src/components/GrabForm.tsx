@@ -82,7 +82,7 @@ export const GrabForm = (props: { onGrabbed: (data: string) => void }) => {
           });
         }}
       >
-        Grab Full Frame
+        Grab Image
       </Button>
     </div>
   );

@@ -39,6 +39,7 @@ export interface GrabCommand extends BaseCommand {
   name: string;
   filename?: string;
   reduction: number;
+  setId: number;
 }
 
 export interface GrabFullFrameCommand extends BaseCommand {
