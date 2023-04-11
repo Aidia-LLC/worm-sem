@@ -46,7 +46,7 @@ export const Canvas = () => {
   const [showOriginalImage, setShowOriginalImage] = createSignal(true);
   const [trapezoidSets, setTrapezoidSets] = createSignal<TrapezoidSet[]>([]);
   const [imageData, setImageData] = createSignal<ImageData>();
-  const [grabbing, setGrabbing] = createSignal<TrapezoidSet['id'] | null>(null);
+  const [grabbing, setGrabbing] = createSignal<TrapezoidSet["id"] | null>(null);
   const [grabSize, setGrabSize] = createSignal(30);
 
   createEffect(() => {
@@ -307,17 +307,17 @@ export const Canvas = () => {
           }
         }
       } else {
-        const set = trapezoidSets().find(s => s.id === grabbing());
+        const set = trapezoidSets().find((s) => s.id === grabbing());
         if (!set) return;
 
         ctx.globalAlpha = 0.4;
         for (const trapezoid of set.trapezoids)
           DrawTrapezoid(trapezoid, ctx, set.color, set.thickness);
-        
+
         ctx.globalAlpha = 1;
         ctx.lineWidth = 3;
         const size = grabSize();
-        
+
         for (const point of set.matchedPoints) {
           ctx.beginPath();
           ctx.arc(point.x, point.y, 1.5, 0, 2 * Math.PI);
@@ -329,7 +329,6 @@ export const Canvas = () => {
           ctx.closePath();
           ctx.stroke();
         }
-
       }
     };
     if (!showOriginalImage()) {
@@ -812,7 +811,16 @@ export const Canvas = () => {
     <div class="flex flex-col gap-3 text-xs">
       <Show when={imageSrc()}>
         <div class="grid grid-cols-3 gap-4 mt-1">
-          <Button onClick={() => setImageSrc(null)}>Clear Image</Button>
+          <Button
+            onClick={() => {
+              setImageSrc(null);
+              setPoints([]);
+              setTrapezoidSets([]);
+              setRefresh(refresh() + 1);
+            }}
+          >
+            Clear Image
+          </Button>
           <div class="w-full flex flex-col">
             <Show when={trapezoidSets().length > 0}>
               <Button
