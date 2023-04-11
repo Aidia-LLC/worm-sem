@@ -822,7 +822,7 @@ export const Canvas = () => {
                   setRefresh(refresh() + 1);
                 }}
               >
-                Clear All Sets
+                Remove All Sets
               </Button>
             </Show>
           </div>

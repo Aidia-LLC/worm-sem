@@ -1,19 +1,21 @@
 import { GrabCommand, GrabFullFrameCommand } from "@dto/semClient";
 import { createSignal } from "solid-js";
-import { historySignal } from "./history";
 
 export const grabQueueSignal = createSignal<
   (GrabCommand | GrabFullFrameCommand)[]
 >([]);
 const [executing, setExecuting] = createSignal(false);
+let nextId = 2;
 
 const executeQueuedCommand = () => {
   const [grabQueue, setGrabQueue] = grabQueueSignal;
-  if (executing()) return;
+  if (executing()) return console.log("already executing");
   if (grabQueue().length === 0) {
     setExecuting(false);
+    console.log("no commands to execute");
     return;
   }
+  console.log("executing command");
   const command = grabQueue()[0];
   window.semClient.send(command);
   setGrabQueue(grabQueue().slice(1));
@@ -33,12 +35,12 @@ export const initGrabQueue = () => {
     if (message.type === "success") {
       setExecuting(false);
       executeQueuedCommand();
+    } else {
+      console.error("Error executing command:", message);
     }
   });
 };
 
 export const getNextCommandId = () => {
-  const [history] = historySignal;
-  const lastId = Math.max(1, ...history().map((message) => message.id));
-  return lastId + 1;
+  return nextId++;
 };
