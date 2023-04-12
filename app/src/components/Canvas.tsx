@@ -67,7 +67,7 @@ export const Canvas = () => {
     let { trapezoid, fit } = detectTrapezoid(imgX, imgY, ctx, options.options);
     const valid =
       trapezoid &&
-      trapezoidIsValid(trapezoid, ctx, imgX, imgY, options.options, fit);
+      trapezoidIsValid(trapezoid, imgX, imgY, options.options, fit);
     if (!valid) {
       const square = getSquare(
         imageData,
@@ -76,7 +76,6 @@ export const Canvas = () => {
         options.options.squareSize
       );
       trapezoid = RANSAC(
-        ctx,
         square,
         0,
         options.options,
@@ -94,7 +93,6 @@ export const Canvas = () => {
         trapezoid,
         square,
         options.options,
-        ctx,
         imgX - options.options.squareSize / 2,
         imgY - options.options.squareSize / 2
       );
@@ -108,7 +106,7 @@ export const Canvas = () => {
         imgY,
         options.options.squareSize
       );
-      fit = getPointsOnTrapezoid(square, trapezoid, options.options, imgX- options.options.squareSize/2, imgY - options.options.squareSize/2, ctx);
+      fit = getPointsOnTrapezoid(square, trapezoid, options.options, imgX- options.options.squareSize/2, imgY - options.options.squareSize/2);
     }
     const connectedTrapezoids = findConnectedTrapezoids(
       trapezoid,
@@ -157,7 +155,6 @@ export const Canvas = () => {
 
   function trapezoidIsValid(
     trapezoid: Trapezoid,
-    ctx: CanvasRenderingContext2D,
     x: number,
     y: number,
     options: ProcessingOptions,
@@ -384,101 +381,70 @@ export const Canvas = () => {
           trapezoid.bottom.y2) /
         4,
     };
-    const topLeft = Math.sqrt(
-      (x - trapezoid.top.x1) ** 2 + (y - trapezoid.top.y1) ** 2
-    );
-    const topRight = Math.sqrt(
-      (x - trapezoid.top.x2) ** 2 + (y - trapezoid.top.y2) ** 2
-    );
-    const bottomLeft = Math.sqrt(
-      (x - trapezoid.bottom.x1) ** 2 + (y - trapezoid.bottom.y1) ** 2
-    );
-    const bottomRight = Math.sqrt(
-      (x - trapezoid.bottom.x2) ** 2 + (y - trapezoid.bottom.y2) ** 2
-    );
-    const centerDist = Math.sqrt((x - center.x) ** 2 + (y - center.y) ** 2);
-    const distances = [topLeft, topRight, bottomLeft, bottomRight, centerDist];
-    const minDist = Math.min(...distances);
-    let dx = 0;
-    let dy = 0;
-    switch (distances.indexOf(minDist)) {
-      case 0:
-        dx = trapezoid.top.x1 - x;
-        dy = trapezoid.top.y1 - y;
-        break;
-      case 1:
-        dx = trapezoid.top.x2 - x;
-        dy = trapezoid.top.y2 - y;
-        break;
-      case 2:
-        dx = trapezoid.bottom.x1 - x;
-        dy = trapezoid.bottom.y1 - y;
-        break;
-      case 3:
-        dx = trapezoid.bottom.x2 - x;
-        dy = trapezoid.bottom.y2 - y;
-        break;
-      case 4:
-        dx = center.x - x;
-        dy = center.y - y;
-        break;
+    let angle1 = 0;
+    // angle1 of the top line
+    if (trapezoid.top.x1 === trapezoid.top.x2) {
+      angle1 = Math.PI / 2;
     }
-    let points: Vertex[] = [];
-    // find corresponding points on every other trapezoid
+    else {
+      angle1 = Math.atan(
+        (trapezoid.top.y2 - trapezoid.top.y1) /
+          (trapezoid.top.x2 - trapezoid.top.x1)
+      );
+    }
+    
+    const dx = (x - center.x);
+    const dy = (y - center.y);
+    
+    const points: Vertex[] = [];
+    points.push({
+      x,
+      y
+    });
     for (const otherTrapezoid of trapezoids) {
       if (otherTrapezoid === trapezoid) continue;
-      switch (distances.indexOf(minDist)) {
-        case 0:
-          points.push({
-            x: otherTrapezoid.top.x1 - dx,
-            y: otherTrapezoid.top.y1 - dy,
-          });
-          break;
-        case 1:
-          points.push({
-            x: otherTrapezoid.top.x2 - dx,
-            y: otherTrapezoid.top.y2 - dy,
-          });
-          break;
-        case 2:
-          points.push({
-            x: otherTrapezoid.bottom.x1 - dx,
-            y: otherTrapezoid.bottom.y1 - dy,
-          });
-          break;
-        case 3:
-          points.push({
-            x: otherTrapezoid.bottom.x2 - dx,
-            y: otherTrapezoid.bottom.y2 - dy,
-          });
-          break;
-        case 4:
-          points.push({
-            x:
-              (otherTrapezoid.top.x1 +
-                otherTrapezoid.top.x2 +
-                otherTrapezoid.bottom.x1 +
-                otherTrapezoid.bottom.x2) /
-                4 -
-              dx,
-            y:
-              (otherTrapezoid.top.y1 +
-                otherTrapezoid.top.y2 +
-                otherTrapezoid.bottom.y1 +
-                otherTrapezoid.bottom.y2) /
-                4 -
-              dy,
-          });
-          break;
+      let angle2 = 0;
+      // angle2 of the top line
+      if (otherTrapezoid.top.x1 === otherTrapezoid.top.x2) {
+        angle2 = Math.PI / 2;
       }
+      else {
+        angle2 = Math.atan(
+          (otherTrapezoid.top.y2 - otherTrapezoid.top.y1) /
+            (otherTrapezoid.top.x2 - otherTrapezoid.top.x1)
+        );
+      }
+      const angle = angle2 - angle1;
+
+      const otherCenter = {
+        x:
+          (otherTrapezoid.top.x1 +
+            otherTrapezoid.top.x2 +
+            otherTrapezoid.bottom.x1 +
+            otherTrapezoid.bottom.x2) /
+          4,
+        y:
+          (otherTrapezoid.top.y1 +
+            otherTrapezoid.top.y2 +
+            otherTrapezoid.bottom.y1 +
+            otherTrapezoid.bottom.y2) /
+          4,
+      };
+      const otherDx = (dx * Math.cos(angle)) - (dy * Math.sin(angle));
+      const otherDy = (dx * Math.sin(angle)) + (dy * Math.cos(angle));
+      const otherX = otherCenter.x + otherDx;
+      const otherY = otherCenter.y + otherDy;
+      points.push({
+        x: otherX,
+        y: otherY
+      });
     }
     setTrapezoidSets(
       trapezoidSets().map((t) => {
         if (t.trapezoids === trapezoids) {
-          console.log({t})
           return {
             ...t,
-            matchedPoints: [{ x, y }, ...points],
+            matchedPoints: points,
           };
         }
         return t;
@@ -1087,7 +1053,6 @@ function recurseSearchTrapezoid(
     shiftedTrapezoid,
     square,
     options,
-    ctx,
     x + deltaX - squareSize / 2,
     y + deltaY - squareSize / 2,
     squareSize,
@@ -1100,7 +1065,6 @@ function recurseSearchTrapezoid(
     firstTest,
     square,
     options,
-    ctx,
     x + deltaX - squareSize / 2,
     y + deltaY - squareSize / 2,
     squareSize,
@@ -1152,7 +1116,6 @@ function getPointsOnTrapezoid(
   options: ProcessingOptions,
   xx: number,
   yy: number,
-  ctx: CanvasRenderingContext2D,
   squareSize?: number
 ): number {
   const lines = [
@@ -1194,10 +1157,6 @@ function getPointsOnTrapezoid(
             Math.round(x + xStep * j)
         ] === 255
       ) {
-        //   ctx.beginPath();
-        //   ctx.rect(Math.round(x + xStep*j) + xx, Math.round(y + yStep*j) + yy, 1, 1);
-        //   ctx.strokeStyle = "green";
-        //   ctx.stroke();
         points++;
       }
     }
@@ -1206,7 +1165,6 @@ function getPointsOnTrapezoid(
 }
 
 function RANSAC(
-  ctx: CanvasRenderingContext2D,
   edgePixels: Uint8ClampedArray,
   trapezoidArea: number,
   options: ProcessingOptions,
@@ -1238,7 +1196,6 @@ function RANSAC(
       options,
       x,
       y,
-      ctx,
       squareSize
     );
     if (points && (!bestFit || points > bestFit)) {
@@ -1282,13 +1239,11 @@ function DirectSearchOptimization(
     options: ProcessingOptions,
     x: number,
     y: number,
-    ctx: CanvasRenderingContext2D,
     squareSize?: number
   ) => number,
   trapezoid: Trapezoid,
   data: Uint8ClampedArray,
   options: ProcessingOptions,
-  ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   squareSize?: number
@@ -1300,7 +1255,7 @@ function DirectSearchOptimization(
     { x: trapezoid.bottom.x1, y: trapezoid.bottom.y1 },
     { x: trapezoid.bottom.x2, y: trapezoid.bottom.y2 },
   ];
-  let bestFt: number = ft(data, trapezoid, options, x, y, ctx, squareSize);
+  let bestFt: number = ft(data, trapezoid, options, x, y, squareSize);
   for (let k = 0; k < 27; k++) {
     for (let i = 0; i < vertices.length; i++) {
       let bestVertex: Vertex | undefined;
@@ -1327,7 +1282,7 @@ function DirectSearchOptimization(
           )
         );
 
-        const newFt = ft(data, newTrapezoid, options, x, y, ctx, squareSize);
+        const newFt = ft(data, newTrapezoid, options, x, y, squareSize);
         if (bestFt === undefined || newFt > bestFt) {
           bestFt = newFt;
           bestVertex = newVertex;
@@ -1352,13 +1307,11 @@ function FixedDirectSearchOptimization(
     options: ProcessingOptions,
     x: number,
     y: number,
-    ctx: CanvasRenderingContext2D,
     squareSize?: number
   ) => number,
   trapezoid: Trapezoid,
   data: Uint8ClampedArray,
   options: ProcessingOptions,
-  ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   squareSize: number,
@@ -1369,7 +1322,7 @@ function FixedDirectSearchOptimization(
     { x: trapezoid.bottom.x1, y: trapezoid.bottom.y1 },
     { x: trapezoid.bottom.x2, y: trapezoid.bottom.y2 },
   ];
-  let bestFt: number = ft(data, trapezoid, options, x, y, ctx, squareSize);
+  let bestFt: number = ft(data, trapezoid, options, x, y, squareSize);
   for (let k = 0; k < 9; k++) {
     let bestVertices: Vertex[] | undefined;
     for (let j = 0; j < 16; j++) {
@@ -1391,7 +1344,7 @@ function FixedDirectSearchOptimization(
             y: Math.round((v.x - x) * Math.sin(angle) + (v.y - y) * Math.cos(angle)) + y,
           }));
           const rotatedT: Trapezoid = computeTrapezoid(rotatedVertices);
-          const newFt = ft(data, rotatedT, options, x, y, ctx, squareSize);
+          const newFt = ft(data, rotatedT, options, x, y, squareSize);
           if (bestFt === undefined || newFt > bestFt) {
             bestFt = newFt;
             bestVertices = rotatedVertices;
@@ -1416,13 +1369,11 @@ function RecurseDirectSearchOptimization(
     options: ProcessingOptions,
     x: number,
     y: number,
-    ctx: CanvasRenderingContext2D,
     squareSize?: number
   ) => number,
   trapezoid: Trapezoid,
   data: Uint8ClampedArray,
   options: ProcessingOptions,
-  ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   squareSize: number,
@@ -1435,7 +1386,7 @@ function RecurseDirectSearchOptimization(
     { x: trapezoid.bottom.x1, y: trapezoid.bottom.y1 },
     { x: trapezoid.bottom.x2, y: trapezoid.bottom.y2 },
   ];
-  let bestFt: number = ft(data, trapezoid, options, x, y, ctx, squareSize);
+  let bestFt: number = ft(data, trapezoid, options, x, y, squareSize);
   for (let k = 0; k < 16; k++) {
     for (let i = 0; i < vertices.length; i++) {
       let bestVertex: Vertex | undefined;
@@ -1461,7 +1412,7 @@ function RecurseDirectSearchOptimization(
             index === i ? newVertex : { x: Math.round(v.x), y: Math.round(v.y) }
           )
         );
-        const newFt = ft(data, newTrapezoid, options, x, y, ctx, squareSize);
+        const newFt = ft(data, newTrapezoid, options, x, y, squareSize);
         if (bestFt === undefined || newFt > bestFt) {
           bestFt = newFt;
           bestVertex = newVertex;
