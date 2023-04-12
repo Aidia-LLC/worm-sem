@@ -167,7 +167,7 @@ export const Canvas = () => {
     const area = calculateArea(trapezoid);
     const areaThreshold = squareSize ** 2 * 0.2;
     const areaValid = area > areaThreshold;
-    const fitValid = fit && Math.abs(fit) > 25;
+    const fitValid = fit && Math.abs(fit) > options.firstFit;
     // make sure each side is at least 1/3 of the square size
     const sideThresh = squareSize / 6;
     const top = Math.sqrt(
@@ -472,13 +472,6 @@ export const Canvas = () => {
           break;
       }
     }
-    // for (const point of points) {
-    //   ctx.beginPath();
-    //   ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
-    //   ctx.fillStyle = "blue";
-    //   ctx.fill();
-    //   ctx.closePath();
-    // }
     setTrapezoidSets(
       trapezoidSets().map((t) => {
         if (t.trapezoids === trapezoids) {
@@ -747,6 +740,27 @@ export const Canvas = () => {
             onChange={(value) => setOptions("options", "squareSize", value)}
           />
         </div>
+        <div class="flex-col">
+          <p>
+            This sets the minimum number of pixels that must be on a trapezoid relative to the first to be considered a trapezoid.
+          </p>
+          <Param
+          label="Minimum Fit for Recurrance"
+          value={options.options.minimumFit}
+          onChange={(value) => setOptions("options", "minimumFit", value)}
+          />
+        </div>
+        <div class="flex-col">
+          <p>
+            This sets the minimum number of pixels that must be on the first trapezoid to be considered a valid trapezoid. If this fails, it will still draw a trapezoid, just with a different algorithm.
+          </p>
+          <Param
+          label="Minimum Fit for First"
+          value={options.options.firstFit}
+          onChange={(value) => setOptions("options", "firstFit", value)}
+          />
+        </div>
+        <Show when={!hidden()}>
         <div class="flex=col">
           <p>
             This sets the low-end threshold for determining if a pixel is on an
@@ -771,7 +785,6 @@ export const Canvas = () => {
             onChange={(value) => setOptions("options", "hysteresisHigh", value)}
           />
         </div>
-        <Show when={!hidden()}>
           <Param
             label="Min Neighbors for Noise Reduction"
             value={options.options.minNeighborsForNoiseReduction}
@@ -952,13 +965,6 @@ function DrawTrapezoid(
   ctx.lineWidth = thickness;
   ctx.stroke();
   ctx.closePath();
-  // ctx.beginPath();
-  // ctx.moveTo(trapezoid.top.x1, trapezoid.top.y1);
-  // ctx.lineTo(trapezoid.top.x2, trapezoid.top.y2);
-  // ctx.strokeStyle = 'pink';
-  // ctx.lineWidth = 3;
-  // ctx.stroke();
-  // ctx.closePath();
 }
 
 function calculateArea(trapezoid: Trapezoid): number {
@@ -1149,8 +1155,6 @@ function getPointsOnTrapezoid(
   ctx: CanvasRenderingContext2D,
   squareSize?: number
 ): number {
-  // Find the actual number of edge pixels in each line
-  // drawSquare(data, ctx, squareSize ?? options.squareSize)
   const lines = [
     trapezoid.top,
     trapezoid.bottom,
@@ -1167,12 +1171,6 @@ function getPointsOnTrapezoid(
     const yStep = dy / length;
     let x = line.x1 - xx;
     let y = line.y1 - yy;
-    // ctx.beginPath();
-    // ctx.moveTo(line.x1, line.y1);
-    // ctx.lineTo(line.x1 + xStep * length, line.y1 + yStep * length);
-    // ctx.strokeStyle = 'green';
-    // ctx.stroke();
-    // ctx.closePath();
     for (let j = 0; j < length; j++) {
       if (
         data[
@@ -1207,21 +1205,6 @@ function getPointsOnTrapezoid(
   return points;
 }
 
-function drawSquare(
-  square: Uint8ClampedArray,
-  ctx: CanvasRenderingContext2D,
-  width: number
-) {
-  for (let i = 0; i < square.length; i++) {
-    if (square[i] === 255) {
-      ctx.beginPath();
-      ctx.rect(i % width, Math.floor(i / width), 1, 1);
-      ctx.strokeStyle = "red";
-      ctx.stroke();
-    }
-  }
-}
-
 function RANSAC(
   ctx: CanvasRenderingContext2D,
   edgePixels: Uint8ClampedArray,
@@ -1249,15 +1232,6 @@ function RANSAC(
       (trapezoidArea == 0 && (area < 45 * 45 || area > 60 * 55))
     )
       continue;
-    // const trapezoidFit = fitTrapezoid(
-    //   trapezoid,
-    //   edgePixels,
-    //   options,
-    //   ctx,
-    //   x,
-    //   y,
-    //   squareSize
-    //   );
     const points = getPointsOnTrapezoid(
       edgePixels,
       convertLocalToGlobal(trapezoid, x, y),
@@ -1267,27 +1241,10 @@ function RANSAC(
       ctx,
       squareSize
     );
-    // if (trapezoidFit && (!bestFit || trapezoidFit < bestFit)) {
-    //   // console.log({trapezoid})
-    //   bestTrapezoid = trapezoid;
-    //   bestFit = trapezoidFit;
-    //   // DrawTrapezoid(convertLocalToGlobal(trapezoid, x, y), ctx, 'green');
-    // }
-    // console.log({points})
     if (points && (!bestFit || points > bestFit)) {
       bestTrapezoid = trapezoid;
       bestFit = points;
     }
-  }
-  if (ctx && bestTrapezoid) {
-    ctx.beginPath();
-    ctx.moveTo(bestTrapezoid.top.x1 + x, bestTrapezoid.top.y1 + y);
-    ctx.lineTo(bestTrapezoid.top.x2 + x, bestTrapezoid.top.y2 + y);
-    ctx.lineTo(bestTrapezoid.bottom.x2 + x, bestTrapezoid.bottom.y2 + y);
-    ctx.lineTo(bestTrapezoid.bottom.x1 + x, bestTrapezoid.bottom.y1 + y);
-    ctx.lineTo(bestTrapezoid.top.x1 + x, bestTrapezoid.top.y1 + y);
-    ctx.strokeStyle = "red";
-    ctx.stroke();
   }
   return bestTrapezoid;
 }
@@ -1295,7 +1252,6 @@ function RANSAC(
 function getSemiRandomSample<Vertex>(size: number, width: number): Vertex[] {
   const sample: Vertex[] = [];
 
-  // make a list of 8 random numbers
   const randomNumbers: number[] = [];
   for (let i = 0; i < size; i++) {
     randomNumbers.push(Math.floor(Math.random() * (width / 2)));
@@ -1317,148 +1273,6 @@ function getSemiRandomSample<Vertex>(size: number, width: number): Vertex[] {
   } as Vertex);
 
   return sample;
-}
-
-function fitTrapezoid(
-  trapezoid: Trapezoid,
-  edgeData: Uint8ClampedArray,
-  options: ProcessingOptions,
-  ctx: CanvasRenderingContext2D,
-  x1: number,
-  y1: number,
-  squareSize?: number
-): number | null {
-  // Implement least-squares fitting algorithm to on trapezoid and edge pixels
-  // and return the r2 value
-  let r = 0;
-  const width = squareSize ?? options.squareSize;
-  for (let y = 0; y < width; y++) {
-    for (let x = 0; x < width; x++) {
-      const index = y * width + x;
-      const pixel = edgeData[index];
-      if (pixel === 0) continue;
-
-      let distance = distanceFromTrapezoid({ x, y }, trapezoid, ctx, x1, y1);
-      if (distance < 2) {
-        // draw pixel
-        ctx.beginPath();
-        ctx.rect(x + x1, y + y1, 1, 1);
-        ctx.rect(x, y, 1, 1);
-        ctx.strokeStyle = "green";
-        ctx.stroke();
-        ctx.closePath();
-      }
-      r += distance * distance;
-    }
-  }
-  return r;
-}
-
-function distanceFromTrapezoid(
-  point: Vertex,
-  trapezoid: Trapezoid,
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number
-) {
-  // Calculate the distance from the point to the trapezoid
-  // find distance to each side of trapezoid and return the min
-  let minDistance = 1000000;
-  let minIntercept = [0, 0];
-  const sides = [
-    trapezoid.top,
-    trapezoid.bottom,
-    trapezoid.left,
-    trapezoid.right,
-  ];
-  for (let i = 0; i < 4; i++) {
-    const minSide = sides[i];
-    const slope = (minSide.y2 - minSide.y1) / (minSide.x2 - minSide.x1);
-    if (slope < 0.001 && slope > -0.001) {
-      let d = Math.min(
-        Math.abs(point.y - minSide.y1),
-        Math.abs(point.y - minSide.y2)
-      );
-      if (d < minDistance) {
-        minDistance = d;
-        if (point.y < minSide.y1) {
-          minIntercept = [minSide.x1, minSide.y1];
-        } else {
-          minIntercept = [minSide.x2, minSide.y2];
-        }
-      }
-    } else if (slope > 1000 || slope < -1000) {
-      let d = Math.min(
-        Math.abs(point.x - minSide.x1),
-        Math.abs(point.x - minSide.x2)
-      );
-      if (d < minDistance) {
-        minDistance = d;
-        if (point.x < minSide.x1) {
-          minIntercept = [minSide.x1, minSide.y1];
-        } else {
-          minIntercept = [minSide.x2, minSide.y2];
-        }
-      }
-    }
-    const normalSlope = -1 / slope;
-    const normalIntercept = point.y - normalSlope * point.x;
-    const intersection = getIntersection(minSide, {
-      x1: 0,
-      y1: normalIntercept,
-      x2: 1,
-      y2: normalSlope + normalIntercept,
-    });
-    // if intersection is not on the line segment, return the distance to the closest endpoint
-    if (
-      intersection.x < Math.min(minSide.x1, minSide.x2) ||
-      intersection.x > Math.max(minSide.x1, minSide.x2) ||
-      intersection.y < Math.min(minSide.y1, minSide.y2) ||
-      intersection.y > Math.max(minSide.y1, minSide.y2)
-    ) {
-      const dis1 = Math.sqrt(
-        Math.pow(minSide.x1 - point.x, 2) + Math.pow(minSide.y1 - point.y, 2)
-      );
-      const dis2 = Math.sqrt(
-        Math.pow(minSide.x2 - point.x, 2) + Math.pow(minSide.y2 - point.y, 2)
-      );
-      if (dis1 < minDistance) {
-        minDistance = dis1;
-        minIntercept = [minSide.x1, minSide.y1];
-      }
-      if (dis2 < minDistance) {
-        minDistance = dis2;
-        minIntercept = [minSide.x2, minSide.y2];
-      }
-      continue;
-    }
-    let dis = Math.sqrt(
-      Math.pow(intersection.x - point.x, 2) +
-        Math.pow(intersection.y - point.y, 2)
-    );
-    if (dis < minDistance) {
-      minDistance = dis;
-      minIntercept = [intersection.x, intersection.y];
-    }
-  }
-  return minDistance === 1000000 ? 0 : minDistance;
-}
-
-function getIntersection(
-  line1: Pick<LineSegment, "x1" | "x2" | "y1" | "y2">,
-  line2: Pick<LineSegment, "x1" | "x2" | "y1" | "y2">
-) {
-  const slope1 = (line1.y2 - line1.y1) / (line1.x2 - line1.x1);
-  const slope2 = (line2.y2 - line2.y1) / (line2.x2 - line2.x1);
-  const intercept1 = line1.y1 - slope1 * line1.x1;
-  const intercept2 = line2.y1 - slope2 * line2.x1;
-  if (slope1 - slope2 < 0.001 && slope1 - slope2 > -0.001) {
-    console.log("parallel");
-    return { x: 0, y: 0 };
-  }
-  const x = (intercept2 - intercept1) / (slope1 - slope2);
-  const y = slope1 * x + intercept1;
-  return { x, y };
 }
 
 function DirectSearchOptimization(
@@ -1487,7 +1301,6 @@ function DirectSearchOptimization(
     { x: trapezoid.bottom.x2, y: trapezoid.bottom.y2 },
   ];
   let bestFt: number = ft(data, trapezoid, options, x, y, ctx, squareSize);
-  // console.log("bestFt init", bestFt, trapezoid);
   for (let k = 0; k < 27; k++) {
     for (let i = 0; i < vertices.length; i++) {
       let bestVertex: Vertex | undefined;
@@ -1517,10 +1330,6 @@ function DirectSearchOptimization(
         const newFt = ft(data, newTrapezoid, options, x, y, ctx, squareSize);
         if (bestFt === undefined || newFt > bestFt) {
           bestFt = newFt;
-          // console.log({newFt})
-          // vertices = vertices.map((v, index) =>
-          // index === i ? newVertex : { x: Math.round(v.x), y: Math.round(v.y) }
-          // );
           bestVertex = newVertex;
         }
       }
@@ -1530,7 +1339,6 @@ function DirectSearchOptimization(
             ? (bestVertex as Vertex)
             : { x: Math.round(v.x), y: Math.round(v.y) }
         );
-        // console.log("bestFt", bestFt, vertices)
       }
     }
   }
@@ -1667,15 +1475,13 @@ function RecurseDirectSearchOptimization(
       }
     }
   }
-  if (bestFt < fit / 5) return null;
+  if (bestFt < fit * options.minimumFit) return null;
   return computeTrapezoid(vertices);
 }
 
 function computeTrapezoid(
   vertices: Vertex[],
-  // ctx?: CanvasRenderingContext2D
 ): Trapezoid {
-  //  the shortest edge is the bottom edge
   const pairs = [
     [vertices[0], vertices[1]],
     [vertices[1], vertices[3]],
@@ -1760,16 +1566,6 @@ export type Vertex = {
   x: number;
   y: number;
 };
-
-function drawVertices(vertices: Vertex[], ctx: CanvasRenderingContext2D) {
-  for (const vertex of vertices) {
-    ctx.beginPath();
-    ctx.arc(vertex.x, vertex.y, 5, 0, 2 * Math.PI);
-    ctx.fillStyle = "red";
-    ctx.fill();
-    ctx.closePath();
-  }
-}
 
 function getSquare(fullImage: ImageData, x: number, y: number, size: number) {
   const square: number[] = [];

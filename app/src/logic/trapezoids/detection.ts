@@ -406,21 +406,6 @@ function intersectionPoint(
   return { x, y };
 }
 
-function DrawTrapezoid(
-  trapezoid: Trapezoid,
-  ctx: CanvasRenderingContext2D,
-  color: string = "green"
-) {
-  ctx.beginPath();
-  ctx.moveTo(trapezoid.top.x1, trapezoid.top.y1);
-  ctx.lineTo(trapezoid.top.x2, trapezoid.top.y2);
-  ctx.lineTo(trapezoid.bottom.x2, trapezoid.bottom.y2);
-  ctx.lineTo(trapezoid.bottom.x1, trapezoid.bottom.y1);
-  ctx.lineTo(trapezoid.top.x1, trapezoid.top.y1);
-  ctx.strokeStyle = color;
-  ctx.stroke();
-}
-
 function DirectSearchOptimization(
   ft: (
     data: Uint8ClampedArray,
