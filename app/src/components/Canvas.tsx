@@ -842,8 +842,7 @@ export const Canvas = () => {
             </div>
             <div class="flex-col">
               <p>
-                This sets the size of the red bounding box where the algorithm
-                searches for a trapezoid.
+                This sets the size of a 'bounding box' where the algorithm will look for a trapezoid. This may need to be changed if the picture is more or less zoomed in than usual.
               </p>
               <Param
                 label="Square Size"
@@ -853,7 +852,7 @@ export const Canvas = () => {
             </div>
             <div class="flex=col">
               <p>
-                This sets the minimum fit relative to the first fit for a trapezoid to be valid. 
+                This sets the minimum fit relative to the first fit for a trapezoid to be valid. If this is too high, the algorithm will fail to find a trapezoid where there are few edge pixels. Too low, and trapezoids will be found past the line of trapezoids.
               </p>
               <Param
                 label="Minimum Fit for Recurrance"
@@ -865,7 +864,7 @@ export const Canvas = () => {
             </div>
             <div class="flex-col">
               <p>
-                This sets the minimum fit for the first trapezoid, if this fails a secondary algorithm will be used to find a trapezoid.
+                This sets the minimum fit for the first trapezoid, if this fails a secondary algorithm will be used to find a trapezoid. This may not need to be changed.
               </p>
               <Param
                 label="Minimum Fit for First"
@@ -878,8 +877,8 @@ export const Canvas = () => {
             <Show when={!hidden()}>
             <div class="flex=col">
               <p>
-                This sets the low-end threshold for determining if a pixel is on
-                an edge. If the pictures contrast is lower than usual, this may
+                This sets the low-end threshold for determining if a pixel is
+                an 'edge pixel'. If the pictures contrast is lower than usual, this may
                 need to be lowered.
               </p>
               <Param
@@ -894,7 +893,8 @@ export const Canvas = () => {
               <p>
                 This sets the high-end threshold for determining if a pixel is
                 on an edge. If the pictures contrast is higher than usual, this
-                may need to be raised.
+                may need to be raised. Pixels above this threshold are discarded, as these trapezoids
+                tend to have soft edges, while the 'noisy' pixels tend to be stronger.
               </p>
               <Param
                 label="Hysteresis High"
@@ -903,61 +903,105 @@ export const Canvas = () => {
                   setOptions("options", "hysteresisHigh", value)
                 }
               />
-            </div>
+              </div>
+              <div class="flex-col">
+                <p>
+                  Edge pixels with fewer than this number of neighbors are discarded. Decreasing this will increase the number of edge pixels on the trapezoids, but may also increase the number of 'noisy' pixels.
+                </p>
               <Param
                 label="Min Neighbors for Noise Reduction"
                 value={options.options.minNeighborsForNoiseReduction}
                 onChange={(value) =>
                   setOptions("options", "minNeighborsForNoiseReduction", value)
                 }
-              />
+                />
+              </div>
+              <div class="flex-col">
+                <p>
+                  This sets how strictly the algorithm will consider a possible line to be a line. Too high, it may not find enough lines to find a trapezoid. Too low, it may get confused with all the lines.
+                </p>
               <Param
                 label="Hough Vote Threshold"
                 value={options.options.houghVoteThreshold}
                 onChange={(value) =>
                   setOptions("options", "houghVoteThreshold", value)
                 }
-              />
+                />
+              </div>
+                <div class="flex-col">
+                <p>
+                  This merges all lines that are within this angle of each other.
+                </p>
               <Param
                 label="Merge Theta Threshold"
                 value={options.options.mergeThetaThreshold}
                 onChange={(value) =>
                   setOptions("options", "mergeThetaThreshold", value)
                 }
-              />
+                />
+              </div>
+              <div class="flex-col">
+                <p>
+                  Lines that cross less than this number of edge pixels are discarded.
+                </p>
               <Param
                 label="Pixels Per Line Percentage Threshold"
                 value={options.options.pixelThreshold}
                 onChange={(value) =>
                   setOptions("options", "pixelThreshold", value)
                 }
-              />
+                />
+              </div>
+              <div class="flex-col">
+                <p>
+                  When looking for a trapezoid, the algorithm looks at the top X lines found in the 'bounding box'. This sets X.
+                </p>
               <Param
                 label="Max Lines Per Square"
                 value={options.options.maxLines}
                 onChange={(value) => setOptions("options", "maxLines", value)}
-              />
+                />
+              </div>
+              <div class="flex-col">
+                <p>
+                  This sets the number of iterations the algorithm tries to reduce noise.
+                </p>
               <Param
                 label="Noise Reduction Iterations"
                 value={options.options.noiseReductionIterations}
                 onChange={(value) =>
                   setOptions("options", "noiseReductionIterations", value)
                 }
-              />
+                />
+              </div>
+              <div class="flex-col">
+                <p>
+                  Areas of the image with a density greater than this threshold are deleted. This is used to remove the 'noise' from the center of the trapezoids, which typically have a higher density than the edges of the trapezoids.
+                </p>
               <Param
                 label="Density Threshold"
                 value={options.options.densityThreshold}
                 onChange={(value) =>
                   setOptions("options", "densityThreshold", value)
                 }
-              />
+                />
+              </div>
+              <div class="flex-col">
+                <p>
+                  This sets how often the algorithm runs the density check.
+                </p>
               <Param
                 label="Density Step"
                 value={options.options.densityStep}
                 onChange={(value) =>
                   setOptions("options", "densityStep", value)
                 }
-              />
+                />
+              </div>
+              <div class="flex-col">
+                <p>
+                  This sets the size of the area the density check looks at.
+                </p>
               <Param
                 label="Density Size"
                 value={options.options.densitySize}
@@ -965,9 +1009,11 @@ export const Canvas = () => {
                   setOptions("options", "densitySize", value)
                 }
               />
+              </div>
             </Show>
           </div>
           <Show when={!hidden()}>
+            <h2>The Gaussian Kernel is used to perform a 'Gaussian Blur' to the image. This helps reduce noise.</h2>
             <KernelParam
               values={options.options.gaussianKernel}
               onChange={(value) =>
