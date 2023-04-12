@@ -40,7 +40,7 @@ namespace wormsem.commands
             try
             {
                 api.Grab(name, filename, x, y, width, height, r);
-                return new SuccessResponse(id, "Successfully grabbed frame.");
+                return new SuccessResponse(id, "Successfully grabbed frame.", SuccessCode.GRAB_SUCCESS, filename);
             }
             catch (Exception err)
             {

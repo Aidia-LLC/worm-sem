@@ -14,7 +14,7 @@ namespace wormsem.commands
             try
             {
                 api.Connect();
-                return new SuccessResponse(id, "Successfully connected!");
+                return new SuccessResponse(id, "Successfully connected!", SuccessCode.CONNECT_SUCCESS);
             }
             catch (Exception e)
             {

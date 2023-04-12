@@ -32,7 +32,7 @@ namespace wormsem.commands
             try
             {
                 api.GrabFullFrame(name, filename, r);
-                return new SuccessResponse(id, "Successfully grabbed full frame.");
+                return new SuccessResponse(id, "Successfully grabbed full frame.", SuccessCode.GRAB_SUCCESS, filename);
             }
             catch (Exception err)
             {

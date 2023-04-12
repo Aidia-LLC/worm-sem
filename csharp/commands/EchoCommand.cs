@@ -15,7 +15,7 @@ namespace wormsem.commands
 
         public override Response Execute(SEMApi api)
         {
-            return new SuccessResponse(id, text);
+            return new SuccessResponse(id, text, SuccessCode.ECHO_SUCCESS);
         }
     }
 }

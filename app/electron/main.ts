@@ -1,8 +1,15 @@
 import appRootDir from "app-root-dir";
 import { ChildProcessWithoutNullStreams, exec, spawn } from "child_process";
-import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { format } from "date-fns";
+import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
+import fs from "fs";
 import path from "path";
-import { Message } from "../src/dto/semClient";
+import {
+  Command,
+  GrabCommand,
+  GrabFullFrameCommand,
+  Message,
+} from "../src/dto/semClient";
 import { getPlatform } from "./platform";
 
 const isProduction = app.isPackaged;
@@ -18,6 +25,8 @@ const resourcePath = isProduction
 
 let browserWindow: BrowserWindow | null;
 const devServerUrl = process.env.VITE_DEV_SERVER_URL;
+
+const filePaths = new Map<number, string>();
 
 const createWindow = () => {
   browserWindow = new BrowserWindow({
@@ -63,7 +72,18 @@ const init = (childProcess: ChildProcessWithoutNullStreams) => {
         .filter(Boolean);
       messages.forEach((message) => {
         console.log("Received message from C#:", message);
-        browserWindow?.webContents.send("SEMClient:Received", message);
+        if (message.code === 200) {
+          // grab success
+          (async () => {
+            const data = await fs.promises.readFile(message.payload!);
+            browserWindow?.webContents.send("SEMClient:Received", {
+              ...message,
+              payload: Buffer.from(data).toString("base64"),
+            } as Message);
+          })();
+        } else {
+          browserWindow?.webContents.send("SEMClient:Received", message);
+        }
       });
     });
 
@@ -71,9 +91,54 @@ const init = (childProcess: ChildProcessWithoutNullStreams) => {
       console.error(data.toString("utf8"));
     });
 
-    ipcMain.handle("SEMClient:Send", (_, message: Message) =>
-      childProcess.stdin.write(JSON.stringify(message) + "\n")
-    );
+    ipcMain.handle("SEMClient:Send", (_, command: Command) => {
+      if (command.type === "grabFullFrame") {
+        const grabCommand = command as GrabFullFrameCommand;
+        dialog
+          .showSaveDialog(browserWindow!, {
+            filters: [{ name: "PNG", extensions: ["png"] }],
+            buttonLabel: "Grab Image",
+            defaultPath: `grab-${format(
+              Date.now(),
+              "yyyy-MM-dd-HH-mm-ss"
+            )}.png`,
+          })
+          .then((result) => {
+            if (!result.canceled && result.filePath) {
+              grabCommand.filename = result.filePath;
+              console.log("Sending message to C#:", grabCommand);
+              childProcess.stdin.write(JSON.stringify(grabCommand) + "\n");
+            }
+          });
+      } else if (command.type === "grab") {
+        const grabCommand = command as GrabCommand;
+        (async () => {
+          const filePath = await (async () => {
+            if (filePaths.has(grabCommand.setId))
+              return Promise.resolve(filePaths.get(grabCommand.setId));
+            const result = await dialog.showOpenDialog(browserWindow!, {
+              properties: ["createDirectory", "openDirectory"],
+            });
+            if (result.canceled) return Promise.resolve(undefined);
+            filePaths.set(grabCommand.setId, result.filePaths[0]);
+            return Promise.resolve(result.filePaths[0]);
+          })();
+          if (!filePath) return;
+          grabCommand.filename = path.join(
+            filePath,
+            `grab-${grabCommand.id}-${format(
+              Date.now(),
+              "yyyy-MM-dd-HH-mm-ss"
+            )}.png`
+          );
+          console.log("Sending message to C#:", grabCommand);
+          childProcess.stdin.write(JSON.stringify(grabCommand) + "\n");
+        })();
+      } else {
+        console.log("Sending message to C#:", command);
+        childProcess.stdin.write(JSON.stringify(command) + "\n");
+      }
+    });
 
     ipcMain.handle("GetInitialPath", () => __dirname);
 
