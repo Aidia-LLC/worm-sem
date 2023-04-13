@@ -23,10 +23,11 @@ export const Instructions = () => {
         </div>
       </div>
       <Show when={showInstructions()}>
-        <div class="bg-gray-200 p-2 rounded translate-y-3 text-md leading-relaxed">
+        <div class="bg-gray-200 py-2 px-3 rounded translate-y-3 text-md leading-relaxed">
           <h2 class="font-bold">Grabbing an image</h2>
           <ol class="list-decimal list-inside">
             <li>Click the "Connect" button to connect to the server.</li>
+            <li>Choose the appropriate reduction level for the microscope.</li>
             <li>
               Click the "Grab Image" button to grab an initial frame from the
               microscope.
@@ -36,14 +37,15 @@ export const Instructions = () => {
           <ol class="list-decimal list-inside">
             <li>
               Click the center of the trapezoid with the best defined edge. This
-              can be finicky, and may take a few attempts to learn what the
-              algorithm likes.
+              can be finicky, and may take a few attempts to learn how the
+              algorithm performs best. You can click the "Remove" button to
+              remove a bad set of detected trapezoids.
             </li>
             <li>
-              The program will try to find a trapezoid using the Hough
-              Transform; if this fails, it will generate thousands of random
-              trapezoids and keep the best one. It then shifts these trapezoids
-              up and down to find connected trapezoids.
+              The program will try to find a trapezoid centered on the clicked
+              point using the Hough Transform. If this fails, it will generate
+              thousands of random trapezoids and keep the best one. It then
+              shifts these trapezoids up and down to find connected trapezoids.
             </li>
             <li>
               A trapezoid can be edited by clicking and dragging a vertex, or
@@ -54,15 +56,15 @@ export const Instructions = () => {
             </li>
             <li>
               You can edit the color, thickness, and status of the trapezoid
-              set, or delete the whole set.
+              set, or remove the whole set.
             </li>
             <li>
               You can toggle between the original image and the edge data.
             </li>
             <li>
-              Change the status to 'matching' when you are done editing the set.
+              Change the status to "Matching" when you are done editing the set.
             </li>
-            <li>Repeat for any other set of trapezoids.</li>
+            <li>Repeat for any other sets of trapezoids.</li>
           </ol>
           <h2 class="font-bold mt-2">
             Getting Points and Sending to Miscroscope
@@ -70,7 +72,7 @@ export const Instructions = () => {
           <ol class="list-decimal list-inside">
             <li>
               Click a point in any trapezoid of a trapezoid set with a status of
-              'matching'. The same point in every other trapezoid in the set
+              "Matching". The same point in every other trapezoid in the set
               will be highlighted.
             </li>
             <li>
@@ -78,7 +80,7 @@ export const Instructions = () => {
               Single click in a trapezoid to reset the point in every trapezoid.
             </li>
             <li>
-              Change the status to 'saved' to prevent any further changes.
+              Change the status to "Saved" to prevent any further changes.
             </li>
             <li>
               Click the "Grab" button to initiate the process of mapping the
@@ -87,8 +89,10 @@ export const Instructions = () => {
             <li>
               A bounding box will be displayed around each of the points of the
               set. This box will be the area that will be grabbed from the
-              microscope within each trapezoid.
+              microscope within each trapezoid. You can change the size of the
+              box with the "Box Size" field.
             </li>
+            <li>Choose the appropriate reduction level for the microscope.</li>
             <li>
               Click the "Send" button to send the points to the microscope.
             </li>
@@ -98,6 +102,12 @@ export const Instructions = () => {
             <li>
               The program will begin grabbing images from the microscope and
               saving them to the folder in the background.
+            </li>
+            <li>
+              When the program is done, it will display a message. You can check
+              the current progress by scrolling to the bottom of the page and
+              clicking "Show History". It will show a log of all the messages
+              received from the microscope and any errors that occurred.
             </li>
           </ol>
         </div>

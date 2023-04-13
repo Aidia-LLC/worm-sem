@@ -7,12 +7,13 @@ export const grabQueueSignal = createSignal<
 const [executing, setExecuting] = createSignal(false);
 let nextId = 2;
 
-const executeQueuedCommand = () => {
+const executeQueuedCommand = (options: { grabbedMessage: boolean }) => {
   const [grabQueue, setGrabQueue] = grabQueueSignal;
   if (executing()) return console.log("already executing");
   if (grabQueue().length === 0) {
     setExecuting(false);
-    console.log("no commands to execute");
+    console.log('no more commands')
+    if (options.grabbedMessage) alert("Done grabbing images!");
     return;
   }
   console.log("executing command");
@@ -27,14 +28,19 @@ export const enqueueGrabCommand = (
 ) => {
   const [grabQueue, setGrabQueue] = grabQueueSignal;
   setGrabQueue([...grabQueue(), command]);
-  if (!executing()) executeQueuedCommand();
+  if (!executing())
+    executeQueuedCommand({
+      grabbedMessage: command.type === "grab",
+    });
 };
 
 export const initGrabQueue = () => {
   window.semClient.subscribe((message) => {
     if (message.type === "success") {
       setExecuting(false);
-      executeQueuedCommand();
+      executeQueuedCommand({
+        grabbedMessage: message.code === 200 && !message.message?.includes(" full "),
+      });
     } else {
       console.error("Error executing command:", message);
     }
