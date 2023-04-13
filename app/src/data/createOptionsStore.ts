@@ -15,6 +15,8 @@ const defaultOptions: ProcessingOptions = {
   densityThreshold: 0.3080404237765713,
   densityStep: 2,
   densitySize: 16,
+  minimumFit: .2,
+  firstFit: 25,
 };
 
 export const createOptionsStore = (): [

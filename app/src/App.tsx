@@ -4,6 +4,7 @@ import { HistoryLog } from "@components/HistoryLog";
 import { onMount, Show } from "solid-js";
 import { initGrabQueue } from "./data/signals/grabQueue";
 import { CONNECTION_ID, historySignal } from "./data/signals/history";
+import { Instructions } from "@components/Instructions";
 
 export const App = () => {
   const [history] = historySignal;
@@ -16,6 +17,7 @@ export const App = () => {
 
   return (
     <div class="flex flex-col gap-3 m-4">
+      <Instructions />
       <Show
         when={connected()}
         fallback={

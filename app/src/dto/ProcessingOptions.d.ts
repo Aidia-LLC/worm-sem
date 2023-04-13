@@ -12,4 +12,6 @@ export type ProcessingOptions = {
   densityThreshold: number;
   densityStep: number;
   densitySize: number;
+  minimumFit: number;
+  firstFit: number;
 };
