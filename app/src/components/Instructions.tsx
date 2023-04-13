@@ -1,31 +1,43 @@
 import { createSignal, Show } from "solid-js";
-import { Button } from "./Button";
 
 export const Instructions = () => {
   const [showInstructions, setShowInstructions] = createSignal(false);
   return (
     <div class="flex flex-col gap-3 m-4 text-xs">
-      <Button onClick={() => setShowInstructions(!showInstructions())}>
-        {showInstructions() ? "Hide" : "Show"} Instructions
-      </Button>
+      <div class="absolute top-2 right-2">
+        <div
+          onClick={() => setShowInstructions(!showInstructions())}
+          class="cursor-pointer"
+          classList={{
+            "translate-y-2": showInstructions(),
+          }}
+        >
+          <Show
+            when={showInstructions()}
+            fallback={<img src="/help.svg" width={36} />}
+          >
+            <span class="font-bold border-2 border-black rounded-lg p-1">
+              Hide Instructions
+            </span>
+          </Show>
+        </div>
+      </div>
       <Show when={showInstructions()}>
-        <div class="bg-gray-200 p-2 rounded">
-          {/* steps */}
-          <h2 class="font-bold">Steps To Grab the image</h2>
+        <div class="bg-gray-200 p-2 rounded translate-y-3 text-md leading-relaxed">
+          <h2 class="font-bold">Grabbing an image</h2>
           <ol class="list-decimal list-inside">
             <li>Click the "Connect" button to connect to the server.</li>
-            <li>Click the "Grab" button to grab the worm.</li>
-            <li>Click the "Release" button to release the worm.</li>
             <li>
-              Click the "Disconnect" button to disconnect from the server.
+              Click the "Grab Image" button to grab an initial frame from the
+              microscope.
             </li>
           </ol>
-          <h2 class="font-bold">Steps To Find Trapezoid</h2>
+          <h2 class="font-bold mt-2">Steps To Find Trapezoid</h2>
           <ol class="list-decimal list-inside">
             <li>
-              Click the center of the best-looking trapezoid. This can be
-              finicky, and may take a few attempts to learn what the algorithm
-              likes.
+              Click the center of the trapezoid with the best defined edge. This
+              can be finicky, and may take a few attempts to learn what the
+              algorithm likes.
             </li>
             <li>
               The program will try to find a trapezoid using the Hough
@@ -38,22 +50,23 @@ export const Instructions = () => {
               clicking the middle of the trapezoid to move the whole trapezoid.
             </li>
             <li>
-              A trapezoid will be deleted if dragged to any edge of the screen.
+              A trapezoid will be deleted if dragged to any edge of the image.
             </li>
             <li>
               You can edit the color, thickness, and status of the trapezoid
               set, or delete the whole set.
             </li>
             <li>
-              You can toggle the image to be the original image to help editing
-              trapezoids.
+              You can toggle between the original image and the edge data.
             </li>
             <li>
               Change the status to 'matching' when you are done editing the set.
             </li>
             <li>Repeat for any other set of trapezoids.</li>
           </ol>
-          <h2 class="font-bold">Steps To Get Points and Send to Miscroscope</h2>
+          <h2 class="font-bold mt-2">
+            Getting Points and Sending to Miscroscope
+          </h2>
           <ol class="list-decimal list-inside">
             <li>
               Click a point in any trapezoid of a trapezoid set with a status of
@@ -61,12 +74,11 @@ export const Instructions = () => {
               will be highlighted.
             </li>
             <li>
-              Click and hold any individual point and drag to adjust. Single
-              click in a trapezoid to reset the point in every trapezoid.
+              Click and drag any individual point to adjust only that point.
+              Single click in a trapezoid to reset the point in every trapezoid.
             </li>
             <li>
-              Change the status to 'saved' when ready to send points to the
-              microscope.
+              Change the status to 'saved' to prevent any further changes.
             </li>
           </ol>
         </div>

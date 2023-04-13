@@ -823,6 +823,7 @@ export const Canvas = () => {
         id="canvas"
         width="1000"
         height="1000"
+        class='w-[clamp(300px,_100%,_1400px)] mx-auto'
         classList={{
           hidden: !imageSrc(),
         }}
