@@ -432,7 +432,7 @@ function DirectSearchOptimization(
     { x: trapezoid.bottom.x2, y: trapezoid.bottom.y2 },
   ];
   let bestFt: number = ft(data, trapezoid, options, x, y, squareSize);
-  console.log("bestFt init", bestFt, trapezoid);
+  // console.log("bestFt init", bestFt, trapezoid);
   for (let k = 0; k < 16; k++) {
     for (let i = 0; i < vertices.length; i++) {
       let bestVertex: Vertex | undefined;
@@ -462,7 +462,7 @@ function DirectSearchOptimization(
         const newFt = ft(data, newTrapezoid, options, x, y, squareSize);
         if (bestFt === undefined || newFt > bestFt) {
           bestFt = newFt;
-          console.log({newFt})
+          // console.log({newFt})
           bestVertex = newVertex;
         }
       }

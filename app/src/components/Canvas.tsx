@@ -327,7 +327,6 @@ export const Canvas = () => {
       renderTrapezoids();
     } else {
       if (imageData()) {
-        console.log("rendering image");
         ctx.putImageData(imageData()!, 0, 0);
         renderTrapezoids();
       } else {
@@ -564,6 +563,7 @@ export const Canvas = () => {
     );
     if (inTrapezoid && trapezoid) {
       const { trapezoidSet } = findTrapezoidSet(trapezoid);
+      if (trapezoidSet?.status === Status.Saved) return;
       if (trapezoidSet && trapezoidSet.status === Status.Matching) {
         const { nearestPoint, nearestDistance: pointDistance } =
           findNearestPoint(imgX, imgY, trapezoidSet.matchedPoints);
@@ -662,6 +662,7 @@ export const Canvas = () => {
         );
       if (!trapezoid) return;
       const { trapezoidSet } = findTrapezoidSet(trapezoid);
+      if (trapezoidSet?.status === Status.Saved) return;
       const newTrapezoid = moveVertex(trapezoid, nearestVertex, imgX, imgY);
       const newSet = trapezoidSet?.trapezoids.map((t) =>
         (t.top.x1 === nearestVertex.x && t.top.y1 === nearestVertex.y) ||
