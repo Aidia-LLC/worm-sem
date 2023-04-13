@@ -890,7 +890,7 @@ export const Canvas = () => {
             </div>
             <div class="flex-col">
               <p>
-                This sets the size of the red bounding box where the algorithm
+                This sets the size of the bounding box where the algorithm
                 searches for a trapezoid.
               </p>
               <Param
