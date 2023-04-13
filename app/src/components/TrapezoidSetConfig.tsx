@@ -1,11 +1,12 @@
 import { GrabCommand } from "@dto/semClient";
 import { convertCoordinatesForSEM } from "@logic/trapezoids/conversion";
-import { Show } from "solid-js";
+import { createSignal, Show } from "solid-js";
 import {
   enqueueGrabCommand,
   getNextCommandId,
 } from "src/data/signals/grabQueue";
 import { Trapezoid, Vertex } from "./Canvas";
+import { ReductionPicker } from "./ReductionPicker";
 
 export enum Status {
   Editing,
@@ -41,6 +42,7 @@ export const TrapezoidSetConfig = (props: {
   onSetBoxSize: (size: number) => void;
   boxSize: number;
 }) => {
+  const [reduction, setReduction] = createSignal(-1);
   const radioName = () => `status-${props.trapezoidSet.id}`;
 
   const toggleGrabbing = () => {
@@ -48,7 +50,7 @@ export const TrapezoidSetConfig = (props: {
     else props.onGrab(props.trapezoidSet.id);
   };
 
-  const onGrab = () => {
+  const onSend = () => {
     const points = props.trapezoidSet.matchedPoints.map((point) =>
       convertCoordinatesForSEM(point, props.canvasSize)
     );
@@ -73,11 +75,10 @@ export const TrapezoidSetConfig = (props: {
       x: Math.round(box.x),
       y: Math.round(box.y),
       name: `grab-${props.trapezoidSet.id}-${i + 1}`,
-      reduction: -1, // TODO make this configurable
+      reduction: reduction(),
     }));
-    for (const command of commands) {
-      enqueueGrabCommand(command);
-    }
+    for (const command of commands) enqueueGrabCommand(command);
+    toggleGrabbing();
   };
 
   return (
@@ -226,6 +227,9 @@ export const TrapezoidSetConfig = (props: {
             </div>
           }
         >
+          <div class='col-span-2'>
+            <ReductionPicker value={reduction()} onChange={setReduction} />
+          </div>
           <div class="flex items-center justify-center">
             <button
               class="text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-gray-600 hover:bg-gray-700 active:bg-gray-800"
@@ -237,9 +241,9 @@ export const TrapezoidSetConfig = (props: {
           <div class="flex items-center justify-center">
             <button
               class="text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-green-600 hover:bg-green-700 active:bg-green-800"
-              onClick={onGrab}
+              onClick={onSend}
             >
-              Grab
+              Send
             </button>
           </div>
         </Show>

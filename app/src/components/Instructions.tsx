@@ -80,6 +80,25 @@ export const Instructions = () => {
             <li>
               Change the status to 'saved' to prevent any further changes.
             </li>
+            <li>
+              Click the "Grab" button to initiate the process of mapping the
+              points on the trapezoids to a set of points for the microscope.
+            </li>
+            <li>
+              A bounding box will be displayed around each of the points of the
+              set. This box will be the area that will be grabbed from the
+              microscope within each trapezoid.
+            </li>
+            <li>
+              Click the "Send" button to send the points to the microscope.
+            </li>
+            <li>
+              A dialog will pop up to choose the folder to save the images to.
+            </li>
+            <li>
+              The program will begin grabbing images from the microscope and
+              saving them to the folder in the background.
+            </li>
           </ol>
         </div>
       </Show>
