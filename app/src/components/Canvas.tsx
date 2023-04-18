@@ -219,9 +219,11 @@ export const Canvas = () => {
     for (const trapezoidSet of ribbons()) {
       const { trapezoids, color, thickness } = trapezoidSet;
       for (let i = 0; i < trapezoids.length; i++) {
-        const trapezoidColor = i === 0 ? "black" : color;
-        DrawTrapezoid(trapezoids[i], ctx, trapezoidColor, thickness);
+        // render the first trapezoid distinctly
+        ctx.globalAlpha = i === 0 ? 1 : 0.5;
+        DrawTrapezoid(trapezoids[i], ctx, color, thickness);
       }
+      ctx.globalAlpha = 1;
       for (const point of trapezoidSet.matchedPoints) {
         ctx.beginPath();
         ctx.arc(point.x, point.y, thickness - 1, 0, 2 * Math.PI);
@@ -341,14 +343,14 @@ export const Canvas = () => {
         );
       }
     }
-    const ctx = canvasRef.getContext("2d")!;
+    // const ctx = canvasRef.getContext("2d")!;
     const { trapezoid, inTrapezoid } = isPointInTrapezoid(x, y, trapezoids);
     if (!inTrapezoid || !trapezoid) return;
-    ctx.beginPath();
-    ctx.arc(x, y, 5, 0, 2 * Math.PI);
-    ctx.fillStyle = trapezoidSet.color;
-    ctx.closePath();
-    ctx.fill();
+    // ctx.beginPath();
+    // ctx.arc(x, y, 5, 0, 2 * Math.PI);
+    // ctx.fillStyle = trapezoidSet.color;
+    // ctx.closePath();
+    // ctx.fill();
     // find distance from point to every vertex, and the center of the trapezoid
     const center = {
       x:
