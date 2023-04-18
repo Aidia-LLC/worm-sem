@@ -30,6 +30,7 @@ import {
   untrack,
 } from "solid-js";
 import { createOptionsStore } from "src/data/createOptionsStore";
+import { DEFAULT_MAG } from "src/data/magnification";
 import { Button } from "./Button";
 import { ConfigureSliceCanvas } from "./ConfigureSliceCanvas";
 import { GrabForm } from "./GrabForm";
@@ -39,6 +40,9 @@ import { availableColors, TrapezoidSetConfig } from "./TrapezoidSetConfig";
 
 export const Canvas = () => {
   const [imageSrc, setImageSrc] = createSignal<string | null>(null);
+  const [highResImageSrc, setHighResImageSrc] = createSignal<string | null>(
+    null
+  );
 
   let canvasRef!: HTMLCanvasElement;
   let overlayCanvasRef!: HTMLCanvasElement;
@@ -51,7 +55,6 @@ export const Canvas = () => {
   const [clickedPoint, setClickedPoint] = createSignal<Vertex>();
   const [showOriginalImage, setShowOriginalImage] = createSignal(true);
   const [ribbons, setRibbons] = createSignal<TrapezoidSet[]>([]);
-  const [imageData, setImageData] = createSignal<ImageData>();
   const [focusedRibbon, setFocusedRibbon] = createSignal<
     TrapezoidSet["id"] | null
   >(null);
@@ -59,6 +62,7 @@ export const Canvas = () => {
   const [sliceConfiguration, setSliceConfiguration] = createSignal<
     SliceConfiguration[]
   >([]);
+  const [magnification, setMagnification] = createSignal(DEFAULT_MAG);
 
   createEffect(() => {
     // re-draw the overlay canvas when the ribbons change
@@ -215,8 +219,6 @@ export const Canvas = () => {
       canvas.height = img.height;
       const ctx = canvas.getContext("2d")!;
       ctx.drawImage(img, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      setImageData(imageData);
     };
     img.src = base64ToImageSrc(src);
     const o = options.options;
@@ -230,8 +232,14 @@ export const Canvas = () => {
       const { trapezoids, color, thickness } = trapezoidSet;
       for (let i = 0; i < trapezoids.length; i++) {
         // render the first trapezoid distinctly
-        ctx.globalAlpha = i === 0 ? 1 : 0.5;
-        DrawTrapezoid(trapezoids[i], ctx, color, thickness);
+        const isFirstTrapezoid = i === 0;
+        ctx.globalAlpha = isFirstTrapezoid ? 1 : 0.5;
+        DrawTrapezoid(
+          trapezoids[i],
+          ctx,
+          color,
+          thickness * (isFirstTrapezoid ? 1 : 0.5)
+        );
       }
       ctx.globalAlpha = 1;
       for (const point of trapezoidSet.matchedPoints) {
@@ -250,19 +258,15 @@ export const Canvas = () => {
       if (!edgeData()) return;
       ctx.putImageData(edgeData()!, 0, 0);
     } else {
-      if (imageData()) {
-        ctx.putImageData(imageData()!, 0, 0);
-      } else {
-        const src = imageSrc();
-        if (!src) return;
-        const img = new Image();
-        img.onload = () => {
-          ctx.canvas.width = img.width;
-          ctx.canvas.height = img.height;
-          ctx.drawImage(img, 0, 0);
-        };
-        img.src = base64ToImageSrc(src);
-      }
+      const src = highResImageSrc();
+      if (!src) return;
+      const img = new Image();
+      img.onload = () => {
+        ctx.canvas.width = img.width;
+        ctx.canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+      };
+      img.src = base64ToImageSrc(src);
     }
   }
 
@@ -605,6 +609,8 @@ export const Canvas = () => {
         when={focusedSlice() === -1}
         fallback={
           <ConfigureSliceCanvas
+            magnification={magnification()}
+            setMagnification={setMagnification}
             canvas={canvasRef}
             configuration={
               sliceConfiguration().find(
@@ -748,7 +754,14 @@ export const Canvas = () => {
         ></canvas>
         <Show
           when={imageSrc()}
-          fallback={<GrabForm onGrabbed={(src) => setImageSrc(src)} />}
+          fallback={
+            <GrabForm
+              onGrabbed={(src, slowSrc) => {
+                setImageSrc(src);
+                setHighResImageSrc(slowSrc);
+              }}
+            />
+          }
         >
           <>
             <h3 class="font-bold text-xl mt-4">Options</h3>

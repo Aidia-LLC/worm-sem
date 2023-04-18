@@ -9,11 +9,15 @@ import { getSEMParam } from "src/data/semParams";
 import { getNextCommandId } from "src/data/signals/commandQueue";
 import { Button } from "./Button";
 import { SliderPicker } from "./SliderPicker";
+import { MAX_MAG } from "src/data/magnification";
 
 const PREVIEW_INTERVAL = 1000;
+const INITIAL_WAIT_INTERVAL = 5000;
 
 export const ConfigureSliceCanvas = (props: {
   ribbon: TrapezoidSet;
+  magnification: number;
+  setMagnification: (magnification: number) => void;
   configuration: SliceConfiguration;
   setConfiguration: (config: Partial<SliceConfiguration>) => void;
   onNext: () => void;
@@ -23,6 +27,7 @@ export const ConfigureSliceCanvas = (props: {
   const [imageSrc, setImageSrc] = createSignal<string | null>(null);
   const [brightness, setBrightness] = createSignal<number | null>(null);
   const [contrast, setContrast] = createSignal<number | null>(null);
+  const [focus, setFocus] = createSignal<number | null>(null);
   const [initialStage, setInitialStage] =
     createSignal<StageConfiguration | null>(null);
 
@@ -36,12 +41,9 @@ export const ConfigureSliceCanvas = (props: {
       setImageSrc(message.payload!);
     });
 
-    timerRef = window.setInterval(() => {
-      // TODO fetch live preview
-    }, PREVIEW_INTERVAL);
-
     const brightness = await getSEMParam("AP_BRIGHTNESS");
     const contrast = await getSEMParam("AP_CONTRAST");
+    const focus = await getSEMParam("AP_WD");
     const stageX = await getSEMParam("AP_STAGE_AT_X");
     const stageY = await getSEMParam("AP_STAGE_AT_Y");
     const stageLowLimitX = await getSEMParam("AP_STAGE_LOW_X");
@@ -63,6 +65,7 @@ export const ConfigureSliceCanvas = (props: {
     });
     setBrightness(parseFloat(brightness));
     setContrast(parseFloat(contrast));
+    setFocus(parseFloat(focus));
 
     const point = props.ribbon.matchedPoints[props.configuration.index];
 
@@ -87,11 +90,24 @@ export const ConfigureSliceCanvas = (props: {
       param: "AP_STAGE_GOTO_Y",
       value: coordinates.y,
     });
+
+    window.semClient.send({
+      type: "setParam",
+      id: getNextCommandId(),
+      param: "AP_MAG",
+      value: props.magnification,
+    });
+
+    setTimeout(() => {
+      timerRef = window.setInterval(() => {
+        // TODO fetch live preview
+      }, PREVIEW_INTERVAL);
+    }, INITIAL_WAIT_INTERVAL);
   });
 
   onCleanup(() => {
     unsubscribe();
-    clearInterval(timerRef);
+    if (timerRef) clearInterval(timerRef);
   });
 
   createEffect(() => {
@@ -156,6 +172,33 @@ export const ConfigureSliceCanvas = (props: {
           props.setConfiguration({ contrast: value });
         }}
         unit="%"
+      />
+      <SliderPicker
+        label="Focus (Working Distance)"
+        value={focus() || 0}
+        min={1}
+        max={100}
+        setValue={(value) => {
+          setFocus(value);
+          props.setConfiguration({ focus: value });
+        }}
+        unit="mm"
+      />
+      <SliderPicker
+        label="Magnification (applies to all slices)"
+        value={props.magnification || 1}
+        min={1}
+        max={MAX_MAG}
+        setValue={(value) => {
+          props.setMagnification(value);
+          window.semClient.send({
+            type: "setParam",
+            id: getNextCommandId(),
+            param: "AP_MAG",
+            value,
+          })
+        }}
+        unit="x"
       />
       <canvas ref={canvasRef} />
     </div>
