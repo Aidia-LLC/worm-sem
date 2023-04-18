@@ -1,11 +1,5 @@
 import { TrapezoidSet } from "@dto/canvas";
-import { GrabCommand } from "@dto/semClient";
-import { convertCoordinatesForSEM } from "@logic/trapezoids/conversion";
 import { createSignal, Show } from "solid-js";
-import {
-  enqueueCommand,
-  getNextCommandId,
-} from "src/data/signals/commandQueue";
 import { ReductionPicker } from "./ReductionPicker";
 
 export const availableColors = [

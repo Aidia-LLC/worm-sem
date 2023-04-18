@@ -223,7 +223,7 @@ export const Canvas = () => {
       for (let i = 0; i < trapezoids.length; i++) {
         // render the first trapezoid distinctly
         const isFirstTrapezoid = i === 0;
-        ctx.globalAlpha = isFirstTrapezoid ? 1 : 0.5;
+        ctx.globalAlpha = isFirstTrapezoid ? 1 : 0.7;
         DrawTrapezoid(
           trapezoids[i],
           ctx,

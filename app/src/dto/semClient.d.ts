@@ -47,6 +47,9 @@ export interface GrabFullFrameCommand extends BaseCommand {
   name: string;
   filename?: string;
   reduction: number;
+  temporary: boolean;
+  ribbonId?: number;
+  ribbonName?: string;
 }
 
 export interface ConnectCommand extends BaseCommand {

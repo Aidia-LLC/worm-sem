@@ -74,6 +74,7 @@ export const GrabForm = (props: {
             type: "grabFullFrame",
             name: "grabFullFrame",
             reduction: REDUCTION,
+            temporary: true,
           });
           enqueueCommand({
             id: ids[3],
@@ -86,6 +87,7 @@ export const GrabForm = (props: {
             type: "grabFullFrame",
             name: "grabFullFrame",
             reduction: REDUCTION,
+            temporary: true,
           });
         }}
       >

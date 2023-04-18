@@ -1,15 +1,10 @@
 import appRootDir from "app-root-dir";
 import { ChildProcessWithoutNullStreams, exec, spawn } from "child_process";
-import { format } from "date-fns";
 import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
 import fs from "fs";
 import path from "path";
-import {
-  Command,
-  GrabCommand,
-  GrabFullFrameCommand,
-  Message,
-} from "../src/dto/semClient";
+import { temporaryFile } from "tempy";
+import { Command, GrabFullFrameCommand, Message } from "../src/dto/semClient";
 import { getPlatform } from "./platform";
 
 const isProduction = app.isPackaged;
@@ -57,6 +52,22 @@ app.on("window-all-closed", () => {
   app.quit();
 });
 
+const getFilename = async (grabCommand: GrabFullFrameCommand) => {
+  const ribbonId = grabCommand.ribbonId;
+  const ribbonName = grabCommand.ribbonName;
+  if (grabCommand.temporary || !ribbonId || !ribbonName)
+    return Promise.resolve(temporaryFile());
+  if (filePaths.has(ribbonId)) return Promise.resolve(filePaths.get(ribbonId));
+  const result = await dialog.showOpenDialog(browserWindow!, {
+    properties: ["createDirectory", "openDirectory"],
+  });
+  if (result.canceled) return Promise.resolve(null);
+  const [folderPath] = result.filePaths;
+  const filePath = `${folderPath}/${grabCommand.ribbonName}-${grabCommand.id}.png`;
+  filePaths.set(ribbonId, filePath);
+  return Promise.resolve(filePath);
+};
+
 const init = (childProcess: ChildProcessWithoutNullStreams) => {
   childProcess.on("spawn", () => {
     childProcess.stdout.on("data", (data: Buffer) => {
@@ -94,46 +105,14 @@ const init = (childProcess: ChildProcessWithoutNullStreams) => {
     ipcMain.handle("SEMClient:Send", (_, command: Command) => {
       if (command.type === "grabFullFrame") {
         const grabCommand = command as GrabFullFrameCommand;
-        dialog
-          .showSaveDialog(browserWindow!, {
-            filters: [{ name: "PNG", extensions: ["png"] }],
-            buttonLabel: "Grab Image",
-            defaultPath: `grab-${format(
-              Date.now(),
-              "yyyy-MM-dd-HH-mm-ss"
-            )}.png`,
-          })
-          .then((result) => {
-            if (!result.canceled && result.filePath) {
-              grabCommand.filename = result.filePath;
-              console.log("Sending message to C#:", grabCommand);
-              childProcess.stdin.write(JSON.stringify(grabCommand) + "\n");
-            }
-          });
-      } else if (command.type === "grab") {
-        const grabCommand = command as GrabCommand;
-        (async () => {
-          const filePath = await (async () => {
-            if (filePaths.has(grabCommand.setId))
-              return Promise.resolve(filePaths.get(grabCommand.setId));
-            const result = await dialog.showOpenDialog(browserWindow!, {
-              properties: ["createDirectory", "openDirectory"],
-            });
-            if (result.canceled) return Promise.resolve(undefined);
-            filePaths.set(grabCommand.setId, result.filePaths[0]);
-            return Promise.resolve(result.filePaths[0]);
-          })();
-          if (!filePath) return;
-          grabCommand.filename = path.join(
-            filePath,
-            `grab-${grabCommand.id}-${format(
-              Date.now(),
-              "yyyy-MM-dd-HH-mm-ss"
-            )}.png`
-          );
+        getFilename(grabCommand).then((filename) => {
+          if (!filename) return;
+          grabCommand.filename = filename;
           console.log("Sending message to C#:", grabCommand);
           childProcess.stdin.write(JSON.stringify(grabCommand) + "\n");
-        })();
+        });
+      } else if (command.type === "grab") {
+        throw new Error("Received 'grab' command");
       } else {
         console.log("Sending message to C#:", command);
         childProcess.stdin.write(JSON.stringify(command) + "\n");
