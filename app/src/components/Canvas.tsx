@@ -1,4 +1,4 @@
-import type { Trapezoid, Vertex } from "@dto/canvas";
+import type { Trapezoid, TrapezoidSet, Vertex } from "@dto/canvas";
 import {
   convertLocalToGlobal,
   DirectSearchOptimization,
@@ -28,11 +28,7 @@ import { Button } from "./Button";
 import { GrabForm } from "./GrabForm";
 import { KernelParam } from "./KernelParam";
 import { Param } from "./Param";
-import {
-  availableColors,
-  TrapezoidSet,
-  TrapezoidSetConfig,
-} from "./TrapezoidSetConfig";
+import { availableColors, TrapezoidSetConfig } from "./TrapezoidSetConfig";
 
 export const Canvas = () => {
   const [imageSrc, setImageSrc] = createSignal<string | null>(null);
@@ -149,11 +145,13 @@ export const Canvas = () => {
     ribbons().forEach((set) => colors.delete(set.color));
     const color = colors.size > 0 ? colors.values().next().value : "red";
     const filteredTrapezoids = filterTrapezoids(connectedTrapezoids, ribbons());
+    const id = nextId();
     setRibbons((prev) => [
       ...prev,
       {
         trapezoids: [...filteredTrapezoids, trapezoid],
-        id: nextId(),
+        id,
+        name: `Ribbon #${id}`,
         color,
         thickness: 5,
         status: "editing",

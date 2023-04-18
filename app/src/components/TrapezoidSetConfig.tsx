@@ -1,4 +1,4 @@
-import { Status, Trapezoid, Vertex } from "@dto/canvas";
+import { TrapezoidSet } from "@dto/canvas";
 import { GrabCommand } from "@dto/semClient";
 import { convertCoordinatesForSEM } from "@logic/trapezoids/conversion";
 import { createSignal, Show } from "solid-js";
@@ -7,16 +7,6 @@ import {
   getNextCommandId,
 } from "src/data/signals/grabQueue";
 import { ReductionPicker } from "./ReductionPicker";
-
-export type TrapezoidSet = {
-  trapezoids: Trapezoid[];
-  id: number;
-  color: string;
-  thickness: number;
-  status: Status;
-  matchedPoints: Vertex[];
-  reversed: boolean;
-};
 
 export const availableColors = [
   "red",
@@ -91,7 +81,17 @@ export const TrapezoidSetConfig = (props: {
       }}
     >
       <div class="flex flex-col gap-1 items-center justify-center font-bold text-lg">
-        <span>Set #{props.trapezoidSet.id}</span>
+        <input
+          class='w-full'
+          type="text"
+          value={props.trapezoidSet.name}
+          onChange={(e) =>
+            props.setTrapezoidSet({
+              id: props.trapezoidSet.id,
+              name: e.currentTarget.value,
+            })
+          }
+        />
         <button
           class="text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-red-500 hover:bg-red-700 active:bg-red-800"
           onClick={() => props.onDelete(props.trapezoidSet)}
@@ -176,17 +176,19 @@ export const TrapezoidSetConfig = (props: {
                 />
                 Editing
               </label>
-              <button
-                class="text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-green-500 hover:bg-green-700 active:bg-green-800"
-                onClick={() =>
-                  props.setTrapezoidSet({
-                    id: props.trapezoidSet.id,
-                    trapezoids: props.trapezoidSet.trapezoids.reverse(),
-                  })
-                }
-              >
-                Reverse Direction
-              </button>
+              <Show when={props.trapezoidSet.status === "editing"}>
+                <button
+                  class="text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-green-500 hover:bg-green-700 active:bg-green-800"
+                  onClick={() =>
+                    props.setTrapezoidSet({
+                      id: props.trapezoidSet.id,
+                      trapezoids: props.trapezoidSet.trapezoids.reverse(),
+                    })
+                  }
+                >
+                  Reverse Direction
+                </button>
+              </Show>
             </div>
             <label class="flex flex-row items-center gap-1">
               <input

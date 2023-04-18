@@ -1,10 +1,3 @@
-export type Trapezoid = {
-  top: Pick<LineSegment, "x1" | "x2" | "y1" | "y2">;
-  right: Pick<LineSegment, "x1" | "x2" | "y1" | "y2">;
-  left: Pick<LineSegment, "x1" | "x2" | "y1" | "y2">;
-  bottom: Pick<LineSegment, "x1" | "x2" | "y1" | "y2">;
-};
-
 export type LineSegment = {
   r: number;
   theta: number;
@@ -19,13 +12,21 @@ export type Vertex = {
   y: number;
 };
 
-export type Status = 'editing' | 'matching' | 'saved';
+export type Status = "editing" | "matching" | "saved";
 
 export type TrapezoidSet = {
-  trapezoids: Trapezoid[];
   id: number;
+  name: string;
+  trapezoids: Trapezoid[];
   color: string;
   thickness: number;
   status: Status;
   matchedPoints: Vertex[];
+};
+
+export type Trapezoid = {
+  top: Pick<LineSegment, "x1" | "x2" | "y1" | "y2">;
+  right: Pick<LineSegment, "x1" | "x2" | "y1" | "y2">;
+  left: Pick<LineSegment, "x1" | "x2" | "y1" | "y2">;
+  bottom: Pick<LineSegment, "x1" | "x2" | "y1" | "y2">;
 };
