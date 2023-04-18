@@ -53,6 +53,7 @@ export const TrapezoidSetConfig = (props: {
       height: boxHeight,
     }));
     const setId = getNextCommandId();
+    const prefix = props.trapezoidSet.name.trim().replace(/[^a-zA-Z0-9]/g, "-");
     const commands: GrabCommand[] = boxes.map((box, i) => ({
       id: getNextCommandId(),
       setId,
@@ -61,7 +62,7 @@ export const TrapezoidSetConfig = (props: {
       width: Math.round(box.width),
       x: Math.round(box.x),
       y: Math.round(box.y),
-      name: `grab-${props.trapezoidSet.id}-${i + 1}`,
+      name: `${prefix}-${i + 1}`,
       reduction: reduction(),
     }));
     for (const command of commands) enqueueGrabCommand(command);

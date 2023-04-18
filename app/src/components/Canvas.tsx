@@ -151,7 +151,7 @@ export const Canvas = () => {
       {
         trapezoids: [...filteredTrapezoids, trapezoid],
         id,
-        name: `Ribbon #${id}`,
+        name: `Ribbon ${id}`,
         color,
         thickness: 5,
         status: "editing",
