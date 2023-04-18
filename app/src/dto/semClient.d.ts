@@ -59,6 +59,7 @@ type Param =
   | "AP_WIDTH"
   | "AP_HEIGHT"
   | "AP_MAG"
+  | "AP_WD"
   | "AP_LINE_POSN_X"
   | "AP_LINE_POSN_Y"
   | "AP_PIXEL_SIZE"

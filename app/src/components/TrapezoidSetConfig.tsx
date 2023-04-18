@@ -117,7 +117,7 @@ export const TrapezoidSetConfig = (props: {
             ))}
           </select>
         </div>
-        <div class="flex flex-col gap-1 col-span-2 my-auto">
+        {/* <div class="flex flex-col gap-1 col-span-2 my-auto">
           <label class="font-bold">Thickness</label>
           <input
             min={1}
@@ -131,7 +131,7 @@ export const TrapezoidSetConfig = (props: {
               });
             }}
           />
-        </div>
+        </div> */}
         <div
           class="flex flex-col gap-2 justify-between my-auto"
           classList={{
