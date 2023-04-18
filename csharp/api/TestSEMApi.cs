@@ -10,6 +10,11 @@ namespace wormsem.api
             return;
         }
 
+        public object GetParam(string param)
+        {
+            return 42;
+        }
+
         public void Grab(string name, string filename, short x, short y, short width, short height, Reduction reduction = Reduction.OVERLAY_PLANE)
         {
             var assembly = Assembly.GetExecutingAssembly();
@@ -25,6 +30,11 @@ namespace wormsem.api
         public void GrabFullFrame(string name, string filename, Reduction reduction = Reduction.OVERLAY_PLANE)
         {
             Grab("test", filename, 0, 0, 0, 0);
+        }
+
+        public void SetParam(string param, int value)
+        {
+            return;
         }
     }
 }

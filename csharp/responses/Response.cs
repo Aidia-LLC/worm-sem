@@ -7,6 +7,6 @@ namespace wormsem.responses
 		public int? code { get; set; }
 		public String? message { get; set; }
 		public String? type { get; set; }
-		public String? payload { get; set; }
+		public object? payload { get; set; }
 	}
 }

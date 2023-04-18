@@ -1,8 +1,8 @@
 import { createSignal, onMount } from "solid-js";
 import {
-  enqueueGrabCommand,
+  enqueueCommand,
   getNextCommandId,
-} from "src/data/signals/grabQueue";
+} from "src/data/signals/commandQueue";
 import { Button } from "./Button";
 
 const REDUCTION = -1;
@@ -23,11 +23,17 @@ export const GrabForm = (props: { onGrabbed: (data: string) => void }) => {
       <Button
         disabled={loading()}
         onClick={() => {
-          const id = getNextCommandId();
-          setCommandId(id);
+          const ids = [getNextCommandId(), getNextCommandId()];
+          setCommandId(ids[1]);
           setLoading(true);
-          enqueueGrabCommand({
-            id,
+          enqueueCommand({
+            id: ids[0],
+            type: "setParam",
+            param: "DP_IMAGE_STORE",
+            value: 7, // 8192 x 6144
+          });
+          enqueueCommand({
+            id: ids[1],
             type: "grabFullFrame",
             name: "grabFullFrame",
             reduction: REDUCTION,

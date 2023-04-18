@@ -5,12 +5,14 @@ namespace wormsem.responses
     {
         GRAB_SUCCESS = 200,
         CONNECT_SUCCESS = 201,
-        ECHO_SUCCESS = 202
+        ECHO_SUCCESS = 202,
+        SET_PARAM_SUCCESS = 203,
+        GET_PARAM_SUCCESS = 204
     }
 
     public class SuccessResponse : Response
     {
-        public SuccessResponse(int id, String message, SuccessCode code, String? payload = null)
+        public SuccessResponse(int id, String message, SuccessCode code, object? payload = null)
         {
             this.id = id;
             this.message = message;

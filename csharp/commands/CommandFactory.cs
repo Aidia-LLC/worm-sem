@@ -23,6 +23,16 @@ namespace wormsem.commands
                     return new EchoCommand(id, serializedCommand.message);
                 case "connect":
                     return new ConnectCommand(id);
+                case "setParam":
+                    if (serializedCommand.param == null)
+                        throw new Exception("expecting param");
+                    if (serializedCommand.value == null)
+                        throw new Exception("expecting value");
+                    return new SetParamCommand(id, serializedCommand.param, (int)serializedCommand.value);
+                case "getParam":
+                    if (serializedCommand.param == null)
+                        throw new Exception("expecting param");
+                    return new GetParamCommand(id, serializedCommand.param);
                 case "grab":
                     {
                         if (serializedCommand.x == null || serializedCommand.y == null || serializedCommand.width == null || serializedCommand.height == null)

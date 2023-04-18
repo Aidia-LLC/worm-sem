@@ -14,11 +14,11 @@ export type SEMClient = {
 };
 
 export type Command =
-  | BaseCommand
-  | EchoCommand
   | GrabCommand
   | GrabFullFrameCommand
-  | ConnectCommand;
+  | ConnectCommand
+  | SetParamCommand
+  | GetParamCommand;
 
 export interface BaseCommand {
   id: number;
@@ -51,6 +51,27 @@ export interface GrabFullFrameCommand extends BaseCommand {
 
 export interface ConnectCommand extends BaseCommand {
   type: "connect";
+}
+
+type Param =
+  | "DP_IMAGE_STORE"
+  | "DP_FREEZE_ON"
+  | "AP_WIDTH"
+  | "AP_HEIGHT"
+  | "AP_MAG"
+  | "AP_LINE_POSN_X"
+  | "AP_LINE_POSN_Y"
+  | "AP_PIXEL_SIZE";
+
+export interface SetParamCommand extends BaseCommand {
+  type: "setParam";
+  param: Param;
+  value: number;
+}
+
+export interface GetParamCommand extends BaseCommand {
+  type: "getParam";
+  param: Param;
 }
 
 declare global {

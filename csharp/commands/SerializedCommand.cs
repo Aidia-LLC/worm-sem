@@ -14,5 +14,7 @@ namespace wormsem.commands
 		public short? reduction { get; set; }
 		public String? name { get; set; }
 		public String? filename { get; set; }
+		public String? param { get; set; }
+		public int? value { get; set; }
 	}
 }

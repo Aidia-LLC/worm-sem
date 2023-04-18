@@ -3,9 +3,9 @@ import { GrabCommand } from "@dto/semClient";
 import { convertCoordinatesForSEM } from "@logic/trapezoids/conversion";
 import { createSignal, Show } from "solid-js";
 import {
-  enqueueGrabCommand,
+  enqueueCommand,
   getNextCommandId,
-} from "src/data/signals/grabQueue";
+} from "src/data/signals/commandQueue";
 import { ReductionPicker } from "./ReductionPicker";
 
 export const availableColors = [
@@ -65,7 +65,7 @@ export const TrapezoidSetConfig = (props: {
       name: `${prefix}-${i + 1}`,
       reduction: reduction(),
     }));
-    for (const command of commands) enqueueGrabCommand(command);
+    for (const command of commands) enqueueCommand(command);
     toggleGrabbing();
   };
 
