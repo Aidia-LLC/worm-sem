@@ -152,11 +152,12 @@ export const Canvas = () => {
     ribbons().forEach((set) => colors.delete(set.color));
     const color = colors.size > 0 ? colors.values().next().value : "red";
     const filteredTrapezoids = filterTrapezoids(connectedTrapezoids, ribbons());
+    const orderedTrapezoids = orderTrapezoids([...filteredTrapezoids, trapezoid]);
     const id = nextId();
     setRibbons((prev) => [
       ...prev,
       {
-        trapezoids: [...filteredTrapezoids, trapezoid],
+        trapezoids: orderedTrapezoids,
         id,
         name: `Ribbon ${id}`,
         color,
@@ -170,6 +171,15 @@ export const Canvas = () => {
     if (toggleOriginalImage) {
       setShowOriginalImage(true);
     }
+  };
+
+  const orderTrapezoids = (trapezoids: Trapezoid[]) => {
+    // order with the top trapezoid being 1
+    return trapezoids.sort((a, b) => {
+      const aTop = Math.min(a.top.y1, a.top.y2);
+      const bTop = Math.min(b.top.y1, b.top.y2);
+      return aTop - bTop;
+    });
   };
 
   createEffect(async () => {
