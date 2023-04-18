@@ -12,7 +12,7 @@ import {
 import { base64ToImageSrc } from "@logic/image";
 import { detectTrapezoid } from "@logic/trapezoids/detection";
 import { filterTrapezoids } from "@logic/trapezoids/filter";
-import { isPointInTrapezoid, findNearestPoint } from "@logic/trapezoids/points";
+import { findNearestPoint, isPointInTrapezoid } from "@logic/trapezoids/points";
 import { trapezoidIsValid } from "@logic/trapezoids/valid";
 import { findNearestVertex, moveVertex } from "@logic/trapezoids/vertices";
 import {
@@ -38,6 +38,8 @@ export const Canvas = () => {
   const [imageSrc, setImageSrc] = createSignal<string | null>(null);
 
   let canvasRef!: HTMLCanvasElement;
+  // let edgeDataCanvasRef!: HTMLCanvasElement;
+  let overlayCanvasRef!: HTMLCanvasElement;
   const [hidden, setHidden] = createSignal(true);
   const [refresh, setRefresh] = createSignal(0);
   const [nextId, setNextId] = createSignal(1);
@@ -52,12 +54,17 @@ export const Canvas = () => {
   const [grabSize, setGrabSize] = createSignal(30);
 
   createEffect(() => {
-    // re-draw the canvas when any of these signals change
+    // re-draw the overlay canvas when any of these signals change
     trapezoidSets();
-    showOriginalImage();
     grabbing();
     grabSize();
 
+    drawOverlay();
+  });
+
+  createEffect(() => {
+    // re-draw the image canvas when it's toggled
+    showOriginalImage();
     draw();
   });
 
@@ -169,7 +176,7 @@ export const Canvas = () => {
     const src = imageSrc();
     if (!src) return;
     const o = options.options;
-    await setupCanvas(canvasRef, o, src);
+    await setupCanvas(canvasRef, o, src, overlayCanvasRef);
     const imageData = canvasRef
       .getContext("2d")!
       .getImageData(0, 0, canvasRef.width, canvasRef.height);
@@ -182,7 +189,7 @@ export const Canvas = () => {
   });
 
   onMount(() => {
-    canvasRef.addEventListener("mousedown", handleMouseDown);
+    overlayCanvasRef.addEventListener("mousedown", handleMouseDown);
     setOriginalImage();
   });
 
@@ -201,58 +208,59 @@ export const Canvas = () => {
     };
     img.src = base64ToImageSrc(src);
     const o = options.options;
-    await setupCanvas(canvasRef, o, src);
+    await setupCanvas(canvasRef, o, src, overlayCanvasRef);
   }
 
-  function draw() {
-    const ctx = canvasRef.getContext("2d")!;
+  const drawOverlay = () => {
+    const ctx = overlayCanvasRef.getContext("2d")!;
     ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
-    const renderTrapezoids = () => {
-      if (grabbing() === null) {
-        for (const trapezoidSet of trapezoidSets()) {
-          const { trapezoids, color, thickness } = trapezoidSet;
-          for (const trapezoid of trapezoids)
-            DrawTrapezoid(trapezoid, ctx, color, thickness);
-          for (const point of trapezoidSet.matchedPoints) {
-            ctx.beginPath();
-            ctx.arc(point.x, point.y, thickness - 1, 0, 2 * Math.PI);
-            ctx.closePath();
-            ctx.stroke();
-          }
-        }
-      } else {
-        const set = trapezoidSets().find((s) => s.id === grabbing());
-        if (!set) return;
-
-        ctx.globalAlpha = 0.4;
-        for (const trapezoid of set.trapezoids)
-          DrawTrapezoid(trapezoid, ctx, set.color, set.thickness);
-
-        ctx.globalAlpha = 1;
-        ctx.lineWidth = 3;
-        const size = grabSize();
-
-        for (const point of set.matchedPoints) {
+    if (grabbing() === null) {
+      for (const trapezoidSet of trapezoidSets()) {
+        const { trapezoids, color, thickness } = trapezoidSet;
+        for (const trapezoid of trapezoids)
+          DrawTrapezoid(trapezoid, ctx, color, thickness);
+        for (const point of trapezoidSet.matchedPoints) {
           ctx.beginPath();
-          ctx.arc(point.x, point.y, 1.5, 0, 2 * Math.PI);
-          ctx.closePath();
-          ctx.stroke();
-
-          ctx.beginPath();
-          ctx.rect(point.x - size / 2, point.y - size / 2, size, size);
+          ctx.arc(point.x, point.y, thickness - 1, 0, 2 * Math.PI);
           ctx.closePath();
           ctx.stroke();
         }
       }
-    };
+    } else {
+      const set = trapezoidSets().find((s) => s.id === grabbing());
+      if (!set) return;
+
+      ctx.globalAlpha = 0.4;
+      for (const trapezoid of set.trapezoids)
+        DrawTrapezoid(trapezoid, ctx, set.color, set.thickness);
+
+      ctx.globalAlpha = 1;
+      ctx.lineWidth = 3;
+      const size = grabSize();
+
+      for (const point of set.matchedPoints) {
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 1.5, 0, 2 * Math.PI);
+        ctx.closePath();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.rect(point.x - size / 2, point.y - size / 2, size, size);
+        ctx.closePath();
+        ctx.stroke();
+      }
+    }
+  };
+
+  function draw() {
+    const ctx = canvasRef.getContext("2d")!;
+    ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
     if (!showOriginalImage()) {
       if (!edgeData()) return;
       ctx.putImageData(edgeData()!, 0, 0);
-      renderTrapezoids();
     } else {
       if (imageData()) {
         ctx.putImageData(imageData()!, 0, 0);
-        renderTrapezoids();
       } else {
         const src = imageSrc();
         if (!src) return;
@@ -261,7 +269,6 @@ export const Canvas = () => {
           ctx.canvas.width = img.width;
           ctx.canvas.height = img.height;
           ctx.drawImage(img, 0, 0);
-          renderTrapezoids();
         };
         img.src = base64ToImageSrc(src);
       }
@@ -311,8 +318,8 @@ export const Canvas = () => {
     );
     if (nearestDistance < 15 || inTrapezoid) {
       setClickedPoint({ x: imgX, y: imgY });
-      canvasRef.addEventListener("mousemove", handleMouseMove);
-      canvasRef.addEventListener("mouseup", handleMouseUp);
+      overlayCanvasRef.addEventListener("mousemove", handleMouseMove);
+      overlayCanvasRef.addEventListener("mouseup", handleMouseUp);
       e.preventDefault();
     } else {
       handleClick(e);
@@ -337,8 +344,8 @@ export const Canvas = () => {
       );
       if (nearestDistance < 10) {
         // click and drag
-        canvasRef.addEventListener("mousemove", handleMouseMove);
-        canvasRef.addEventListener("mouseup", handleMouseUp);
+        overlayCanvasRef.addEventListener("mousemove", handleMouseMove);
+        overlayCanvasRef.addEventListener("mouseup", handleMouseUp);
         setClickedPoint(nearestPoint);
         return;
       } else {
@@ -594,8 +601,8 @@ export const Canvas = () => {
   }
 
   function handleMouseUp() {
-    canvasRef.removeEventListener("mousemove", handleMouseMove);
-    canvasRef.removeEventListener("mouseup", handleMouseUp);
+    overlayCanvasRef.removeEventListener("mousemove", handleMouseMove);
+    overlayCanvasRef.removeEventListener("mouseup", handleMouseUp);
 
     setClickedPoint(undefined);
   }
@@ -659,16 +666,28 @@ export const Canvas = () => {
           />
         )}
       </For>
-      <canvas
-        ref={canvasRef}
-        id="canvas"
-        width="1000"
-        height="1000"
-        class="w-[clamp(300px,_100%,_1400px)] mx-auto"
-        classList={{
-          hidden: !imageSrc(),
-        }}
-      ></canvas>
+      <div class="relative">
+        <canvas
+          ref={canvasRef}
+          id="canvas"
+          width="1000"
+          height="1000"
+          class="w-[clamp(300px,_100%,_1400px)] mx-auto"
+          classList={{
+            hidden: !imageSrc(),
+          }}
+        ></canvas>
+        <canvas
+          ref={overlayCanvasRef}
+          id="canvas"
+          width="1000"
+          height="1000"
+          class="w-[clamp(300px,_100%,_1400px)] mx-auto absolute top-0 left-[50%] translate-x-[-50%] z-50"
+          classList={{
+            hidden: !imageSrc(),
+          }}
+        ></canvas>
+      </div>
       <Show
         when={imageSrc()}
         fallback={<GrabForm onGrabbed={(src) => setImageSrc(src)} />}

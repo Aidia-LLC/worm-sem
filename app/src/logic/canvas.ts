@@ -6,7 +6,8 @@ import { base64ToImageSrc } from "./image";
 export const setupCanvas = async (
   canvas: HTMLCanvasElement,
   options: ProcessingOptions,
-  src: string
+  src: string,
+  overlayCanvas: HTMLCanvasElement
 ): Promise<void> => {
   const ctx = canvas.getContext("2d")!;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -18,6 +19,8 @@ export const setupCanvas = async (
       if (!ctx) return;
       canvas.width = img.width;
       canvas.height = img.height;
+      overlayCanvas.width = img.width;
+      overlayCanvas.height = img.height;
       ctx.drawImage(img, 0, 0);
       imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       edgeFilter(canvas, options, imageData, ctx);
