@@ -1,10 +1,5 @@
 import { Trapezoid, Vertex } from "@components/Canvas";
-
-export enum Status {
-  Editing,
-  Matching,
-  Saved,
-}
+import { Status } from "./canvas";
 
 export type TrapezoidSet = {
   trapezoids: Trapezoid[];

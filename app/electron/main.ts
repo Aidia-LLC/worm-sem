@@ -167,7 +167,7 @@ app.whenReady().then(() => {
         console.log("Done building C# program.");
         const childProcess = spawn(
           "./bin/Release/net7.0/wormsem",
-          [], // TODO remove dry run flag when ready to connect to SEM
+          ["--dry-run"], // TODO remove dry run flag when ready to connect to SEM
           { cwd }
         );
         init(childProcess);

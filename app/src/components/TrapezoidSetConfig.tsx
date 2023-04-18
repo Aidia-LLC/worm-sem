@@ -5,14 +5,8 @@ import {
   enqueueGrabCommand,
   getNextCommandId,
 } from "src/data/signals/grabQueue";
-import { Trapezoid, Vertex } from "./Canvas";
 import { ReductionPicker } from "./ReductionPicker";
-
-export enum Status {
-  Editing,
-  Matching,
-  Saved,
-}
+import { Status, Trapezoid, Vertex } from "@dto/canvas";
 
 export type TrapezoidSet = {
   trapezoids: Trapezoid[];
@@ -167,12 +161,12 @@ export const TrapezoidSetConfig = (props: {
                 type="radio"
                 name={radioName()}
                 value="editing"
-                checked={props.trapezoidSet.status === Status.Editing}
+                checked={props.trapezoidSet.status === 'editing'}
                 onChange={(e) => {
                   if (e.currentTarget.checked)
                     props.setTrapezoidSet({
                       id: props.trapezoidSet.id,
-                      status: Status.Editing,
+                      status: 'editing',
                     });
                 }}
               />
@@ -183,12 +177,12 @@ export const TrapezoidSetConfig = (props: {
                 type="radio"
                 name={radioName()}
                 value="matching"
-                checked={props.trapezoidSet.status === Status.Matching}
+                checked={props.trapezoidSet.status === 'matching'}
                 onChange={(e) => {
                   if (e.currentTarget.checked)
                     props.setTrapezoidSet({
                       id: props.trapezoidSet.id,
-                      status: Status.Matching,
+                      status: 'matching',
                     });
                 }}
               />
@@ -199,12 +193,12 @@ export const TrapezoidSetConfig = (props: {
                 type="radio"
                 name={radioName()}
                 value="saved"
-                checked={props.trapezoidSet.status === Status.Saved}
+                checked={props.trapezoidSet.status === 'saved'}
                 onChange={(e) => {
                   if (e.currentTarget.checked)
                     props.setTrapezoidSet({
                       id: props.trapezoidSet.id,
-                      status: Status.Saved,
+                      status: 'saved',
                     });
                 }}
               />

@@ -15,7 +15,7 @@ type Options = {
   densitySize: number;
 };
 
-export default function EdgeFilter(canvas: HTMLCanvasElement, options: any, imageData: ImageData, ctx: CanvasRenderingContext2D) {
+export function edgeFilter(canvas: HTMLCanvasElement, options: any, imageData: ImageData, ctx: CanvasRenderingContext2D) {
     const grayImageData = grayscale(imageData, ctx);
 
       //Apply a gausian blur
