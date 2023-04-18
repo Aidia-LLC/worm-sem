@@ -246,7 +246,7 @@ export const Canvas = () => {
     ctx.save();
 
     const zoom = zoomState();
-    if (zoom && zoom !== 'pickingCenter') {
+    if (zoom && zoom !== "pickingCenter") {
       const { x, y, scale } = zoom;
       ctx.translate(canvasRef.width / 2, canvasRef.height / 2);
       ctx.scale(scale, scale);
@@ -339,6 +339,7 @@ export const Canvas = () => {
       return;
     }
 
+    const zoomScale = zoomState() ? (zoomState() as ZoomState).scale : 1;
     const { x: imgX, y: imgY } = convertZoomedCoordinatesToFullImage(
       imgX1,
       imgY1,
@@ -380,7 +381,7 @@ export const Canvas = () => {
         .map((t) => t.trapezoids)
         .flat()
     );
-    if (nearestDistance < 15 || inTrapezoid) {
+    if (nearestDistance < 15 * zoomScale || inTrapezoid) {
       setClickedPoint({ x: imgX, y: imgY });
       overlayCanvasRef.addEventListener("mousemove", handleMouseMove);
       overlayCanvasRef.addEventListener("mouseup", handleMouseUp);
@@ -526,8 +527,21 @@ export const Canvas = () => {
     const rectHeight = rect.bottom - rect.top;
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    const imgX = Math.round((x / rectWidth) * canvasRef.width);
-    const imgY = Math.round((y / rectHeight) * canvasRef.height);
+    const imgX1 = Math.round((x / rectWidth) * canvasRef.width);
+    const imgY1 = Math.round((y / rectHeight) * canvasRef.height);
+
+    const zoom =
+      zoomState() && zoomState() !== "pickingCenter"
+        ? (zoomState() as ZoomState)
+        : null;
+    const { x: imgX, y: imgY } = convertZoomedCoordinatesToFullImage(
+      imgX1,
+      imgY1,
+      zoom,
+      canvasRef.width,
+      canvasRef.height
+    );
+
     // are they dragging a point?
     const { inTrapezoid, trapezoid } = isPointInTrapezoid(
       imgX,

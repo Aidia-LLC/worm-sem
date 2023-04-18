@@ -683,9 +683,25 @@ export const convertZoomedCoordinatesToFullImage = (
   height: number
 ) => {
   if (!zoom) return { x, y };
+
   const viewportWidth = width / zoom.scale;
   const viewportHeight = height / zoom.scale;
-  const zoomedX = x / zoom.scale - viewportWidth / 2 + zoom.x;
-  const zoomedY = y / zoom.scale - viewportHeight / 2 + zoom.y;
-  return { x: zoomedX, y: zoomedY };
-}
+
+  const percentX = x / width;
+  const percentY = y / height;
+
+  const clickedX = lerp(
+    zoom.x - viewportWidth / 2,
+    zoom.x + viewportWidth / 2,
+    percentX
+  );
+  const clickedY = lerp(
+    zoom.y - viewportHeight / 2,
+    zoom.y + viewportHeight / 2,
+    percentY
+  );
+
+  return { x: clickedX, y: clickedY };
+};
+
+const lerp = (a: number, b: number, t: number) => a * (1 - t) + b * t;
