@@ -30,3 +30,10 @@ export type Trapezoid = {
   left: Pick<LineSegment, "x1" | "x2" | "y1" | "y2">;
   bottom: Pick<LineSegment, "x1" | "x2" | "y1" | "y2">;
 };
+
+export type SliceConfiguration = {
+  index: number;
+  contrast?: number;
+  brightness?: number;
+  focus?: number;
+};

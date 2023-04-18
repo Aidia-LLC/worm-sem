@@ -2,7 +2,6 @@ import { Button } from "@components/Button";
 import { Canvas } from "@components/Canvas";
 import { HistoryLog } from "@components/HistoryLog";
 import { Instructions } from "@components/Instructions";
-import { MagnificationPicker } from "@components/MagnificationPicker";
 import { onMount, Show } from "solid-js";
 import { initializeCommandQueue } from "./data/signals/commandQueue";
 import { CONNECTION_ID, historySignal } from "./data/signals/history";
@@ -19,7 +18,6 @@ export const App = () => {
   return (
     <div class="flex flex-col gap-3 m-4">
       <Instructions />
-      <MagnificationPicker />
       <Show
         when={connected()}
         fallback={
