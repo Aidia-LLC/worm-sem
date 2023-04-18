@@ -3,6 +3,7 @@ import type {
   Trapezoid,
   TrapezoidSet,
   Vertex,
+  ZoomState,
 } from "@dto/canvas";
 import {
   convertLocalToGlobal,
@@ -25,8 +26,10 @@ import {
   createEffect,
   createSignal,
   For,
+  Match,
   onMount,
   Show,
+  Switch,
   untrack,
 } from "solid-js";
 import { createOptionsStore } from "src/data/createOptionsStore";
@@ -36,7 +39,10 @@ import { ConfigureSliceCanvas } from "./ConfigureSliceCanvas";
 import { GrabForm } from "./GrabForm";
 import { KernelParam } from "./KernelParam";
 import { Param } from "./Param";
+import { SliderPicker } from "./SliderPicker";
 import { availableColors, TrapezoidSetConfig } from "./TrapezoidSetConfig";
+
+const DEFAULT_ZOOM_SCALE = 2;
 
 export const Canvas = () => {
   const [imageSrc, setImageSrc] = createSignal<string | null>(null);
@@ -63,16 +69,21 @@ export const Canvas = () => {
     SliceConfiguration[]
   >([]);
   const [magnification, setMagnification] = createSignal(DEFAULT_MAG);
+  const [zoomState, setZoomState] = createSignal<
+    ZoomState | "pickingCenter" | null
+  >(null);
 
   createEffect(() => {
-    // re-draw the overlay canvas when the ribbons change
+    // re-draw the overlay canvas when the ribbons or zoom change
     ribbons();
+    zoomState();
     drawOverlay();
   });
 
   createEffect(() => {
-    // re-draw the image canvas when it's toggled
+    // re-draw the image canvas when it's toggled or zoom changes
     showOriginalImage();
+    zoomState();
     draw();
   });
 
@@ -156,7 +167,10 @@ export const Canvas = () => {
     ribbons().forEach((set) => colors.delete(set.color));
     const color = colors.size > 0 ? colors.values().next().value : "red";
     const filteredTrapezoids = filterTrapezoids(connectedTrapezoids, ribbons());
-    const orderedTrapezoids = orderTrapezoids([...filteredTrapezoids, trapezoid]);
+    const orderedTrapezoids = orderTrapezoids([
+      ...filteredTrapezoids,
+      trapezoid,
+    ]);
     const id = nextId();
     setRibbons((prev) => [
       ...prev,
@@ -254,9 +268,11 @@ export const Canvas = () => {
   function draw() {
     const ctx = canvasRef.getContext("2d")!;
     ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
-    if (!showOriginalImage()) {
-      if (!edgeData()) return;
+    const showEdgeData = !showOriginalImage() && edgeData() && !zoomState();
+
+    if (showEdgeData) {
       ctx.putImageData(edgeData()!, 0, 0);
+      ctx.restore();
     } else {
       const src = highResImageSrc();
       if (!src) return;
@@ -264,7 +280,19 @@ export const Canvas = () => {
       img.onload = () => {
         ctx.canvas.width = img.width;
         ctx.canvas.height = img.height;
+        const zoom =
+          !zoomState() || zoomState() === "pickingCenter"
+            ? null
+            : (zoomState() as ZoomState);
+        ctx.save();
+        if (zoom) {
+          const { x, y, scale } = zoom;
+          ctx.translate(x, y);
+          ctx.scale(scale, scale);
+          ctx.translate(-x, -y);
+        }
         ctx.drawImage(img, 0, 0);
+        ctx.restore();
       };
       img.src = base64ToImageSrc(src);
     }
@@ -278,6 +306,16 @@ export const Canvas = () => {
     const y = e.clientY - rect.top;
     const imgX = Math.round((x / rectWidth) * canvasRef.width);
     const imgY = Math.round((y / rectHeight) * canvasRef.height);
+
+    if (zoomState() === "pickingCenter") {
+      setZoomState({
+        x: imgX,
+        y: imgY,
+        scale: DEFAULT_ZOOM_SCALE,
+      });
+      return;
+    }
+
     if (!edgeData()) {
       const ctx = canvasRef.getContext("2d")!;
       const imageData = ctx.getImageData(
@@ -654,13 +692,14 @@ export const Canvas = () => {
         }
       >
         <Show when={imageSrc()}>
-          <div class="grid grid-cols-3 gap-4 mt-1">
+          <div class="grid grid-cols-4 gap-4 mt-1">
             <Button
               onClick={() => {
                 setImageSrc(null);
                 setPoints([]);
                 setRibbons([]);
                 setRefresh(refresh() + 1);
+                setZoomState(null);
               }}
             >
               Clear Image
@@ -685,7 +724,32 @@ export const Canvas = () => {
             >
               Show {showOriginalImage() ? "Edge Data" : "Original Image"}
             </Button>
+            <Button
+              onClick={() => {
+                if (zoomState()) setZoomState(null);
+                else setZoomState("pickingCenter");
+              }}
+            >
+              <Switch fallback="Zoom in">
+                <Match when={zoomState() === "pickingCenter"}>
+                  Click on image to zoom
+                </Match>
+                <Match when={zoomState()}>Zoom Out</Match>
+              </Switch>
+            </Button>
           </div>
+        </Show>
+        <Show when={zoomState() && zoomState() !== "pickingCenter"}>
+          <SliderPicker
+            label="Zoom"
+            value={(zoomState() as ZoomState).scale}
+            setValue={(scale) => {
+              setZoomState({ ...(zoomState() as ZoomState), scale });
+            }}
+            unit="x"
+            max={15}
+            min={1}
+          />
         </Show>
         <For each={ribbons()}>
           {(trapezoidSet) => (

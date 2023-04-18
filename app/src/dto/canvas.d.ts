@@ -37,3 +37,9 @@ export type SliceConfiguration = {
   brightness?: number;
   focus?: number;
 };
+
+export type ZoomState = {
+  x: number;
+  y: number;
+  scale: number;
+};
