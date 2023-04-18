@@ -10,7 +10,7 @@ export type MessageReceived = (message: Message) => void;
 
 export type SEMClient = {
   send: (comand: Command) => void;
-  subscribe: (callback: (message: Message) => void) => void;
+  subscribe: (callback: (message: Message) => void) => () => void;
 };
 
 export type Command =
@@ -61,7 +61,17 @@ type Param =
   | "AP_MAG"
   | "AP_LINE_POSN_X"
   | "AP_LINE_POSN_Y"
-  | "AP_PIXEL_SIZE";
+  | "AP_PIXEL_SIZE"
+  | "AP_BRIGHTNESS"
+  | "AP_CONTRAST"
+  | "AP_STAGE_AT_X"
+  | "AP_STAGE_AT_Y"
+  | "AP_STAGE_GOTO_X"
+  | "AP_STAGE_GOTO_Y"
+  | "AP_STAGE_HIGH_X"
+  | "AP_STAGE_HIGH_Y"
+  | "AP_STAGE_LOW_X"
+  | "AP_STAGE_LOW_Y"
 
 export interface SetParamCommand extends BaseCommand {
   type: "setParam";

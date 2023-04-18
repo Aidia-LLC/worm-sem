@@ -17,6 +17,10 @@ const client: SEMClient = {
   },
   subscribe: (callback) => {
     subscribers.push(callback);
+    return () => {
+      const index = subscribers.indexOf(callback);
+      if (index !== -1) subscribers.splice(index, 1);
+    };
   },
 };
 

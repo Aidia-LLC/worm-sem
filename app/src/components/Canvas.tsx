@@ -436,7 +436,6 @@ export const Canvas = () => {
     console.log(ribbons());
   }
 
-
   function handleMouseMove(e: MouseEvent) {
     // calculate the new cursor position:
     const rect = canvasRef.getBoundingClientRect();
@@ -596,6 +595,7 @@ export const Canvas = () => {
         when={focusedSlice() === -1}
         fallback={
           <ConfigureSliceCanvas
+            canvas={canvasRef}
             configuration={
               sliceConfiguration().find(
                 ({ index }) => index === focusedSlice()
@@ -633,12 +633,7 @@ export const Canvas = () => {
                 );
               }
             }}
-            totalSlices={
-              focusedRibbon()
-                ? ribbons().find((t) => t.id === focusedRibbon())!.trapezoids
-                    .length
-                : 0
-            }
+            ribbon={ribbons().find((ribbon) => ribbon.id === focusedRibbon())!}
           />
         }
       >
