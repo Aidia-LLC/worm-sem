@@ -1,6 +1,20 @@
-import { ProcessingOptions } from "@dto/ProcessingOptions";
+import type { Trapezoid, Vertex } from "@dto/canvas";
+import {
+  convertLocalToGlobal,
+  DirectSearchOptimization,
+  DrawTrapezoid,
+  findConnectedTrapezoids,
+  getPointsOnTrapezoid,
+  getSquare,
+  RANSAC,
+  setupCanvas,
+} from "@logic/canvas";
 import { base64ToImageSrc } from "@logic/image";
 import { detectTrapezoid } from "@logic/trapezoids/detection";
+import { filterTrapezoids } from "@logic/trapezoids/filter";
+import { isPointInTrapezoid, findNearestPoint } from "@logic/trapezoids/points";
+import { trapezoidIsValid } from "@logic/trapezoids/valid";
+import { findNearestVertex, moveVertex } from "@logic/trapezoids/vertices";
 import {
   createEffect,
   createSignal,
@@ -14,9 +28,11 @@ import { Button } from "./Button";
 import { GrabForm } from "./GrabForm";
 import { KernelParam } from "./KernelParam";
 import { Param } from "./Param";
-import { availableColors, TrapezoidSet, TrapezoidSetConfig } from "./TrapezoidSetConfig";
-import type { Trapezoid, Vertex, Status } from "@dto/canvas";
-import { calculateArea, convertLocalToGlobal, DirectSearchOptimization, DrawTrapezoid, findConnectedTrapezoids, getPointsOnTrapezoid, getSquare, RANSAC, setupCanvas } from "@logic/canvas";
+import {
+  availableColors,
+  TrapezoidSet,
+  TrapezoidSetConfig,
+} from "./TrapezoidSetConfig";
 
 export const Canvas = () => {
   const [imageSrc, setImageSrc] = createSignal<string | null>(null);
@@ -105,7 +121,13 @@ export const Canvas = () => {
         imgY,
         options.options.squareSize
       );
-      fit = getPointsOnTrapezoid(square, trapezoid, options.options, imgX- options.options.squareSize/2, imgY - options.options.squareSize/2);
+      fit = getPointsOnTrapezoid(
+        square,
+        trapezoid,
+        options.options,
+        imgX - options.options.squareSize / 2,
+        imgY - options.options.squareSize / 2
+      );
     }
     const connectedTrapezoids = findConnectedTrapezoids(
       trapezoid,
@@ -131,7 +153,7 @@ export const Canvas = () => {
         id: nextId(),
         color,
         thickness: 5,
-        status: 'editing',
+        status: "editing",
         matchedPoints: [],
       } as TrapezoidSet,
     ]);
@@ -140,90 +162,6 @@ export const Canvas = () => {
       setShowOriginalImage(true);
     }
   };
-
-  function filterTrapezoids(
-    trapezoids: Trapezoid[],
-    sets: TrapezoidSet[]
-  ): Trapezoid[] {
-    const centerPoints = trapezoids.map((t, i) => ({
-      x: ((t.top.x1 + t.top.x2) / 2 + (t.bottom.x1 + t.bottom.x2) / 2) / 2,
-      y: ((t.top.y1 + t.top.y2) / 2 + (t.bottom.y1 + t.bottom.y2) / 2) / 2,
-      i,
-    }));
-    const setsCenterPoints = sets
-      .map((s) => s.trapezoids)
-      .flat()
-      .map((t) => ({
-        x: ((t.top.x1 + t.top.x2) / 2 + (t.bottom.x1 + t.bottom.x2) / 2) / 2,
-        y: ((t.top.y1 + t.top.y2) / 2 + (t.bottom.y1 + t.bottom.y2) / 2) / 2,
-      }));
-    const filtered = centerPoints.filter((p) => {
-      const found = setsCenterPoints.find(
-        (s) => Math.abs(s.x - p.x) < 30 && Math.abs(s.y - p.y) < 30
-      );
-      return !found;
-    });
-    const filtered2 = filtered.filter((p, idx) => {
-      const found = filtered.find(
-        (p2, idx2) =>
-          idx !== idx2 && Math.abs(p2.x - p.x) < 30 && Math.abs(p2.y - p.y) < 30
-      );
-      return !found;
-    });
-    return filtered2.map((p) => trapezoids[p.i]);
-  }
-
-  function trapezoidIsValid(
-    trapezoid: Trapezoid,
-    x: number,
-    y: number,
-    options: ProcessingOptions,
-    fit: number | null
-  ) {
-    const { squareSize } = options;
-    const area = calculateArea(trapezoid);
-    const areaThreshold = squareSize ** 2 * 0.2;
-    const areaValid = area > areaThreshold;
-    const fitValid = fit && Math.abs(fit) > options.firstFit;
-    // make sure each side is at least 1/3 of the square size
-    const sideThresh = squareSize / 6;
-    const top = Math.sqrt(
-      (trapezoid.top.x1 - trapezoid.top.x2) ** 2 +
-        (trapezoid.top.y1 - trapezoid.top.y2) ** 2
-    );
-    const bottom = Math.sqrt(
-      (trapezoid.bottom.x1 - trapezoid.bottom.x2) ** 2 +
-        (trapezoid.bottom.y1 - trapezoid.bottom.y2) ** 2
-    );
-    const left = Math.sqrt(
-      (trapezoid.left.x1 - trapezoid.left.x2) ** 2 +
-        (trapezoid.left.y1 - trapezoid.left.y2) ** 2
-    );
-    const right = Math.sqrt(
-      (trapezoid.right.x1 - trapezoid.right.x2) ** 2 +
-        (trapezoid.right.y1 - trapezoid.right.y2) ** 2
-    );
-    const sideValid =
-      top > sideThresh &&
-      bottom > sideThresh &&
-      left > sideThresh &&
-      right > sideThresh;
-    const centerPoint = {
-      x:
-        ((trapezoid.top.x1 + trapezoid.top.x2) / 2 +
-          (trapezoid.bottom.x1 + trapezoid.bottom.x2) / 2) /
-        2,
-      y:
-        ((trapezoid.top.y1 + trapezoid.top.y2) / 2 +
-          (trapezoid.bottom.y1 + trapezoid.bottom.y2) / 2) /
-        2,
-    };
-    const centerPointValid =
-      Math.abs(centerPoint.x - x) < 30 && Math.abs(centerPoint.y - y) < 30;
-    const valid = areaValid && fitValid && sideValid && centerPointValid;
-    // console.log({ area, areaValid, fitValid, sideValid, valid })
-    return valid;
-  }
 
   createEffect(async () => {
     console.log("refreshing");
@@ -358,7 +296,7 @@ export const Canvas = () => {
     if (inTrapezoid && trapezoid) {
       const { trapezoidSet } = findTrapezoidSet(trapezoid);
       console.log({ trapezoidSet });
-      if (trapezoidSet && trapezoidSet.status === 'matching') {
+      if (trapezoidSet && trapezoidSet.status === "matching") {
         pointMatching(imgX, imgY, trapezoidSet);
         return;
       }
@@ -444,21 +382,20 @@ export const Canvas = () => {
     // angle1 of the top line
     if (trapezoid.top.x1 === trapezoid.top.x2) {
       angle1 = Math.PI / 2;
-    }
-    else {
+    } else {
       angle1 = Math.atan(
         (trapezoid.top.y2 - trapezoid.top.y1) /
           (trapezoid.top.x2 - trapezoid.top.x1)
       );
     }
-    
-    const dx = (x - center.x);
-    const dy = (y - center.y);
-    
+
+    const dx = x - center.x;
+    const dy = y - center.y;
+
     const points: Vertex[] = [];
     points.push({
       x,
-      y
+      y,
     });
     for (const otherTrapezoid of trapezoids) {
       if (otherTrapezoid === trapezoid) continue;
@@ -466,8 +403,7 @@ export const Canvas = () => {
       // angle2 of the top line
       if (otherTrapezoid.top.x1 === otherTrapezoid.top.x2) {
         angle2 = Math.PI / 2;
-      }
-      else {
+      } else {
         angle2 = Math.atan(
           (otherTrapezoid.top.y2 - otherTrapezoid.top.y1) /
             (otherTrapezoid.top.x2 - otherTrapezoid.top.x1)
@@ -489,13 +425,13 @@ export const Canvas = () => {
             otherTrapezoid.bottom.y2) /
           4,
       };
-      const otherDx = (dx * Math.cos(angle)) - (dy * Math.sin(angle));
-      const otherDy = (dx * Math.sin(angle)) + (dy * Math.cos(angle));
+      const otherDx = dx * Math.cos(angle) - dy * Math.sin(angle);
+      const otherDy = dx * Math.sin(angle) + dy * Math.cos(angle);
       const otherX = otherCenter.x + otherDx;
       const otherY = otherCenter.y + otherDy;
       points.push({
         x: otherX,
-        y: otherY
+        y: otherY,
       });
     }
     setTrapezoidSets(
@@ -509,18 +445,6 @@ export const Canvas = () => {
         return t;
       })
     );
-  }
-
-  function isPointInTrapezoid(x: number, y: number, trapezoids: Trapezoid[]) {
-    for (const trapezoid of trapezoids) {
-      const { top, bottom, left, right } = trapezoid;
-      if (y < top.y1 && y < top.y2) continue;
-      if (x < left.x1 && x < left.x2) continue;
-      if (x > right.x1 && x > right.x2) continue;
-      if (y > bottom.y1 && y > bottom.y2) continue;
-      return { inTrapezoid: true, trapezoid };
-    }
-    return { inTrapezoid: false, trapezoid: null };
   }
 
   function handleMouseMove(e: MouseEvent) {
@@ -549,8 +473,8 @@ export const Canvas = () => {
     );
     if (inTrapezoid && trapezoid) {
       const { trapezoidSet } = findTrapezoidSet(trapezoid);
-      if (trapezoidSet?.status === 'saved') return;
-      if (trapezoidSet && trapezoidSet.status === 'matching') {
+      if (trapezoidSet?.status === "saved") return;
+      if (trapezoidSet && trapezoidSet.status === "matching") {
         const { nearestPoint, nearestDistance: pointDistance } =
           findNearestPoint(imgX, imgY, trapezoidSet.matchedPoints);
         if (nearestPoint && pointDistance < 10) {
@@ -648,7 +572,7 @@ export const Canvas = () => {
         );
       if (!trapezoid) return;
       const { trapezoidSet } = findTrapezoidSet(trapezoid);
-      if (trapezoidSet?.status === 'saved') return;
+      if (trapezoidSet?.status === "saved") return;
       const newTrapezoid = moveVertex(trapezoid, nearestVertex, imgX, imgY);
       const newSet = trapezoidSet?.trapezoids.map((t) =>
         (t.top.x1 === nearestVertex.x && t.top.y1 === nearestVertex.y) ||
@@ -669,81 +593,11 @@ export const Canvas = () => {
     refresh();
   }
 
-  function moveVertex(
-    trapezoid: Trapezoid,
-    vertex: Vertex,
-    x: number,
-    y: number
-  ) {
-    const newTrapezoid = { ...trapezoid };
-    if (newTrapezoid.top.x1 === vertex.x && newTrapezoid.top.y1 === vertex.y) {
-      newTrapezoid.top.x1 = x;
-      newTrapezoid.top.y1 = y;
-    } else if (
-      newTrapezoid.top.x2 === vertex.x &&
-      newTrapezoid.top.y2 === vertex.y
-    ) {
-      newTrapezoid.top.x2 = x;
-      newTrapezoid.top.y2 = y;
-    } else if (
-      newTrapezoid.bottom.x1 === vertex.x &&
-      newTrapezoid.bottom.y1 === vertex.y
-    ) {
-      newTrapezoid.bottom.x1 = x;
-      newTrapezoid.bottom.y1 = y;
-    } else if (
-      newTrapezoid.bottom.x2 === vertex.x &&
-      newTrapezoid.bottom.y2 === vertex.y
-    ) {
-      newTrapezoid.bottom.x2 = x;
-      newTrapezoid.bottom.y2 = y;
-    }
-    return newTrapezoid;
-  }
-
   function handleMouseUp() {
     canvasRef.removeEventListener("mousemove", handleMouseMove);
     canvasRef.removeEventListener("mouseup", handleMouseUp);
 
     setClickedPoint(undefined);
-  }
-
-  function findNearestVertex(x: number, y: number, trapezoids: Trapezoid[]) {
-    let nearestVertex: Vertex | undefined;
-    let nearestDistance = Infinity;
-    for (const trapezoid of trapezoids) {
-      const vertices = [
-        { x: trapezoid.top.x1, y: trapezoid.top.y1 },
-        { x: trapezoid.top.x2, y: trapezoid.top.y2 },
-        { x: trapezoid.bottom.x1, y: trapezoid.bottom.y1 },
-        { x: trapezoid.bottom.x2, y: trapezoid.bottom.y2 },
-      ];
-      for (const vertex of vertices) {
-        const distance = Math.sqrt(
-          Math.pow(vertex.x - x, 2) + Math.pow(vertex.y - y, 2)
-        );
-        if (distance < nearestDistance) {
-          nearestVertex = vertex;
-          nearestDistance = distance;
-        }
-      }
-    }
-    return { nearestDistance, nearestVertex };
-  }
-
-  function findNearestPoint(x: number, y: number, points: Vertex[]) {
-    let nearestPoint: Vertex | undefined;
-    let nearestDistance = Infinity;
-    for (const point of points) {
-      const distance = Math.sqrt(
-        Math.pow(point.x - x, 2) + Math.pow(point.y - y, 2)
-      );
-      if (distance < nearestDistance) {
-        nearestPoint = point;
-        nearestDistance = distance;
-      }
-    }
-    return { nearestDistance, nearestPoint };
   }
 
   return (
@@ -810,7 +664,7 @@ export const Canvas = () => {
         id="canvas"
         width="1000"
         height="1000"
-        class='w-[clamp(300px,_100%,_1400px)] mx-auto'
+        class="w-[clamp(300px,_100%,_1400px)] mx-auto"
         classList={{
           hidden: !imageSrc(),
         }}
@@ -830,7 +684,9 @@ export const Canvas = () => {
             </div>
             <div class="flex-col">
               <p>
-                This sets the size of a 'bounding box' where the algorithm will look for a trapezoid. This may need to be changed if the picture is more or less zoomed in than usual.
+                This sets the size of a 'bounding box' where the algorithm will
+                look for a trapezoid. This may need to be changed if the picture
+                is more or less zoomed in than usual.
               </p>
               <Param
                 label="Square Size"
@@ -840,168 +696,188 @@ export const Canvas = () => {
             </div>
             <div class="flex=col">
               <p>
-                This sets the minimum fit relative to the first fit for a trapezoid to be valid. If this is too high, the algorithm will fail to find a trapezoid where there are few edge pixels. Too low, and trapezoids will be found past the line of trapezoids.
+                This sets the minimum fit relative to the first fit for a
+                trapezoid to be valid. If this is too high, the algorithm will
+                fail to find a trapezoid where there are few edge pixels. Too
+                low, and trapezoids will be found past the line of trapezoids.
               </p>
               <Param
                 label="Minimum Fit for Recurrance"
                 value={options.options.minimumFit}
-                onChange={(value) =>
-                  setOptions("options", "minimumFit", value)
-                }
+                onChange={(value) => setOptions("options", "minimumFit", value)}
               />
             </div>
             <div class="flex-col">
               <p>
-                This sets the minimum fit for the first trapezoid, if this fails a secondary algorithm will be used to find a trapezoid. This may not need to be changed.
+                This sets the minimum fit for the first trapezoid, if this fails
+                a secondary algorithm will be used to find a trapezoid. This may
+                not need to be changed.
               </p>
               <Param
                 label="Minimum Fit for First"
                 value={options.options.firstFit}
-                onChange={(value) =>
-                  setOptions("options", "firstFit", value)
-                }
+                onChange={(value) => setOptions("options", "firstFit", value)}
               />
             </div>
             <Show when={!hidden()}>
-            <div class="flex=col">
-              <p>
-                This sets the low-end threshold for determining if a pixel is
-                an 'edge pixel'. If the pictures contrast is lower than usual, this may
-                need to be lowered.
-              </p>
-              <Param
-                label="Hysteresis Low"
-                value={options.options.hysteresisLow}
-                onChange={(value) =>
-                  setOptions("options", "hysteresisLow", value)
-                }
-              />
-            </div>
-            <div class="flex-col">
-              <p>
-                This sets the high-end threshold for determining if a pixel is
-                on an edge. If the pictures contrast is higher than usual, this
-                may need to be raised. Pixels above this threshold are discarded, as these trapezoids
-                tend to have soft edges, while the 'noisy' pixels tend to be stronger.
-              </p>
-              <Param
-                label="Hysteresis High"
-                value={options.options.hysteresisHigh}
-                onChange={(value) =>
-                  setOptions("options", "hysteresisHigh", value)
-                }
-              />
-              </div>
-              <div class="flex-col">
+              <div class="flex=col">
                 <p>
-                  Edge pixels with fewer than this number of neighbors are discarded. Decreasing this will increase the number of edge pixels on the trapezoids, but may also increase the number of 'noisy' pixels.
+                  This sets the low-end threshold for determining if a pixel is
+                  an 'edge pixel'. If the pictures contrast is lower than usual,
+                  this may need to be lowered.
                 </p>
-              <Param
-                label="Min Neighbors for Noise Reduction"
-                value={options.options.minNeighborsForNoiseReduction}
-                onChange={(value) =>
-                  setOptions("options", "minNeighborsForNoiseReduction", value)
-                }
+                <Param
+                  label="Hysteresis Low"
+                  value={options.options.hysteresisLow}
+                  onChange={(value) =>
+                    setOptions("options", "hysteresisLow", value)
+                  }
                 />
               </div>
               <div class="flex-col">
                 <p>
-                  This sets how strictly the algorithm will consider a possible line to be a line. Too high, it may not find enough lines to find a trapezoid. Too low, it may get confused with all the lines.
+                  This sets the high-end threshold for determining if a pixel is
+                  on an edge. If the pictures contrast is higher than usual,
+                  this may need to be raised. Pixels above this threshold are
+                  discarded, as these trapezoids tend to have soft edges, while
+                  the 'noisy' pixels tend to be stronger.
                 </p>
-              <Param
-                label="Hough Vote Threshold"
-                value={options.options.houghVoteThreshold}
-                onChange={(value) =>
-                  setOptions("options", "houghVoteThreshold", value)
-                }
-                />
-              </div>
-                <div class="flex-col">
-                <p>
-                  This merges all lines that are within this angle of each other.
-                </p>
-              <Param
-                label="Merge Theta Threshold"
-                value={options.options.mergeThetaThreshold}
-                onChange={(value) =>
-                  setOptions("options", "mergeThetaThreshold", value)
-                }
+                <Param
+                  label="Hysteresis High"
+                  value={options.options.hysteresisHigh}
+                  onChange={(value) =>
+                    setOptions("options", "hysteresisHigh", value)
+                  }
                 />
               </div>
               <div class="flex-col">
                 <p>
-                  Lines that cross less than this number of edge pixels are discarded.
+                  Edge pixels with fewer than this number of neighbors are
+                  discarded. Decreasing this will increase the number of edge
+                  pixels on the trapezoids, but may also increase the number of
+                  'noisy' pixels.
                 </p>
-              <Param
-                label="Pixels Per Line Percentage Threshold"
-                value={options.options.pixelThreshold}
-                onChange={(value) =>
-                  setOptions("options", "pixelThreshold", value)
-                }
+                <Param
+                  label="Min Neighbors for Noise Reduction"
+                  value={options.options.minNeighborsForNoiseReduction}
+                  onChange={(value) =>
+                    setOptions(
+                      "options",
+                      "minNeighborsForNoiseReduction",
+                      value
+                    )
+                  }
                 />
               </div>
               <div class="flex-col">
                 <p>
-                  When looking for a trapezoid, the algorithm looks at the top X lines found in the 'bounding box'. This sets X.
+                  This sets how strictly the algorithm will consider a possible
+                  line to be a line. Too high, it may not find enough lines to
+                  find a trapezoid. Too low, it may get confused with all the
+                  lines.
                 </p>
-              <Param
-                label="Max Lines Per Square"
-                value={options.options.maxLines}
-                onChange={(value) => setOptions("options", "maxLines", value)}
+                <Param
+                  label="Hough Vote Threshold"
+                  value={options.options.houghVoteThreshold}
+                  onChange={(value) =>
+                    setOptions("options", "houghVoteThreshold", value)
+                  }
                 />
               </div>
               <div class="flex-col">
                 <p>
-                  This sets the number of iterations the algorithm tries to reduce noise.
+                  This merges all lines that are within this angle of each
+                  other.
                 </p>
-              <Param
-                label="Noise Reduction Iterations"
-                value={options.options.noiseReductionIterations}
-                onChange={(value) =>
-                  setOptions("options", "noiseReductionIterations", value)
-                }
+                <Param
+                  label="Merge Theta Threshold"
+                  value={options.options.mergeThetaThreshold}
+                  onChange={(value) =>
+                    setOptions("options", "mergeThetaThreshold", value)
+                  }
                 />
               </div>
               <div class="flex-col">
                 <p>
-                  Areas of the image with a density greater than this threshold are deleted. This is used to remove the 'noise' from the center of the trapezoids, which typically have a higher density than the edges of the trapezoids.
+                  Lines that cross less than this number of edge pixels are
+                  discarded.
                 </p>
-              <Param
-                label="Density Threshold"
-                value={options.options.densityThreshold}
-                onChange={(value) =>
-                  setOptions("options", "densityThreshold", value)
-                }
+                <Param
+                  label="Pixels Per Line Percentage Threshold"
+                  value={options.options.pixelThreshold}
+                  onChange={(value) =>
+                    setOptions("options", "pixelThreshold", value)
+                  }
                 />
               </div>
               <div class="flex-col">
                 <p>
-                  This sets how often the algorithm runs the density check.
+                  When looking for a trapezoid, the algorithm looks at the top X
+                  lines found in the 'bounding box'. This sets X.
                 </p>
-              <Param
-                label="Density Step"
-                value={options.options.densityStep}
-                onChange={(value) =>
-                  setOptions("options", "densityStep", value)
-                }
+                <Param
+                  label="Max Lines Per Square"
+                  value={options.options.maxLines}
+                  onChange={(value) => setOptions("options", "maxLines", value)}
+                />
+              </div>
+              <div class="flex-col">
+                <p>
+                  This sets the number of iterations the algorithm tries to
+                  reduce noise.
+                </p>
+                <Param
+                  label="Noise Reduction Iterations"
+                  value={options.options.noiseReductionIterations}
+                  onChange={(value) =>
+                    setOptions("options", "noiseReductionIterations", value)
+                  }
+                />
+              </div>
+              <div class="flex-col">
+                <p>
+                  Areas of the image with a density greater than this threshold
+                  are deleted. This is used to remove the 'noise' from the
+                  center of the trapezoids, which typically have a higher
+                  density than the edges of the trapezoids.
+                </p>
+                <Param
+                  label="Density Threshold"
+                  value={options.options.densityThreshold}
+                  onChange={(value) =>
+                    setOptions("options", "densityThreshold", value)
+                  }
+                />
+              </div>
+              <div class="flex-col">
+                <p>This sets how often the algorithm runs the density check.</p>
+                <Param
+                  label="Density Step"
+                  value={options.options.densityStep}
+                  onChange={(value) =>
+                    setOptions("options", "densityStep", value)
+                  }
                 />
               </div>
               <div class="flex-col">
                 <p>
                   This sets the size of the area the density check looks at.
                 </p>
-              <Param
-                label="Density Size"
-                value={options.options.densitySize}
-                onChange={(value) =>
-                  setOptions("options", "densitySize", value)
-                }
-              />
+                <Param
+                  label="Density Size"
+                  value={options.options.densitySize}
+                  onChange={(value) =>
+                    setOptions("options", "densitySize", value)
+                  }
+                />
               </div>
             </Show>
           </div>
           <Show when={!hidden()}>
-            <h2>The Gaussian Kernel is used to perform a 'Gaussian Blur' to the image. This helps reduce noise.</h2>
+            <h2>
+              The Gaussian Kernel is used to perform a 'Gaussian Blur' to the
+              image. This helps reduce noise.
+            </h2>
             <KernelParam
               values={options.options.gaussianKernel}
               onChange={(value) =>
