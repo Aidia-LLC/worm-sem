@@ -284,15 +284,26 @@ export const Canvas = () => {
           !zoomState() || zoomState() === "pickingCenter"
             ? null
             : (zoomState() as ZoomState);
-        ctx.save();
         if (zoom) {
           const { x, y, scale } = zoom;
-          ctx.translate(x, y);
-          ctx.scale(scale, scale);
-          ctx.translate(-x, -y);
+          const viewportWidth = canvasRef.width / scale;
+          const viewportHeight = canvasRef.height / scale;
+          const viewportX = x - viewportWidth / 2;
+          const viewportY = y - viewportHeight / 2;
+          ctx.drawImage(
+            img,
+            viewportX,
+            viewportY,
+            viewportWidth,
+            viewportHeight,
+            0,
+            0,
+            canvasRef.width,
+            canvasRef.height
+          );
+        } else {
+          ctx.drawImage(img, 0, 0);
         }
-        ctx.drawImage(img, 0, 0);
-        ctx.restore();
       };
       img.src = base64ToImageSrc(src);
     }
