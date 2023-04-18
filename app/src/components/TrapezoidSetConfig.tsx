@@ -1,3 +1,4 @@
+import { Status, Trapezoid, Vertex } from "@dto/canvas";
 import { GrabCommand } from "@dto/semClient";
 import { convertCoordinatesForSEM } from "@logic/trapezoids/conversion";
 import { createSignal, Show } from "solid-js";
@@ -6,7 +7,6 @@ import {
   getNextCommandId,
 } from "src/data/signals/grabQueue";
 import { ReductionPicker } from "./ReductionPicker";
-import { Status, Trapezoid, Vertex } from "@dto/canvas";
 
 export type TrapezoidSet = {
   trapezoids: Trapezoid[];
@@ -15,6 +15,7 @@ export type TrapezoidSet = {
   thickness: number;
   status: Status;
   matchedPoints: Vertex[];
+  reversed: boolean;
 };
 
 export const availableColors = [
@@ -28,7 +29,9 @@ export const availableColors = [
 
 export const TrapezoidSetConfig = (props: {
   trapezoidSet: TrapezoidSet;
-  setTrapezoidSet: (trapezoidSet: Partial<TrapezoidSet>) => void;
+  setTrapezoidSet: (
+    trapezoidSet: Pick<TrapezoidSet, "id"> & Partial<TrapezoidSet>
+  ) => void;
   onDelete: (trapezoid: Pick<TrapezoidSet, "id">) => void;
   canvasSize: { width: number; height: number };
   onGrab: (id: TrapezoidSet["id"] | null) => void;
@@ -156,33 +159,46 @@ export const TrapezoidSetConfig = (props: {
         >
           <label class="font-bold">Status</label>
           <div class="flex flex-row gap-2 justify-between mb-2.5">
-            <label class="flex flex-row items-center gap-1">
-              <input
-                type="radio"
-                name={radioName()}
-                value="editing"
-                checked={props.trapezoidSet.status === 'editing'}
-                onChange={(e) => {
-                  if (e.currentTarget.checked)
-                    props.setTrapezoidSet({
-                      id: props.trapezoidSet.id,
-                      status: 'editing',
-                    });
-                }}
-              />
-              Editing
-            </label>
+            <div class="flex flex-col gap-2">
+              <label class="flex flex-row items-center gap-1">
+                <input
+                  type="radio"
+                  name={radioName()}
+                  value="editing"
+                  checked={props.trapezoidSet.status === "editing"}
+                  onChange={(e) => {
+                    if (e.currentTarget.checked)
+                      props.setTrapezoidSet({
+                        id: props.trapezoidSet.id,
+                        status: "editing",
+                      });
+                  }}
+                />
+                Editing
+              </label>
+              <button
+                class="text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-green-500 hover:bg-green-700 active:bg-green-800"
+                onClick={() =>
+                  props.setTrapezoidSet({
+                    id: props.trapezoidSet.id,
+                    trapezoids: props.trapezoidSet.trapezoids.reverse(),
+                  })
+                }
+              >
+                Reverse Direction
+              </button>
+            </div>
             <label class="flex flex-row items-center gap-1">
               <input
                 type="radio"
                 name={radioName()}
                 value="matching"
-                checked={props.trapezoidSet.status === 'matching'}
+                checked={props.trapezoidSet.status === "matching"}
                 onChange={(e) => {
                   if (e.currentTarget.checked)
                     props.setTrapezoidSet({
                       id: props.trapezoidSet.id,
-                      status: 'matching',
+                      status: "matching",
                     });
                 }}
               />
@@ -193,12 +209,12 @@ export const TrapezoidSetConfig = (props: {
                 type="radio"
                 name={radioName()}
                 value="saved"
-                checked={props.trapezoidSet.status === 'saved'}
+                checked={props.trapezoidSet.status === "saved"}
                 onChange={(e) => {
                   if (e.currentTarget.checked)
                     props.setTrapezoidSet({
                       id: props.trapezoidSet.id,
-                      status: 'saved',
+                      status: "saved",
                     });
                 }}
               />
@@ -221,7 +237,7 @@ export const TrapezoidSetConfig = (props: {
             </div>
           }
         >
-          <div class='col-span-2'>
+          <div class="col-span-2">
             <ReductionPicker value={reduction()} onChange={setReduction} />
           </div>
           <div class="flex items-center justify-center">

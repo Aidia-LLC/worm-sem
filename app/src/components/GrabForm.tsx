@@ -4,12 +4,12 @@ import {
   getNextCommandId,
 } from "src/data/signals/grabQueue";
 import { Button } from "./Button";
-import { ReductionPicker } from "./ReductionPicker";
+
+const REDUCTION = -1;
 
 export const GrabForm = (props: { onGrabbed: (data: string) => void }) => {
   const [commandId, setCommandId] = createSignal<number | null>(null);
   const [loading, setLoading] = createSignal(false);
-  const [reduction, setReduction] = createSignal(-1);
 
   onMount(async () => {
     window.semClient.subscribe((message) => {
@@ -20,8 +20,6 @@ export const GrabForm = (props: { onGrabbed: (data: string) => void }) => {
 
   return (
     <div class="flex flex-col gap-3">
-      <h3 class="font-bold text-xl">Grab Tester</h3>
-      <ReductionPicker value={reduction()} onChange={setReduction} />
       <Button
         disabled={loading()}
         onClick={() => {
@@ -32,7 +30,7 @@ export const GrabForm = (props: { onGrabbed: (data: string) => void }) => {
             id,
             type: "grabFullFrame",
             name: "grabFullFrame",
-            reduction: reduction(),
+            reduction: REDUCTION,
           });
         }}
       >

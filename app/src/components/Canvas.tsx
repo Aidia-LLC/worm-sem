@@ -38,7 +38,6 @@ export const Canvas = () => {
   const [imageSrc, setImageSrc] = createSignal<string | null>(null);
 
   let canvasRef!: HTMLCanvasElement;
-  // let edgeDataCanvasRef!: HTMLCanvasElement;
   let overlayCanvasRef!: HTMLCanvasElement;
   const [hidden, setHidden] = createSignal(true);
   const [refresh, setRefresh] = createSignal(0);
@@ -48,16 +47,18 @@ export const Canvas = () => {
   const [edgeData, setEdgeData] = createSignal<ImageData>();
   const [clickedPoint, setClickedPoint] = createSignal<Vertex>();
   const [showOriginalImage, setShowOriginalImage] = createSignal(true);
-  const [trapezoidSets, setTrapezoidSets] = createSignal<TrapezoidSet[]>([]);
+  const [ribbons, setRibbons] = createSignal<TrapezoidSet[]>([]);
   const [imageData, setImageData] = createSignal<ImageData>();
-  const [grabbing, setGrabbing] = createSignal<TrapezoidSet["id"] | null>(null);
-  const [grabSize, setGrabSize] = createSignal(30);
+  const [focusedRibbon, setFocusedRibbon] = createSignal<
+    TrapezoidSet["id"] | null
+  >(null);
+  const [magnification, setMagnification] = createSignal(30);
 
   createEffect(() => {
     // re-draw the overlay canvas when any of these signals change
-    trapezoidSets();
-    grabbing();
-    grabSize();
+    ribbons();
+    focusedRibbon();
+    magnification();
 
     drawOverlay();
   });
@@ -145,15 +146,10 @@ export const Canvas = () => {
       fit
     );
     const colors = new Set(availableColors);
-    trapezoidSets().forEach((set) => {
-      colors.delete(set.color);
-    });
+    ribbons().forEach((set) => colors.delete(set.color));
     const color = colors.size > 0 ? colors.values().next().value : "red";
-    const filteredTrapezoids = filterTrapezoids(
-      connectedTrapezoids,
-      trapezoidSets()
-    );
-    setTrapezoidSets((prev) => [
+    const filteredTrapezoids = filterTrapezoids(connectedTrapezoids, ribbons());
+    setRibbons((prev) => [
       ...prev,
       {
         trapezoids: [...filteredTrapezoids, trapezoid],
@@ -162,6 +158,7 @@ export const Canvas = () => {
         thickness: 5,
         status: "editing",
         matchedPoints: [],
+        reversed: false,
       } as TrapezoidSet,
     ]);
     setNextId((prev) => prev + 1);
@@ -214,11 +211,13 @@ export const Canvas = () => {
   const drawOverlay = () => {
     const ctx = overlayCanvasRef.getContext("2d")!;
     ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
-    if (grabbing() === null) {
-      for (const trapezoidSet of trapezoidSets()) {
+    if (focusedRibbon() === null) {
+      for (const trapezoidSet of ribbons()) {
         const { trapezoids, color, thickness } = trapezoidSet;
-        for (const trapezoid of trapezoids)
-          DrawTrapezoid(trapezoid, ctx, color, thickness);
+        for (let i = 0; i < trapezoids.length; i++) {
+          const trapezoidColor = i === 0 ? "black" : color;
+          DrawTrapezoid(trapezoids[i], ctx, trapezoidColor, thickness);
+        }
         for (const point of trapezoidSet.matchedPoints) {
           ctx.beginPath();
           ctx.arc(point.x, point.y, thickness - 1, 0, 2 * Math.PI);
@@ -227,7 +226,7 @@ export const Canvas = () => {
         }
       }
     } else {
-      const set = trapezoidSets().find((s) => s.id === grabbing());
+      const set = ribbons().find((s) => s.id === focusedRibbon());
       if (!set) return;
 
       ctx.globalAlpha = 0.4;
@@ -236,7 +235,7 @@ export const Canvas = () => {
 
       ctx.globalAlpha = 1;
       ctx.lineWidth = 3;
-      const size = grabSize();
+      const size = magnification();
 
       for (const point of set.matchedPoints) {
         ctx.beginPath();
@@ -296,7 +295,7 @@ export const Canvas = () => {
     const { inTrapezoid, trapezoid } = isPointInTrapezoid(
       imgX,
       imgY,
-      trapezoidSets()
+      ribbons()
         .map((t) => t.trapezoids)
         .flat()
     );
@@ -312,7 +311,7 @@ export const Canvas = () => {
     const { nearestDistance } = findNearestVertex(
       imgX,
       imgY,
-      trapezoidSets()
+      ribbons()
         .map((t) => t.trapezoids)
         .flat()
     );
@@ -327,7 +326,7 @@ export const Canvas = () => {
   }
 
   function findTrapezoidSet(trapezoid: Trapezoid) {
-    for (const trapezoidSet of trapezoidSets()) {
+    for (const trapezoidSet of ribbons()) {
       if (trapezoidSet.trapezoids.includes(trapezoid)) return { trapezoidSet };
     }
     return { trapezoidSet: undefined };
@@ -349,8 +348,8 @@ export const Canvas = () => {
         setClickedPoint(nearestPoint);
         return;
       } else {
-        setTrapezoidSets(
-          trapezoidSets().map((t) => {
+        setRibbons(
+          ribbons().map((t) => {
             if (t.trapezoids === trapezoids) {
               return {
                 ...t,
@@ -441,8 +440,8 @@ export const Canvas = () => {
         y: otherY,
       });
     }
-    setTrapezoidSets(
-      trapezoidSets().map((t) => {
+    setRibbons(
+      ribbons().map((t) => {
         if (t.trapezoids === trapezoids) {
           return {
             ...t,
@@ -467,14 +466,14 @@ export const Canvas = () => {
     const { inTrapezoid, trapezoid } = isPointInTrapezoid(
       imgX,
       imgY,
-      trapezoidSets()
+      ribbons()
         .map((t) => t.trapezoids)
         .flat()
     );
     const { nearestVertex, nearestDistance } = findNearestVertex(
       imgX,
       imgY,
-      trapezoidSets()
+      ribbons()
         .map((t) => t.trapezoids)
         .flat()
     );
@@ -491,8 +490,8 @@ export const Canvas = () => {
             }
             return point;
           });
-          setTrapezoidSets(
-            trapezoidSets().map((t) => {
+          setRibbons(
+            ribbons().map((t) => {
               if (t.trapezoids === trapezoidSet.trapezoids) {
                 return {
                   ...t,
@@ -533,8 +532,8 @@ export const Canvas = () => {
               (t.bottom.x2 !== trapezoid.bottom.x2 &&
                 t.bottom.y2 !== trapezoid.bottom.y2)
           );
-          setTrapezoidSets(
-            trapezoidSets().map((t) =>
+          setRibbons(
+            ribbons().map((t) =>
               t.trapezoids === trapezoidSet.trapezoids
                 ? { ...t, trapezoids: newTrapezoids }
                 : t
@@ -553,8 +552,8 @@ export const Canvas = () => {
             ? newTrapezoid
             : t
         );
-        setTrapezoidSets(
-          trapezoidSets().map((t) =>
+        setRibbons(
+          ribbons().map((t) =>
             t.trapezoids === trapezoidSet.trapezoids
               ? { ...t, trapezoids: newTrapezoids }
               : t
@@ -566,7 +565,7 @@ export const Canvas = () => {
     // Dragging a vertex
     if (nearestDistance < 3) return;
     if (nearestVertex && nearestDistance < 15) {
-      const trapezoid = trapezoidSets()
+      const trapezoid = ribbons()
         .map((t) => t.trapezoids)
         .flat()
         .find(
@@ -590,12 +589,12 @@ export const Canvas = () => {
           : t
       );
       if (!newSet) return;
-      const newTrapezoids = trapezoidSets().map((t) =>
+      const newTrapezoids = ribbons().map((t) =>
         t.trapezoids === trapezoidSet?.trapezoids
           ? { ...t, trapezoids: newSet }
           : t
       );
-      setTrapezoidSets(newTrapezoids); //TODO double check
+      setRibbons(newTrapezoids); //TODO double check
     }
     refresh();
   }
@@ -615,18 +614,18 @@ export const Canvas = () => {
             onClick={() => {
               setImageSrc(null);
               setPoints([]);
-              setTrapezoidSets([]);
+              setRibbons([]);
               setRefresh(refresh() + 1);
             }}
           >
             Clear Image
           </Button>
           <div class="w-full flex flex-col">
-            <Show when={trapezoidSets().length > 0}>
+            <Show when={ribbons().length > 0}>
               <Button
                 onClick={() => {
                   setPoints([]);
-                  setTrapezoidSets([]);
+                  setRibbons([]);
                   setRefresh(refresh() + 1);
                 }}
               >
@@ -644,25 +643,25 @@ export const Canvas = () => {
         </div>
       </Show>
 
-      <For each={trapezoidSets()}>
+      <For each={ribbons()}>
         {(trapezoidSet) => (
           <TrapezoidSetConfig
-            grabbing={grabbing() === trapezoidSet.id}
-            onGrab={(id) => setGrabbing(id)}
+            grabbing={focusedRibbon() === trapezoidSet.id}
+            onGrab={(id) => setFocusedRibbon(id)}
             canvasSize={canvasRef}
             trapezoidSet={trapezoidSet}
             setTrapezoidSet={(newTrapezoidSet) => {
-              const newTrapezoidSets = trapezoidSets().map((t) =>
+              const newTrapezoidSets = ribbons().map((t) =>
                 t.id === newTrapezoidSet.id ? { ...t, ...newTrapezoidSet } : t
               );
               console.log(newTrapezoidSet);
-              setTrapezoidSets(newTrapezoidSets);
+              setRibbons(newTrapezoidSets);
             }}
             onDelete={({ id }) => {
-              setTrapezoidSets(trapezoidSets().filter((t) => t.id !== id));
+              setRibbons(ribbons().filter((t) => t.id !== id));
             }}
-            boxSize={grabSize()}
-            onSetBoxSize={(size) => setGrabSize(size)}
+            boxSize={magnification()}
+            onSetBoxSize={(size) => setMagnification(size)}
           />
         )}
       </For>
