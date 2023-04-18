@@ -846,7 +846,7 @@ export const Canvas = () => {
           id="canvas"
           width="1000"
           height="1000"
-          class="w-[clamp(300px,_100%,_1400px)] mx-auto"
+          class="w-[clamp(300px,_100%,_85vh)] mx-auto"
           classList={{
             hidden: !imageSrc(),
           }}
@@ -856,7 +856,7 @@ export const Canvas = () => {
           id="canvas"
           width="1000"
           height="1000"
-          class="w-[clamp(300px,_100%,_1400px)] mx-auto absolute top-0 left-[50%] translate-x-[-50%] z-50"
+          class="w-[clamp(300px,_100%,_85vh)] mx-auto absolute top-0 left-[50%] translate-x-[-50%] z-50"
           classList={{
             hidden: !imageSrc(),
           }}
