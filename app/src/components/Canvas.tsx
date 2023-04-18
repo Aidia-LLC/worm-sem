@@ -7,6 +7,7 @@ import type {
 } from "@dto/canvas";
 import {
   convertLocalToGlobal,
+  convertZoomedCoordinatesToFullImage,
   DirectSearchOptimization,
   DrawTrapezoid,
   findConnectedTrapezoids,
@@ -242,6 +243,16 @@ export const Canvas = () => {
   const drawOverlay = () => {
     const ctx = overlayCanvasRef.getContext("2d")!;
     ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
+    ctx.save();
+
+    const zoom = zoomState();
+    if (zoom && zoom !== 'pickingCenter') {
+      const { x, y, scale } = zoom;
+      ctx.translate(canvasRef.width / 2, canvasRef.height / 2);
+      ctx.scale(scale, scale);
+      ctx.translate(-x, -y);
+    }
+
     for (const trapezoidSet of ribbons()) {
       const { trapezoids, color, thickness } = trapezoidSet;
       for (let i = 0; i < trapezoids.length; i++) {
@@ -252,7 +263,7 @@ export const Canvas = () => {
           trapezoids[i],
           ctx,
           color,
-          thickness * (isFirstTrapezoid ? 1 : 0.5)
+          thickness * (isFirstTrapezoid ? 1.5 : 0.9)
         );
       }
       ctx.globalAlpha = 1;
@@ -263,6 +274,7 @@ export const Canvas = () => {
         ctx.stroke();
       }
     }
+    ctx.restore();
   };
 
   function draw() {
@@ -315,17 +327,25 @@ export const Canvas = () => {
     const rectHeight = rect.bottom - rect.top;
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    const imgX = Math.round((x / rectWidth) * canvasRef.width);
-    const imgY = Math.round((y / rectHeight) * canvasRef.height);
+    const imgX1 = Math.round((x / rectWidth) * canvasRef.width);
+    const imgY1 = Math.round((y / rectHeight) * canvasRef.height);
 
     if (zoomState() === "pickingCenter") {
       setZoomState({
-        x: imgX,
-        y: imgY,
+        x: imgX1,
+        y: imgY1,
         scale: DEFAULT_ZOOM_SCALE,
       });
       return;
     }
+
+    const { x: imgX, y: imgY } = convertZoomedCoordinatesToFullImage(
+      imgX1,
+      imgY1,
+      zoomState() as ZoomState | null,
+      canvasRef.width,
+      canvasRef.height
+    );
 
     if (!edgeData()) {
       const ctx = canvasRef.getContext("2d")!;

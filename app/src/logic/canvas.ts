@@ -1,4 +1,4 @@
-import { Trapezoid, Vertex } from "@dto/canvas";
+import { Trapezoid, Vertex, ZoomState } from "@dto/canvas";
 import { ProcessingOptions } from "@dto/ProcessingOptions";
 import { edgeFilter } from "./edgeFilter";
 import { base64ToImageSrc } from "./image";
@@ -673,4 +673,19 @@ export function getSquare(
     }
   }
   return square as unknown as Uint8ClampedArray;
+}
+
+export const convertZoomedCoordinatesToFullImage = (
+  x: number,
+  y: number,
+  zoom: ZoomState | null,
+  width: number,
+  height: number
+) => {
+  if (!zoom) return { x, y };
+  const viewportWidth = width / zoom.scale;
+  const viewportHeight = height / zoom.scale;
+  const zoomedX = x / zoom.scale - viewportWidth / 2 + zoom.x;
+  const zoomedY = y / zoom.scale - viewportHeight / 2 + zoom.y;
+  return { x: zoomedX, y: zoomedY };
 }
