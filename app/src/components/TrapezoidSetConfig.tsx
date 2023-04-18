@@ -26,8 +26,6 @@ export const TrapezoidSetConfig = (props: {
   canvasSize: { width: number; height: number };
   onGrab: (id: TrapezoidSet["id"] | null) => void;
   grabbing: boolean;
-  onSetBoxSize: (size: number) => void;
-  boxSize: number;
 }) => {
   const [reduction, setReduction] = createSignal(-1);
   const radioName = () => `status-${props.trapezoidSet.id}`;
@@ -38,34 +36,35 @@ export const TrapezoidSetConfig = (props: {
   };
 
   const onSend = () => {
-    const points = props.trapezoidSet.matchedPoints.map((point) =>
-      convertCoordinatesForSEM(point, props.canvasSize)
-    );
-    const { x: boxWidth, y: boxHeight } = convertCoordinatesForSEM(
-      { x: props.boxSize, y: props.boxSize },
-      props.canvasSize
-    );
+    // TODO actually send the correct commands
+    // const points = props.trapezoidSet.matchedPoints.map((point) =>
+    //   convertCoordinatesForSEM(point, props.canvasSize)
+    // );
+    // const { x: boxWidth, y: boxHeight } = convertCoordinatesForSEM(
+    //   { x: props.boxSize, y: props.boxSize },
+    //   props.canvasSize
+    // );
 
-    const boxes = points.map((point) => ({
-      x: point.x - boxWidth / 2,
-      y: point.y - boxHeight / 2,
-      width: boxWidth,
-      height: boxHeight,
-    }));
-    const setId = getNextCommandId();
-    const prefix = props.trapezoidSet.name.trim().replace(/[^a-zA-Z0-9]/g, "-");
-    const commands: GrabCommand[] = boxes.map((box, i) => ({
-      id: getNextCommandId(),
-      setId,
-      type: "grab",
-      height: Math.round(box.height),
-      width: Math.round(box.width),
-      x: Math.round(box.x),
-      y: Math.round(box.y),
-      name: `${prefix}-${i + 1}`,
-      reduction: reduction(),
-    }));
-    for (const command of commands) enqueueCommand(command);
+    // const boxes = points.map((point) => ({
+    //   x: point.x - boxWidth / 2,
+    //   y: point.y - boxHeight / 2,
+    //   width: boxWidth,
+    //   height: boxHeight,
+    // }));
+    // const setId = getNextCommandId();
+    // const prefix = props.trapezoidSet.name.trim().replace(/[^a-zA-Z0-9]/g, "-");
+    // const commands: GrabCommand[] = boxes.map((box, i) => ({
+    //   id: getNextCommandId(),
+    //   setId,
+    //   type: "grab",
+    //   height: Math.round(box.height),
+    //   width: Math.round(box.width),
+    //   x: Math.round(box.x),
+    //   y: Math.round(box.y),
+    //   name: `${prefix}-${i + 1}`,
+    //   reduction: reduction(),
+    // }));
+    // for (const command of commands) enqueueCommand(command);
     toggleGrabbing();
   };
 
@@ -83,7 +82,7 @@ export const TrapezoidSetConfig = (props: {
     >
       <div class="flex flex-col gap-1 items-center justify-center font-bold text-lg">
         <input
-          class='w-full'
+          class="w-full"
           type="text"
           value={props.trapezoidSet.name}
           onChange={(e) =>
@@ -100,25 +99,7 @@ export const TrapezoidSetConfig = (props: {
           Remove
         </button>
       </div>
-      <Show
-        when={!props.grabbing}
-        fallback={
-          <>
-            <div class="flex flex-col gap-1 col-span-2 my-auto">
-              <label class="font-bold">Box Size</label>
-              <input
-                type="number"
-                value={props.boxSize}
-                class="p-2 rounded-md border border-gray-300"
-                onInput={(e) =>
-                  props.onSetBoxSize(parseInt(e.currentTarget.value) || 1)
-                }
-                min={1}
-              />
-            </div>
-          </>
-        }
-      >
+      <Show when={!props.grabbing}>
         <div class="flex flex-col gap-1 col-span-2 my-auto">
           <label class="font-bold">Color</label>
           <select

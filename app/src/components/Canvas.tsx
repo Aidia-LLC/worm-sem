@@ -1,4 +1,9 @@
-import type { Trapezoid, TrapezoidSet, Vertex } from "@dto/canvas";
+import type {
+  SliceConfiguration,
+  Trapezoid,
+  TrapezoidSet,
+  Vertex,
+} from "@dto/canvas";
 import {
   convertLocalToGlobal,
   DirectSearchOptimization,
@@ -10,6 +15,7 @@ import {
   setupCanvas,
 } from "@logic/canvas";
 import { base64ToImageSrc } from "@logic/image";
+import { getIndicesOfSlicesToConfigure } from "@logic/sliceConfiguration";
 import { detectTrapezoid } from "@logic/trapezoids/detection";
 import { filterTrapezoids } from "@logic/trapezoids/filter";
 import { findNearestPoint, isPointInTrapezoid } from "@logic/trapezoids/points";
@@ -48,13 +54,15 @@ export const Canvas = () => {
   const [focusedRibbon, setFocusedRibbon] = createSignal<
     TrapezoidSet["id"] | null
   >(null);
-  const [magnification, setMagnification] = createSignal(30);
+  const [focusedSlice, setFocusedSlice] = createSignal<number>(-1);
+  const [sliceConfiguration, setSliceConfiguration] = createSignal<
+    SliceConfiguration[]
+  >([]);
 
   createEffect(() => {
     // re-draw the overlay canvas when any of these signals change
     ribbons();
     focusedRibbon();
-    magnification();
 
     drawOverlay();
   });
@@ -233,19 +241,6 @@ export const Canvas = () => {
 
       ctx.globalAlpha = 1;
       ctx.lineWidth = 3;
-      const size = magnification();
-
-      for (const point of set.matchedPoints) {
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, 1.5, 0, 2 * Math.PI);
-        ctx.closePath();
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.rect(point.x - size / 2, point.y - size / 2, size, size);
-        ctx.closePath();
-        ctx.stroke();
-      }
     }
   };
 
@@ -645,7 +640,19 @@ export const Canvas = () => {
         {(trapezoidSet) => (
           <TrapezoidSetConfig
             grabbing={focusedRibbon() === trapezoidSet.id}
-            onGrab={(id) => setFocusedRibbon(id)}
+            onGrab={(id) => {
+              setFocusedRibbon(id);
+              setFocusedRibbon(0);
+              const trapezoids = ribbons().find((t) => t.id === id)!.trapezoids;
+              const indicesToConfigure = getIndicesOfSlicesToConfigure(
+                trapezoids.length
+              );
+              setSliceConfiguration(
+                trapezoids
+                  .filter((_, index) => indicesToConfigure.includes(index))
+                  .map((_, index) => ({ index } as SliceConfiguration))
+              );
+            }}
             canvasSize={canvasRef}
             trapezoidSet={trapezoidSet}
             setTrapezoidSet={(newTrapezoidSet) => {
@@ -655,11 +662,9 @@ export const Canvas = () => {
               console.log(newTrapezoidSet);
               setRibbons(newTrapezoidSets);
             }}
-            onDelete={({ id }) => {
-              setRibbons(ribbons().filter((t) => t.id !== id));
-            }}
-            boxSize={magnification()}
-            onSetBoxSize={(size) => setMagnification(size)}
+            onDelete={({ id }) =>
+              setRibbons(ribbons().filter((t) => t.id !== id))
+            }
           />
         )}
       </For>
