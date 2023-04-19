@@ -1,6 +1,5 @@
 import { TrapezoidSet } from "@dto/canvas";
-import { createSignal, Show } from "solid-js";
-import { ReductionPicker } from "./ReductionPicker";
+import { Show } from "solid-js";
 
 export const availableColors = [
   "red",
@@ -21,45 +20,11 @@ export const TrapezoidSetConfig = (props: {
   onGrab: (id: TrapezoidSet["id"] | null) => void;
   grabbing: boolean;
 }) => {
-  const [reduction, setReduction] = createSignal(-1);
   const radioName = () => `status-${props.trapezoidSet.id}`;
 
   const toggleGrabbing = () => {
     if (props.grabbing) props.onGrab(null);
     else props.onGrab(props.trapezoidSet.id);
-  };
-
-  const onSend = () => {
-    // TODO actually send the correct commands
-    // const points = props.trapezoidSet.matchedPoints.map((point) =>
-    //   convertCoordinatesForSEM(point, props.canvasSize)
-    // );
-    // const { x: boxWidth, y: boxHeight } = convertCoordinatesForSEM(
-    //   { x: props.boxSize, y: props.boxSize },
-    //   props.canvasSize
-    // );
-
-    // const boxes = points.map((point) => ({
-    //   x: point.x - boxWidth / 2,
-    //   y: point.y - boxHeight / 2,
-    //   width: boxWidth,
-    //   height: boxHeight,
-    // }));
-    // const setId = getNextCommandId();
-    // const prefix = props.trapezoidSet.name.trim().replace(/[^a-zA-Z0-9]/g, "-");
-    // const commands: GrabCommand[] = boxes.map((box, i) => ({
-    //   id: getNextCommandId(),
-    //   setId,
-    //   type: "grab",
-    //   height: Math.round(box.height),
-    //   width: Math.round(box.width),
-    //   x: Math.round(box.x),
-    //   y: Math.round(box.y),
-    //   name: `${prefix}-${i + 1}`,
-    //   reduction: reduction(),
-    // }));
-    // for (const command of commands) enqueueCommand(command);
-    toggleGrabbing();
   };
 
   return (
@@ -202,36 +167,13 @@ export const TrapezoidSetConfig = (props: {
         </div>
       </Show>
       <Show when={props.trapezoidSet.matchedPoints.length > 0}>
-        <Show
-          when={props.grabbing}
-          fallback={
-            <div class="flex items-center justify-center">
-              <button
-                class="text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-green-600 hover:bg-green-700 active:bg-green-800"
-                onClick={toggleGrabbing}
-              >
-                Grab
-              </button>
-            </div>
-          }
-        >
-          <div class="col-span-2">
-            <ReductionPicker value={reduction()} onChange={setReduction} />
-          </div>
-          <div class="flex items-center justify-center">
-            <button
-              class="text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-gray-600 hover:bg-gray-700 active:bg-gray-800"
-              onClick={toggleGrabbing}
-            >
-              Cancel
-            </button>
-          </div>
+        <Show when={!props.grabbing} fallback="Grabbing...">
           <div class="flex items-center justify-center">
             <button
               class="text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-green-600 hover:bg-green-700 active:bg-green-800"
-              onClick={onSend}
+              onClick={toggleGrabbing}
             >
-              Send
+              Configure Slices
             </button>
           </div>
         </Show>
