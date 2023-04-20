@@ -132,10 +132,10 @@ export const ConfigureSliceCanvas = (props: {
     console.log("drawing image");
     const src = imageSrc();
     const context = canvasRef.getContext("2d")!;
-    context.clearRect(0, 0, canvasRef.width, canvasRef.height);
     if (!src) return console.log("no image src");
     const img = new Image();
     img.onload = () => {
+      context.clearRect(0, 0, canvasRef.width, canvasRef.height);
       context.drawImage(img, 0, 0);
     };
     img.src = base64ToImageSrc(src);
