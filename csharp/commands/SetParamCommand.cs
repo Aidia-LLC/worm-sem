@@ -7,9 +7,9 @@ namespace wormsem.commands
 	public class SetParamCommand : Command
 	{
         private string param;
-        private int value;
+        private object value;
 
-        public SetParamCommand(int id, string param, int value) : base(id)
+        public SetParamCommand(int id, string param, object value) : base(id)
         {
             this.param = param;
             this.value = value;

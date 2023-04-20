@@ -59,7 +59,7 @@ namespace wormsem.api
             Grab(name, filename, 0, 0, FRAME_WIDTH, FRAME_HEIGHT);
         }
 
-        public void SetParam(string param, int value)
+        public void SetParam(string param, object value)
         {
             object wrapper = new VariantWrapper(value);
             int response = api.Set(param, ref wrapper);

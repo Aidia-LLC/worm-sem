@@ -14,6 +14,18 @@ namespace wormsem.api
         {
             if (param.Equals("DP_FROZEN"))
                 return 1;
+            if (param.Equals("AP_WIDTH"))
+                return 30;
+            if (param.Equals("AP_HEIGHT"))
+                return 30;
+            if (param.Equals("AP_STAGE_LOW_X"))
+                return 1;
+            if (param.Equals("AP_STAGE_LOW_Y"))
+                return 1;
+            if (param.Equals("AP_STAGE_HIGH_X"))
+                return 100;
+            if (param.Equals("AP_STAGE_HIGH_Y"))
+                return 100;
             return 42;
         }
 
@@ -34,7 +46,7 @@ namespace wormsem.api
             Grab("test", filename, 0, 0, 0, 0);
         }
 
-        public void SetParam(string param, int value)
+        public void SetParam(string param, object value)
         {
             return;
         }
