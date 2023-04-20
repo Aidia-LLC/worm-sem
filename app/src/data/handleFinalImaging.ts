@@ -82,15 +82,6 @@ export const handleFinalImaging = async (
       if (isFrozen === "1") break;
       await sleep(10000);
     }
-    console.log("taking image", {
-      id: getNextCommandId(),
-      type: "grabFullFrame",
-      name: config.label,
-      reduction: -1,
-      temporary: false,
-      ribbonId: config.ribbonId,
-      ribbonName: config.ribbonName,
-    });
     await grabSEMImage({
       id: getNextCommandId(),
       type: "grabFullFrame",

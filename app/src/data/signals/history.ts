@@ -13,7 +13,6 @@ const addHistory = (message: Message) => {
 
 export const clearHistory = () => {
   const [history, setHistory] = historySignal;
-  // console.log("clearing history", history());
   setHistory(history().filter((message) => message.id === CONNECTION_ID));
 };
 

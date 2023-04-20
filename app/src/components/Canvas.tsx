@@ -560,7 +560,6 @@ export const Canvas = () => {
         return t;
       })
     );
-    console.log(ribbons());
   }
 
   function handleMouseMove(e: MouseEvent) {
@@ -786,6 +785,8 @@ export const Canvas = () => {
     console.log(finalConfigurations);
     await handleFinalImaging(finalConfigurations, setPercentComplete);
     setGrabbing(false);
+    setFocusedRibbon(-1);
+    alert(`Done imaging for ${ribbon.name}!`);
   };
 
   const handleMoveStageToSlice = () => {
@@ -796,7 +797,6 @@ export const Canvas = () => {
       canvasConfiguration: canvasRef,
       stageConfiguration: initialStage()!,
     });
-    console.log(coordinates);
     window.semClient.send({
       type: "setParam",
       id: getNextCommandId(),
@@ -1039,7 +1039,7 @@ export const Canvas = () => {
                 <p>
                   This sets the size of a 'bounding box' where the algorithm
                   will look for a trapezoid. This may need to be changed if the
-                  picture is more or less zoomed in than usual.
+                  image is more or less zoomed in than usual.
                 </p>
                 <Param
                   label="Square Size"
@@ -1057,7 +1057,7 @@ export const Canvas = () => {
                   low, and trapezoids will be found past the line of trapezoids.
                 </p>
                 <Param
-                  label="Minimum Fit for Recurrance"
+                  label="Minimum Fit for Recurrence"
                   value={options.options.minimumFit}
                   onChange={(value) =>
                     setOptions("options", "minimumFit", value)

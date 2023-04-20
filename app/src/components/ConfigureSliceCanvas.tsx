@@ -37,7 +37,6 @@ export const ConfigureSliceCanvas = (props: {
 
   onMount(async () => {
     if (!props.configuration) return;
-    console.log("setup config");
     unsubscribe = window.semClient.subscribe((message) => {
       if (message.type === "success" && message.code === 200) {
         setImageSrc(message.payload!);
@@ -60,8 +59,6 @@ export const ConfigureSliceCanvas = (props: {
       canvasConfiguration: props.canvas,
       stageConfiguration: props.stage,
     });
-
-    console.log(coordinates);
 
     window.semClient.send({
       type: "setParam",
@@ -90,11 +87,8 @@ export const ConfigureSliceCanvas = (props: {
       command: `CMD_SCANRATE${MEDIUM_SCAN_SPEED}`,
     });
 
-    console.log("calling settimeout");
     timerRef = window.setTimeout(() => {
-      console.log("setting up timer");
       timerRef = window.setInterval(() => {
-        console.log("sending grab");
         window.semClient.send({
           type: "grabFullFrame",
           id: getNextCommandId(),
@@ -107,13 +101,11 @@ export const ConfigureSliceCanvas = (props: {
   });
 
   onCleanup(() => {
-    console.log("cleanup config");
     unsubscribe?.();
     if (timerRef) clearInterval(timerRef);
   });
 
   createEffect(() => {
-    console.log("drawing image");
     const src = imageSrc();
     const context = canvasRef.getContext("2d")!;
     if (!src) return console.log("no image src");
