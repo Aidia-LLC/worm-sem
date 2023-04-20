@@ -292,6 +292,7 @@ export const Canvas = () => {
     ctx.save();
 
     const zoom = zoomState();
+    const scale = zoom && zoom !== "pickingCenter" ? zoom.scale : 1;
     if (zoom && zoom !== "pickingCenter") {
       const { x, y, scale } = zoom;
       ctx.translate(canvasRef.width / 2, canvasRef.height / 2);
@@ -313,9 +314,11 @@ export const Canvas = () => {
         );
       }
       ctx.globalAlpha = 1;
+      ctx.lineWidth = 3 / scale;
+      const radius = 3 / scale * 2;
       for (const point of trapezoidSet.matchedPoints) {
         ctx.beginPath();
-        ctx.arc(point.x, point.y, thickness - 1, 0, 2 * Math.PI);
+        ctx.arc(point.x, point.y, radius, 0, 2 * Math.PI);
         ctx.closePath();
         ctx.stroke();
       }

@@ -2,19 +2,22 @@ import { Button } from "@components/Button";
 import { Canvas } from "@components/Canvas";
 import { HistoryLog } from "@components/HistoryLog";
 import { Instructions } from "@components/Instructions";
-import { createSignal, onMount, Show } from "solid-js";
+import { createEffect, createSignal, onMount, Show } from "solid-js";
 import { initializeCommandQueue } from "./data/signals/commandQueue";
 import { CONNECTION_ID, historySignal } from "./data/signals/history";
 
 export const App = () => {
   const [history] = historySignal;
   const [acknowledged, setAcknowledged] = createSignal(false);
+  const [connected, setConnected] = createSignal(false);
 
   onMount(() => {
     initializeCommandQueue();
   });
 
-  const connected = () => history().find((m) => m.id === CONNECTION_ID);
+  createEffect(() => {
+    if (history().find((m) => m.id === CONNECTION_ID)) setConnected(true);
+  });
 
   return (
     <div class="flex flex-col gap-3 m-4">

@@ -12,8 +12,8 @@ const addHistory = (message: Message) => {
 };
 
 export const clearHistory = () => {
-  const [history, setHistory] = historySignal;
-  setHistory(history().filter((message) => message.id === CONNECTION_ID));
+  const [_, setHistory] = historySignal;
+  setHistory([]);
 };
 
 onMount(() => {
