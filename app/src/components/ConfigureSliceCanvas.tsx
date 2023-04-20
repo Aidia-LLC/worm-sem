@@ -23,20 +23,21 @@ export const ConfigureSliceCanvas = (props: {
   onNext: () => void;
   onPrevious: () => void;
   canvas: HTMLCanvasElement;
+  stage: StageConfiguration;
 }) => {
   const [loading, setLoading] = createSignal(true);
   const [imageSrc, setImageSrc] = createSignal<string | null>(null);
   const [brightness, setBrightness] = createSignal<number | null>(null);
   const [contrast, setContrast] = createSignal<number | null>(null);
   const [focus, setFocus] = createSignal<number | null>(null);
-  const [initialStage, setInitialStage] =
-    createSignal<StageConfiguration | null>(null);
 
   let canvasRef!: HTMLCanvasElement;
   let timerRef!: number;
   let unsubscribe!: VoidFunction;
 
   onMount(async () => {
+    if (!props.configuration) return;
+    console.log("setup config");
     unsubscribe = window.semClient.subscribe((message) => {
       if (message.type === "success" && message.code === 200) {
         setImageSrc(message.payload!);
@@ -47,25 +48,7 @@ export const ConfigureSliceCanvas = (props: {
     const brightness = await getSEMParam("AP_BRIGHTNESS");
     const contrast = await getSEMParam("AP_CONTRAST");
     const focus = await getSEMParam("AP_WD");
-    const stageX = await getSEMParam("AP_STAGE_AT_X");
-    const stageY = await getSEMParam("AP_STAGE_AT_Y");
-    const stageLowLimitX = await getSEMParam("AP_STAGE_LOW_X");
-    const stageLowLimitY = await getSEMParam("AP_STAGE_LOW_Y");
-    const stageHighLimitX = await getSEMParam("AP_STAGE_HIGH_X");
-    const stageHighLimitY = await getSEMParam("AP_STAGE_HIGH_Y");
-    const fieldOfViewWidth = await getSEMParam("AP_WIDTH");
-    const fieldOfViewHeight = await getSEMParam("AP_HEIGHT");
 
-    setInitialStage({
-      x: parseFloat(stageX),
-      y: parseFloat(stageY),
-      width: parseFloat(fieldOfViewWidth),
-      height: parseFloat(fieldOfViewHeight),
-      limits: {
-        x: [parseFloat(stageLowLimitX), parseFloat(stageHighLimitX)],
-        y: [parseFloat(stageLowLimitY), parseFloat(stageHighLimitY)],
-      },
-    });
     setBrightness(parseFloat(brightness));
     setContrast(parseFloat(contrast));
     setFocus(parseFloat(focus));
@@ -75,7 +58,7 @@ export const ConfigureSliceCanvas = (props: {
     const coordinates = computeStageCoordinates({
       point,
       canvasConfiguration: props.canvas,
-      stageConfiguration: initialStage()!,
+      stageConfiguration: props.stage,
     });
 
     console.log(coordinates);
@@ -108,7 +91,7 @@ export const ConfigureSliceCanvas = (props: {
     });
 
     console.log("calling settimeout");
-    setTimeout(() => {
+    timerRef = window.setTimeout(() => {
       console.log("setting up timer");
       timerRef = window.setInterval(() => {
         console.log("sending grab");
@@ -124,7 +107,8 @@ export const ConfigureSliceCanvas = (props: {
   });
 
   onCleanup(() => {
-    unsubscribe();
+    console.log("cleanup config");
+    unsubscribe?.();
     if (timerRef) clearInterval(timerRef);
   });
 
@@ -149,13 +133,15 @@ export const ConfigureSliceCanvas = (props: {
             invisible: props.configuration.index === 0,
           }}
         >
-          <Button onClick={props.onPrevious}>Previous Slice</Button>
+          <Button disabled={!imageSrc()} onClick={props.onPrevious}>
+            Previous Slice
+          </Button>
         </div>
         <span>
           Configuring Slice {props.configuration.index + 1} of{" "}
           {props.ribbon.trapezoids.length}
         </span>
-        <Button onClick={props.onNext}>
+        <Button disabled={!imageSrc()} onClick={props.onNext}>
           <Show
             when={
               props.configuration.index === props.ribbon.trapezoids.length - 1

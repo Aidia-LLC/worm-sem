@@ -19,6 +19,10 @@ import {
   setupCanvas,
 } from "@logic/canvas";
 import { base64ToImageSrc } from "@logic/image";
+import {
+  computeStageCoordinates,
+  StageConfiguration,
+} from "@logic/semCoordinates";
 import { getIndicesOfSlicesToConfigure } from "@logic/sliceConfiguration";
 import { detectTrapezoid } from "@logic/trapezoids/detection";
 import { filterTrapezoids } from "@logic/trapezoids/filter";
@@ -37,7 +41,9 @@ import {
   untrack,
 } from "solid-js";
 import { createOptionsStore } from "src/data/createOptionsStore";
+import { handleFinalImaging } from "src/data/handleFinalImaging";
 import { DEFAULT_MAG } from "src/data/magnification";
+import { getSEMParam } from "src/data/semParams";
 import { getNextCommandId } from "src/data/signals/commandQueue";
 import { Button } from "./Button";
 import { ConfigureSliceCanvas } from "./ConfigureSliceCanvas";
@@ -78,6 +84,9 @@ export const Canvas = () => {
     ZoomState | "pickingCenter" | null
   >(null);
   const [grabbing, setGrabbing] = createSignal(false);
+  const [percentComplete, setPercentComplete] = createSignal(0);
+  const [initialStage, setInitialStage] =
+    createSignal<StageConfiguration | null>(null);
 
   const handleKeyPress = (e: KeyboardEvent) => {
     if (e.key.toLowerCase() === "z") handleZoomButtonPressed();
@@ -232,10 +241,29 @@ export const Canvas = () => {
     });
   });
 
-  onMount(() => {
+  onMount(async () => {
     overlayCanvasRef.addEventListener("mousedown", handleMouseDown);
     window.addEventListener("keydown", handleKeyPress);
     setOriginalImage();
+
+    const stageX = await getSEMParam("AP_STAGE_AT_X");
+    const stageY = await getSEMParam("AP_STAGE_AT_Y");
+    const stageLowLimitX = await getSEMParam("AP_STAGE_LOW_X");
+    const stageLowLimitY = await getSEMParam("AP_STAGE_LOW_Y");
+    const stageHighLimitX = await getSEMParam("AP_STAGE_HIGH_X");
+    const stageHighLimitY = await getSEMParam("AP_STAGE_HIGH_Y");
+    const fieldOfViewWidth = await getSEMParam("AP_WIDTH");
+    const fieldOfViewHeight = await getSEMParam("AP_HEIGHT");
+    setInitialStage({
+      x: parseFloat(stageX),
+      y: parseFloat(stageY),
+      width: parseFloat(fieldOfViewWidth),
+      height: parseFloat(fieldOfViewHeight),
+      limits: {
+        x: [parseFloat(stageLowLimitX), parseFloat(stageHighLimitX)],
+        y: [parseFloat(stageLowLimitY), parseFloat(stageHighLimitY)],
+      },
+    });
   });
 
   onCleanup(() => {
@@ -686,7 +714,7 @@ export const Canvas = () => {
       if (!newSet) return;
       const newTrapezoids = ribbons().map((t) =>
         t.trapezoids === trapezoidSet?.trapezoids
-          ? { ...t, trapezoids: newSet }
+          ? { ...t, trapezoids: newSet, matchedPoints: [] }
           : t
       );
       setRibbons(newTrapezoids); //TODO double check
@@ -701,13 +729,13 @@ export const Canvas = () => {
     setClickedPoint(undefined);
   }
 
-  const handleStartGrabbing = () => {
+  const handleStartGrabbing = async () => {
     setFocusedSlice(-1);
     setGrabbing(true);
     const userConfigurations = sliceConfiguration();
     const ribbon = ribbons().find((r) => r.id === focusedRibbon());
-    if (!ribbon) return;
-    const slices = ribbon.trapezoids;
+    const stage = initialStage();
+    if (!ribbon || !stage) return;
     const interpolatedConfigurations: SliceConfiguration[] = [];
     for (let i = 0; i < userConfigurations.length; i++) {
       const configA = userConfigurations[i];
@@ -735,90 +763,141 @@ export const Canvas = () => {
         });
       }
     }
+    const ribbonId = getNextCommandId();
+    const ribbonName = ribbon.name.replace(/[^a-z0-9]/gi, "-").toLowerCase();
     const finalConfigurations: FinalSliceConfiguration[] =
-      interpolatedConfigurations.map((c) => ({
-        brightness: c.brightness!,
-        contrast: c.contrast!,
-        focus: c.focus!,
-        label: `slice-${slices[c.index]}`,
-        point: ribbon.matchedPoints[c.index],
-      }));
+      interpolatedConfigurations.map((c) => {
+        const point = computeStageCoordinates({
+          point: ribbon.matchedPoints[c.index],
+          canvasConfiguration: canvasRef,
+          stageConfiguration: stage,
+        });
+        return {
+          magnification: magnification(),
+          brightness: c.brightness!,
+          contrast: c.contrast!,
+          focus: c.focus!,
+          label: `slice-${c.index + 1}`,
+          point,
+          ribbonId,
+          ribbonName,
+        };
+      });
     console.log(finalConfigurations);
+    await handleFinalImaging(finalConfigurations, setPercentComplete);
+    setGrabbing(false);
+  };
+
+  const handleMoveStageToSlice = () => {
+    const ribbon = ribbons().find((ribbon) => ribbon.id === focusedRibbon())!;
+    const point = ribbon.matchedPoints[focusedSlice()];
+    const coordinates = computeStageCoordinates({
+      point,
+      canvasConfiguration: canvasRef,
+      stageConfiguration: initialStage()!,
+    });
+    console.log(coordinates);
+    window.semClient.send({
+      type: "setParam",
+      id: getNextCommandId(),
+      param: "AP_STAGE_GOTO_X",
+      value: coordinates.x,
+    });
+    window.semClient.send({
+      type: "setParam",
+      id: getNextCommandId(),
+      param: "AP_STAGE_GOTO_Y",
+      value: coordinates.y,
+    });
   };
 
   return (
     <div class="flex flex-col gap-3 text-xs">
       <Show
-        when={focusedSlice() === -1}
+        when={grabbing()}
         fallback={
-          <ConfigureSliceCanvas
-            magnification={magnification()}
-            setMagnification={setMagnification}
-            canvas={canvasRef}
-            configuration={
-              sliceConfiguration().find(
-                ({ index }) => index === focusedSlice()
-              )!
-            }
-            setConfiguration={(newConfiguration) => {
-              if (newConfiguration.brightness) {
-                window.semClient.send({
-                  id: getNextCommandId(),
-                  type: "setParam",
-                  param: "AP_BRIGHTNESS",
-                  value: newConfiguration.brightness,
-                });
+          <Show when={focusedSlice() !== -1 && initialStage()}>
+            <ConfigureSliceCanvas
+              stage={initialStage()!}
+              magnification={magnification()}
+              setMagnification={setMagnification}
+              canvas={canvasRef}
+              configuration={
+                sliceConfiguration().find(
+                  ({ index }) => index === focusedSlice()
+                )!
               }
-              if (newConfiguration.contrast) {
-                window.semClient.send({
-                  id: getNextCommandId(),
-                  type: "setParam",
-                  param: "AP_CONTRAST",
-                  value: newConfiguration.contrast,
-                });
-              }
-              if (newConfiguration.focus) {
-                window.semClient.send({
-                  id: getNextCommandId(),
-                  type: "setParam",
-                  param: "AP_WD",
-                  value: newConfiguration.focus,
-                });
-              }
-              setSliceConfiguration(
-                sliceConfiguration().map((c) =>
-                  c.index === focusedSlice() ? { ...c, ...newConfiguration } : c
-                )
-              );
-            }}
-            onNext={() => {
-              const currentConfigIndex = sliceConfiguration().findIndex(
-                (c) => c.index === focusedSlice()
-              );
-              if (currentConfigIndex === sliceConfiguration().length - 1) {
-                handleStartGrabbing();
-              } else {
-                setFocusedSlice(
-                  sliceConfiguration()[currentConfigIndex + 1].index
+              setConfiguration={(newConfiguration) => {
+                if (newConfiguration.brightness) {
+                  window.semClient.send({
+                    id: getNextCommandId(),
+                    type: "setParam",
+                    param: "AP_BRIGHTNESS",
+                    value: newConfiguration.brightness,
+                  });
+                }
+                if (newConfiguration.contrast) {
+                  window.semClient.send({
+                    id: getNextCommandId(),
+                    type: "setParam",
+                    param: "AP_CONTRAST",
+                    value: newConfiguration.contrast,
+                  });
+                }
+                if (newConfiguration.focus) {
+                  window.semClient.send({
+                    id: getNextCommandId(),
+                    type: "setParam",
+                    param: "AP_WD",
+                    value: newConfiguration.focus,
+                  });
+                }
+                setSliceConfiguration(
+                  sliceConfiguration().map((c) =>
+                    c.index === focusedSlice()
+                      ? { ...c, ...newConfiguration }
+                      : c
+                  )
                 );
-              }
-            }}
-            onPrevious={() => {
-              const currentConfigIndex = sliceConfiguration().findIndex(
-                (c) => c.index === focusedSlice()
-              );
-              if (currentConfigIndex === 0) {
-                return;
-              } else {
-                setFocusedSlice(
-                  sliceConfiguration()[currentConfigIndex - 1].index
+              }}
+              onNext={() => {
+                const currentConfigIndex = sliceConfiguration().findIndex(
+                  (c) => c.index === focusedSlice()
                 );
+                if (currentConfigIndex === sliceConfiguration().length - 1) {
+                  handleStartGrabbing();
+                } else {
+                  setFocusedSlice(
+                    sliceConfiguration()[currentConfigIndex + 1].index
+                  );
+                  handleMoveStageToSlice();
+                }
+              }}
+              onPrevious={() => {
+                const currentConfigIndex = sliceConfiguration().findIndex(
+                  (c) => c.index === focusedSlice()
+                );
+                if (currentConfigIndex === 0) {
+                  return;
+                } else {
+                  setFocusedSlice(
+                    sliceConfiguration()[currentConfigIndex - 1].index
+                  );
+                  handleMoveStageToSlice();
+                }
+              }}
+              ribbon={
+                ribbons().find((ribbon) => ribbon.id === focusedRibbon())!
               }
-            }}
-            ribbon={ribbons().find((ribbon) => ribbon.id === focusedRibbon())!}
-          />
+            />
+          </Show>
         }
       >
+        <h2 class="text-xl font-bold">
+          Grabbing... {percentComplete()}% complete
+        </h2>
+      </Show>
+      <Show when={focusedSlice() === -1}>
         <Show when={imageSrc()}>
           <div class="grid grid-cols-4 gap-4 mt-1">
             <Button

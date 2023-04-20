@@ -53,7 +53,9 @@ app.on("window-all-closed", () => {
 });
 
 const NUM_TEMP_FILES = 5;
-const tempFileNames = Array.from({ length: NUM_TEMP_FILES }, () => temporaryFile());
+const tempFileNames = Array.from({ length: NUM_TEMP_FILES }, () =>
+  temporaryFile()
+);
 let tempFileIndex = 0;
 
 const getFilename = async (grabCommand: GrabFullFrameCommand) => {
@@ -63,15 +65,18 @@ const getFilename = async (grabCommand: GrabFullFrameCommand) => {
     tempFileIndex = (tempFileIndex + 1) % tempFileNames.length;
     return Promise.resolve(tempFileNames[tempFileIndex]);
   }
-  if (filePaths.has(ribbonId)) return Promise.resolve(filePaths.get(ribbonId));
+  if (filePaths.has(ribbonId))
+    return Promise.resolve(
+      `${filePaths.get(ribbonId)}-${grabCommand.name}.png`
+    );
   const result = await dialog.showOpenDialog(browserWindow!, {
     properties: ["createDirectory", "openDirectory"],
   });
   if (result.canceled) return Promise.resolve(null);
   const [folderPath] = result.filePaths;
-  const filePath = `${folderPath}/${grabCommand.ribbonName}-${grabCommand.id}.png`;
+  const filePath = `${folderPath}/${grabCommand.ribbonName}`;
   filePaths.set(ribbonId, filePath);
-  return Promise.resolve(filePath);
+  return Promise.resolve(`${filePath}-${grabCommand.name}.png`);
 };
 
 const init = (childProcess: ChildProcessWithoutNullStreams) => {
@@ -92,7 +97,18 @@ const init = (childProcess: ChildProcessWithoutNullStreams) => {
         if (message.code === 200) {
           // grab success
           (async () => {
-            const data = await fs.promises.readFile(message.payload!);
+            const payload = message.payload;
+            if (!payload) return;
+            if (payload.endsWith("setup.png")) {
+              // this is a temporary file just used to make the user choose a folder before waiting for the first image to be taken
+              await fs.promises.rm(payload);
+              browserWindow?.webContents.send("SEMClient:Received", {
+                ...message,
+                payload: "",
+              } as Message);
+              return;
+            }
+            const data = await fs.promises.readFile(payload);
             browserWindow?.webContents.send("SEMClient:Received", {
               ...message,
               payload: Buffer.from(data).toString("base64"),

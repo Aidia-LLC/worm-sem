@@ -67,6 +67,7 @@ export type CommandString = `CMD_SCANRATE${number}`;
 type Param =
   | "DP_IMAGE_STORE"
   | "DP_FREEZE_ON"
+  | "DP_FROZEN"
   | "AP_WIDTH"
   | "AP_HEIGHT"
   | "AP_MAG"

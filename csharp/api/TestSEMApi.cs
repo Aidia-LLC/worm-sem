@@ -12,6 +12,8 @@ namespace wormsem.api
 
         public object GetParam(string param)
         {
+            if (param.Equals("DP_FROZEN"))
+                return 1;
             return 42;
         }
 

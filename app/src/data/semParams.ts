@@ -1,4 +1,4 @@
-import { GetParamCommand, Param } from "@dto/semClient";
+import { GetParamCommand, GrabFullFrameCommand, Param } from "@dto/semClient";
 import { getNextCommandId } from "./signals/commandQueue";
 
 export const getSEMParam = (param: Param): Promise<string> => {
@@ -23,6 +23,26 @@ export const getSEMParam = (param: Param): Promise<string> => {
   });
 };
 
+export const grabSEMImage = (command: GrabFullFrameCommand): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const unsubscribe = window.semClient.subscribe((message) => {
+      if (message.id === command.id) {
+        unsubscribe();
+        if (message.type === "success") {
+          resolve();
+        } else {
+          reject();
+        }
+      }
+    });
+    window.semClient.send(command);
+  });
+}
+
 export const SLOWEST_SCAN_SPEED = 1;
 export const MEDIUM_SCAN_SPEED = 8;
 export const FASTEST_SCAN_SPEED = 15;
+
+export const LOWER_IMAGE_QUALITY = 0;
+export const MEDIUM_IMAGE_QUALITY = 7;
+export const HIGHEST_IMAGE_QUALITY = 11;

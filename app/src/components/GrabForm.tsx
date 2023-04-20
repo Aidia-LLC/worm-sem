@@ -1,5 +1,5 @@
 import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
-import { FASTEST_SCAN_SPEED, MEDIUM_SCAN_SPEED } from "src/data/semParams";
+import { FASTEST_SCAN_SPEED, LOWER_IMAGE_QUALITY, MEDIUM_IMAGE_QUALITY, MEDIUM_SCAN_SPEED } from "src/data/semParams";
 import {
   enqueueCommand,
   getNextCommandId,
@@ -62,7 +62,7 @@ export const GrabForm = (props: {
             id: ids[0],
             type: "setParam",
             param: "DP_IMAGE_STORE",
-            value: 0, // 1024 * 768
+            value: LOWER_IMAGE_QUALITY, // 1024 * 768
           });
           enqueueCommand({
             id: ids[1],
@@ -80,7 +80,7 @@ export const GrabForm = (props: {
             id: ids[3],
             type: "setParam",
             param: "DP_IMAGE_STORE",
-            value: 7, // 8192 x 6144
+            value: MEDIUM_IMAGE_QUALITY, // 8192 x 6144
           });
           enqueueCommand({
             id: ids[4],

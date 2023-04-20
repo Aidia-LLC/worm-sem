@@ -48,6 +48,9 @@ export type FinalSliceConfiguration = {
   label: string;
   contrast: number;
   brightness: number;
+  magnification: number;
   focus: number;
   point: Vertex;
+  ribbonId: number;
+  ribbonName: string;
 }
