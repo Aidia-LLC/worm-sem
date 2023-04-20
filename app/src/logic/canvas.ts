@@ -704,4 +704,4 @@ export const convertZoomedCoordinatesToFullImage = (
   return { x: clickedX, y: clickedY };
 };
 
-const lerp = (a: number, b: number, t: number) => a * (1 - t) + b * t;
+export const lerp = (a: number, b: number, t: number) => a * (1 - t) + b * t;

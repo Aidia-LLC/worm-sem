@@ -43,3 +43,11 @@ export type ZoomState = {
   y: number;
   scale: number;
 };
+
+export type FinalSliceConfiguration = {
+  label: string;
+  contrast: number;
+  brightness: number;
+  focus: number;
+  point: Vertex;
+}

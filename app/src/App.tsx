@@ -2,12 +2,13 @@ import { Button } from "@components/Button";
 import { Canvas } from "@components/Canvas";
 import { HistoryLog } from "@components/HistoryLog";
 import { Instructions } from "@components/Instructions";
-import { onMount, Show } from "solid-js";
+import { createSignal, onMount, Show } from "solid-js";
 import { initializeCommandQueue } from "./data/signals/commandQueue";
 import { CONNECTION_ID, historySignal } from "./data/signals/history";
 
 export const App = () => {
   const [history] = historySignal;
+  const [acknowledged, setAcknowledged] = createSignal(false);
 
   onMount(() => {
     initializeCommandQueue();
@@ -21,16 +22,27 @@ export const App = () => {
       <Show
         when={connected()}
         fallback={
-          <Button
-            onClick={() =>
-              window.semClient.send({
-                type: "connect",
-                id: CONNECTION_ID,
-              })
-            }
-          >
-            Connect
-          </Button>
+          <>
+            <label class="flex flex-row gap-2">
+              <input
+                type="checkbox"
+                checked={acknowledged()}
+                onChange={(e) => setAcknowledged(e.currentTarget.checked)}
+              />
+              <span>I have disabled the data zone!</span>
+            </label>
+            <Button
+              onClick={() =>
+                window.semClient.send({
+                  type: "connect",
+                  id: CONNECTION_ID,
+                })
+              }
+              disabled={!acknowledged()}
+            >
+              Connect
+            </Button>
+          </>
         }
       >
         <Canvas />

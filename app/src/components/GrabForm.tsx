@@ -96,7 +96,7 @@ export const GrabForm = (props: {
           });
         }}
       >
-        Grab Image
+        Grab Initial Image
       </Button>
     </div>
   );

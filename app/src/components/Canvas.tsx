@@ -1,4 +1,5 @@
 import type {
+  FinalSliceConfiguration,
   SliceConfiguration,
   Trapezoid,
   TrapezoidSet,
@@ -13,6 +14,7 @@ import {
   findConnectedTrapezoids,
   getPointsOnTrapezoid,
   getSquare,
+  lerp,
   RANSAC,
   setupCanvas,
 } from "@logic/canvas";
@@ -75,6 +77,7 @@ export const Canvas = () => {
   const [zoomState, setZoomState] = createSignal<
     ZoomState | "pickingCenter" | null
   >(null);
+  const [grabbing, setGrabbing] = createSignal(false);
 
   const handleKeyPress = (e: KeyboardEvent) => {
     if (e.key.toLowerCase() === "z") handleZoomButtonPressed();
@@ -213,7 +216,6 @@ export const Canvas = () => {
   };
 
   createEffect(async () => {
-    console.log("refreshing");
     refresh();
     const src = imageSrc();
     if (!src) return;
@@ -355,7 +357,6 @@ export const Canvas = () => {
       return;
     }
 
-    const zoomScale = zoomState() ? (zoomState() as ZoomState).scale : 1;
     const { x: imgX, y: imgY } = convertZoomedCoordinatesToFullImage(
       imgX1,
       imgY1,
@@ -383,13 +384,11 @@ export const Canvas = () => {
     );
     if (inTrapezoid && trapezoid) {
       const { trapezoidSet } = findTrapezoidSet(trapezoid);
-      console.log({ trapezoidSet });
       if (trapezoidSet && trapezoidSet.status === "matching") {
         pointMatching(imgX, imgY, trapezoidSet);
         return;
       }
     }
-    console.log({ inTrapezoid, trapezoid });
     const { nearestDistance } = findNearestVertex(
       imgX,
       imgY,
@@ -397,7 +396,7 @@ export const Canvas = () => {
         .map((t) => t.trapezoids)
         .flat()
     );
-    if (nearestDistance < 15 * zoomScale || inTrapezoid) {
+    if (nearestDistance < 15 || inTrapezoid) {
       setClickedPoint({ x: imgX, y: imgY });
       overlayCanvasRef.addEventListener("mousemove", handleMouseMove);
       overlayCanvasRef.addEventListener("mouseup", handleMouseUp);
@@ -631,7 +630,7 @@ export const Canvas = () => {
           setRibbons(
             ribbons().map((t) =>
               t.trapezoids === trapezoidSet.trapezoids
-                ? { ...t, trapezoids: newTrapezoids }
+                ? { ...t, trapezoids: newTrapezoids, matchedPoints: [] }
                 : t
             )
           );
@@ -651,7 +650,7 @@ export const Canvas = () => {
         setRibbons(
           ribbons().map((t) =>
             t.trapezoids === trapezoidSet.trapezoids
-              ? { ...t, trapezoids: newTrapezoids }
+              ? { ...t, trapezoids: newTrapezoids, matchedPoints: [] }
               : t
           )
         );
@@ -701,6 +700,51 @@ export const Canvas = () => {
 
     setClickedPoint(undefined);
   }
+
+  const handleStartGrabbing = () => {
+    setFocusedSlice(-1);
+    setGrabbing(true);
+    const userConfigurations = sliceConfiguration();
+    const ribbon = ribbons().find((r) => r.id === focusedRibbon());
+    if (!ribbon) return;
+    const slices = ribbon.trapezoids;
+    const interpolatedConfigurations: SliceConfiguration[] = [];
+    for (let i = 0; i < userConfigurations.length; i++) {
+      const configA = userConfigurations[i];
+      interpolatedConfigurations.push(configA);
+      if (i === userConfigurations.length - 1) break;
+      const configB = userConfigurations[i + 1];
+      for (let j = configA.index + 1; j < configB.index; j++) {
+        const percent = (j - configA.index) / (configB.index - configA.index);
+        const brightness = lerp(
+          configA.brightness || 0,
+          configB.brightness || 0,
+          percent
+        );
+        const contrast = lerp(
+          configA.contrast || 0,
+          configB.contrast || 0,
+          percent
+        );
+        const focus = lerp(configA.focus || 0, configB.focus || 0, percent);
+        interpolatedConfigurations.push({
+          index: j,
+          brightness,
+          contrast,
+          focus,
+        });
+      }
+    }
+    const finalConfigurations: FinalSliceConfiguration[] =
+      interpolatedConfigurations.map((c) => ({
+        brightness: c.brightness!,
+        contrast: c.contrast!,
+        focus: c.focus!,
+        label: `slice-${slices[c.index]}`,
+        point: ribbon.matchedPoints[c.index],
+      }));
+    console.log(finalConfigurations);
+  };
 
   return (
     <div class="flex flex-col gap-3 text-xs">
@@ -752,8 +796,7 @@ export const Canvas = () => {
                 (c) => c.index === focusedSlice()
               );
               if (currentConfigIndex === sliceConfiguration().length - 1) {
-                setFocusedSlice(-1);
-                // TODO done configuring slices, now what?
+                handleStartGrabbing();
               } else {
                 setFocusedSlice(
                   sliceConfiguration()[currentConfigIndex + 1].index
@@ -837,10 +880,6 @@ export const Canvas = () => {
                     .filter((_, index) => indicesToConfigure.includes(index))
                 );
                 setFocusedSlice(indicesToConfigure[0]);
-                console.log({
-                  sliceConfiguration: sliceConfiguration(),
-                  indicesToConfigure,
-                });
               }}
               canvasSize={canvasRef}
               trapezoidSet={trapezoidSet}
@@ -848,7 +887,6 @@ export const Canvas = () => {
                 const newTrapezoidSets = ribbons().map((t) =>
                   t.id === newTrapezoidSet.id ? { ...t, ...newTrapezoidSet } : t
                 );
-                console.log(newTrapezoidSet);
                 setRibbons(newTrapezoidSets);
               }}
               onDelete={({ id }) =>
@@ -873,7 +911,7 @@ export const Canvas = () => {
       <div
         class="relative"
         classList={{
-          hidden: focusedSlice() !== -1,
+          hidden: focusedSlice() !== -1 || grabbing(),
         }}
       >
         <canvas
@@ -894,6 +932,8 @@ export const Canvas = () => {
           class="w-[clamp(300px,_100%,_85vh)] mx-auto absolute top-0 left-[50%] translate-x-[-50%] z-50"
           classList={{
             hidden: !imageSrc(),
+            "cursor-zoom-in": zoomState() === "pickingCenter",
+            "cursor-crosshair": zoomState() !== "pickingCenter",
           }}
         ></canvas>
         <Show
