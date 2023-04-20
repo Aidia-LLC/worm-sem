@@ -18,7 +18,8 @@ export type Command =
   | GrabFullFrameCommand
   | ConnectCommand
   | SetParamCommand
-  | GetParamCommand;
+  | GetParamCommand
+  | ExecuteCommand;
 
 export interface BaseCommand {
   id: number;
@@ -56,6 +57,13 @@ export interface ConnectCommand extends BaseCommand {
   type: "connect";
 }
 
+export interface ExecuteCommand extends BaseCommand {
+  type: "execute";
+  command: CommandString;
+}
+
+export type CommandString = `CMD_SCANRATE${number}`;
+
 type Param =
   | "DP_IMAGE_STORE"
   | "DP_FREEZE_ON"
@@ -75,7 +83,7 @@ type Param =
   | "AP_STAGE_HIGH_X"
   | "AP_STAGE_HIGH_Y"
   | "AP_STAGE_LOW_X"
-  | "AP_STAGE_LOW_Y"
+  | "AP_STAGE_LOW_Y";
 
 export interface SetParamCommand extends BaseCommand {
   type: "setParam";

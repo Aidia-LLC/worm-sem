@@ -7,7 +7,8 @@ namespace wormsem.responses
         CONNECT_SUCCESS = 201,
         ECHO_SUCCESS = 202,
         SET_PARAM_SUCCESS = 203,
-        GET_PARAM_SUCCESS = 204
+        GET_PARAM_SUCCESS = 204,
+        EXEUTE_COMMAND_SUCCESS = 205
     }
 
     public class SuccessResponse : Response

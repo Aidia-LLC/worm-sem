@@ -36,5 +36,10 @@ namespace wormsem.api
         {
             return;
         }
+
+        public void ExecuteCommand(string command)
+        {
+            return;
+        }
     }
 }

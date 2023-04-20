@@ -3,9 +3,10 @@
     public interface SEMApi
     {
         public void Connect();
-        public void Grab(String name, String filename, short x, short y, short width, short height, Reduction reduction = Reduction.OVERLAY_PLANE);
-        public void GrabFullFrame(String name, String filename, Reduction reduction = Reduction.OVERLAY_PLANE);
-        public void SetParam(String param, int value);
-        public object GetParam(String param);
+        public void Grab(string name, string filename, short x, short y, short width, short height, Reduction reduction = Reduction.OVERLAY_PLANE);
+        public void GrabFullFrame(string name, string filename, Reduction reduction = Reduction.OVERLAY_PLANE);
+        public void SetParam(string param, int value);
+        public object GetParam(string param);
+        public void ExecuteCommand(string command);
     }
 }

@@ -96,6 +96,13 @@ namespace wormsem.api
             return wrapper;
         }
 
+        public void ExecuteCommand(string command)
+        {
+            long response = api.Execute(command);
+            if ((ZeissErrorCode)response != ZeissErrorCode.NO_ERROR)
+                throw new Exception("Unable to execute command. Code " + response);
+        }
+
 
     }
 

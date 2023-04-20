@@ -52,11 +52,17 @@ app.on("window-all-closed", () => {
   app.quit();
 });
 
+const NUM_TEMP_FILES = 5;
+const tempFileNames = Array.from({ length: NUM_TEMP_FILES }, () => temporaryFile());
+let tempFileIndex = 0;
+
 const getFilename = async (grabCommand: GrabFullFrameCommand) => {
   const ribbonId = grabCommand.ribbonId;
   const ribbonName = grabCommand.ribbonName;
-  if (grabCommand.temporary || !ribbonId || !ribbonName)
-    return Promise.resolve(temporaryFile());
+  if (grabCommand.temporary || !ribbonId || !ribbonName) {
+    tempFileIndex = (tempFileIndex + 1) % tempFileNames.length;
+    return Promise.resolve(tempFileNames[tempFileIndex]);
+  }
   if (filePaths.has(ribbonId)) return Promise.resolve(filePaths.get(ribbonId));
   const result = await dialog.showOpenDialog(browserWindow!, {
     properties: ["createDirectory", "openDirectory"],

@@ -33,6 +33,10 @@ namespace wormsem.commands
                     if (serializedCommand.param == null)
                         throw new Exception("expecting param");
                     return new GetParamCommand(id, serializedCommand.param);
+                case "execute":
+                    if (serializedCommand.command == null)
+                        throw new Exception("expecing command");
+                    return new ExecuteCommand(id, serializedCommand.command);
                 case "grab":
                     {
                         if (serializedCommand.x == null || serializedCommand.y == null || serializedCommand.width == null || serializedCommand.height == null)

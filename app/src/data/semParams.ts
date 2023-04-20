@@ -19,5 +19,10 @@ export const getSEMParam = (param: Param): Promise<string> => {
         }
       }
     });
+    window.semClient.send(command);
   });
 };
+
+export const SLOWEST_SCAN_SPEED = 1;
+export const MEDIUM_SCAN_SPEED = 8;
+export const FASTEST_SCAN_SPEED = 15;

@@ -16,5 +16,6 @@ namespace wormsem.commands
 		public String? filename { get; set; }
 		public String? param { get; set; }
 		public int? value { get; set; }
+		public string? command { get; set; }
 	}
 }

@@ -76,21 +76,6 @@ export const TrapezoidSetConfig = (props: {
             ))}
           </select>
         </div>
-        {/* <div class="flex flex-col gap-1 col-span-2 my-auto">
-          <label class="font-bold">Thickness</label>
-          <input
-            min={1}
-            type="number"
-            value={props.trapezoidSet.thickness}
-            class="p-2 rounded-md border border-gray-300"
-            onChange={(e) => {
-              props.setTrapezoidSet({
-                id: props.trapezoidSet.id,
-                thickness: parseInt(e.currentTarget.value),
-              });
-            }}
-          />
-        </div> */}
         <div
           class="flex flex-col gap-2 justify-between my-auto"
           classList={{
@@ -161,7 +146,7 @@ export const TrapezoidSetConfig = (props: {
                     });
                 }}
               />
-              Saved
+              Locked
             </label>
           </div>
         </div>

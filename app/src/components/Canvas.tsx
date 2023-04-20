@@ -28,6 +28,7 @@ import {
   createSignal,
   For,
   Match,
+  onCleanup,
   onMount,
   Show,
   Switch,
@@ -35,6 +36,7 @@ import {
 } from "solid-js";
 import { createOptionsStore } from "src/data/createOptionsStore";
 import { DEFAULT_MAG } from "src/data/magnification";
+import { getNextCommandId } from "src/data/signals/commandQueue";
 import { Button } from "./Button";
 import { ConfigureSliceCanvas } from "./ConfigureSliceCanvas";
 import { GrabForm } from "./GrabForm";
@@ -43,7 +45,7 @@ import { Param } from "./Param";
 import { SliderPicker } from "./SliderPicker";
 import { availableColors, TrapezoidSetConfig } from "./TrapezoidSetConfig";
 
-const DEFAULT_ZOOM_SCALE = 2;
+const DEFAULT_ZOOM_SCALE = 10;
 
 export const Canvas = () => {
   const [imageSrc, setImageSrc] = createSignal<string | null>(null);
@@ -73,6 +75,15 @@ export const Canvas = () => {
   const [zoomState, setZoomState] = createSignal<
     ZoomState | "pickingCenter" | null
   >(null);
+
+  const handleKeyPress = (e: KeyboardEvent) => {
+    if (e.key.toLowerCase() === "z") handleZoomButtonPressed();
+  };
+
+  const handleZoomButtonPressed = () => {
+    if (zoomState()) setZoomState(null);
+    else setZoomState("pickingCenter");
+  };
 
   createEffect(() => {
     // re-draw the overlay canvas when the ribbons or zoom change
@@ -221,7 +232,12 @@ export const Canvas = () => {
 
   onMount(() => {
     overlayCanvasRef.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("keydown", handleKeyPress);
     setOriginalImage();
+  });
+
+  onCleanup(() => {
+    window.removeEventListener("keydown", handleKeyPress);
   });
 
   async function setOriginalImage() {
@@ -701,6 +717,30 @@ export const Canvas = () => {
               )!
             }
             setConfiguration={(newConfiguration) => {
+              if (newConfiguration.brightness) {
+                window.semClient.send({
+                  id: getNextCommandId(),
+                  type: "setParam",
+                  param: "AP_BRIGHTNESS",
+                  value: newConfiguration.brightness,
+                });
+              }
+              if (newConfiguration.contrast) {
+                window.semClient.send({
+                  id: getNextCommandId(),
+                  type: "setParam",
+                  param: "AP_CONTRAST",
+                  value: newConfiguration.contrast,
+                });
+              }
+              if (newConfiguration.focus) {
+                window.semClient.send({
+                  id: getNextCommandId(),
+                  type: "setParam",
+                  param: "AP_WD",
+                  value: newConfiguration.focus,
+                });
+              }
               setSliceConfiguration(
                 sliceConfiguration().map((c) =>
                   c.index === focusedSlice() ? { ...c, ...newConfiguration } : c
@@ -769,12 +809,7 @@ export const Canvas = () => {
             >
               Show {showOriginalImage() ? "Edge Data" : "Original Image"}
             </Button>
-            <Button
-              onClick={() => {
-                if (zoomState()) setZoomState(null);
-                else setZoomState("pickingCenter");
-              }}
-            >
+            <Button onClick={handleZoomButtonPressed}>
               <Switch fallback="Zoom in">
                 <Match when={zoomState() === "pickingCenter"}>
                   Click on image to zoom
@@ -783,18 +818,6 @@ export const Canvas = () => {
               </Switch>
             </Button>
           </div>
-        </Show>
-        <Show when={zoomState() && zoomState() !== "pickingCenter"}>
-          <SliderPicker
-            label="Zoom"
-            value={(zoomState() as ZoomState).scale}
-            setValue={(scale) => {
-              setZoomState({ ...(zoomState() as ZoomState), scale });
-            }}
-            unit="x"
-            max={15}
-            min={1}
-          />
         </Show>
         <For each={ribbons()}>
           {(trapezoidSet) => (
@@ -834,6 +857,18 @@ export const Canvas = () => {
             />
           )}
         </For>
+        <Show when={zoomState() && zoomState() !== "pickingCenter"}>
+          <SliderPicker
+            label="Zoom"
+            value={(zoomState() as ZoomState).scale}
+            setValue={(scale) => {
+              setZoomState({ ...(zoomState() as ZoomState), scale });
+            }}
+            unit="x"
+            max={15}
+            min={1}
+          />
+        </Show>
       </Show>
       <div
         class="relative"

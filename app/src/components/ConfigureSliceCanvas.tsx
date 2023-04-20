@@ -5,11 +5,11 @@ import {
   StageConfiguration,
 } from "@logic/semCoordinates";
 import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
-import { getSEMParam } from "src/data/semParams";
+import { MAX_MAG } from "src/data/magnification";
+import { getSEMParam, MEDIUM_SCAN_SPEED } from "src/data/semParams";
 import { getNextCommandId } from "src/data/signals/commandQueue";
 import { Button } from "./Button";
 import { SliderPicker } from "./SliderPicker";
-import { MAX_MAG } from "src/data/magnification";
 
 const PREVIEW_INTERVAL = 1000;
 const INITIAL_WAIT_INTERVAL = 5000;
@@ -24,6 +24,7 @@ export const ConfigureSliceCanvas = (props: {
   onPrevious: () => void;
   canvas: HTMLCanvasElement;
 }) => {
+  const [loading, setLoading] = createSignal(true);
   const [imageSrc, setImageSrc] = createSignal<string | null>(null);
   const [brightness, setBrightness] = createSignal<number | null>(null);
   const [contrast, setContrast] = createSignal<number | null>(null);
@@ -37,8 +38,10 @@ export const ConfigureSliceCanvas = (props: {
 
   onMount(async () => {
     unsubscribe = window.semClient.subscribe((message) => {
-      if (message.type !== "success" || message.code !== 200) return;
-      setImageSrc(message.payload!);
+      if (message.type === "success" && message.code === 200) {
+        setImageSrc(message.payload!);
+        if (loading()) setLoading(false);
+      }
     });
 
     const brightness = await getSEMParam("AP_BRIGHTNESS");
@@ -98,9 +101,24 @@ export const ConfigureSliceCanvas = (props: {
       value: props.magnification,
     });
 
+    window.semClient.send({
+      type: "execute",
+      id: getNextCommandId(),
+      command: `CMD_SCANRATE${MEDIUM_SCAN_SPEED}`,
+    });
+
+    console.log("calling settimeout");
     setTimeout(() => {
+      console.log("setting up timer");
       timerRef = window.setInterval(() => {
-        // TODO fetch live preview
+        console.log("sending grab");
+        window.semClient.send({
+          type: "grabFullFrame",
+          id: getNextCommandId(),
+          name: "preview",
+          reduction: -1,
+          temporary: true,
+        });
       }, PREVIEW_INTERVAL);
     }, INITIAL_WAIT_INTERVAL);
   });
@@ -111,17 +129,14 @@ export const ConfigureSliceCanvas = (props: {
   });
 
   createEffect(() => {
+    console.log("drawing image");
     const src = imageSrc();
     const context = canvasRef.getContext("2d")!;
     context.clearRect(0, 0, canvasRef.width, canvasRef.height);
-    if (!src) return;
+    if (!src) return console.log("no image src");
     const img = new Image();
     img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0);
+      context.drawImage(img, 0, 0);
     };
     img.src = base64ToImageSrc(src);
   });
@@ -152,39 +167,6 @@ export const ConfigureSliceCanvas = (props: {
         </Button>
       </div>
       <SliderPicker
-        label="Brightness"
-        value={brightness() || 0}
-        min={0}
-        max={100}
-        setValue={(value) => {
-          setBrightness(value);
-          props.setConfiguration({ brightness: value });
-        }}
-        unit="%"
-      />
-      <SliderPicker
-        label="Contrast"
-        value={contrast() || 0}
-        min={0}
-        max={100}
-        setValue={(value) => {
-          setContrast(value);
-          props.setConfiguration({ contrast: value });
-        }}
-        unit="%"
-      />
-      <SliderPicker
-        label="Focus (Working Distance)"
-        value={focus() || 0}
-        min={1}
-        max={100}
-        setValue={(value) => {
-          setFocus(value);
-          props.setConfiguration({ focus: value });
-        }}
-        unit="mm"
-      />
-      <SliderPicker
         label="Magnification (applies to all slices)"
         value={props.magnification || 1}
         min={1}
@@ -196,11 +178,55 @@ export const ConfigureSliceCanvas = (props: {
             id: getNextCommandId(),
             param: "AP_MAG",
             value,
-          })
+          });
         }}
         unit="x"
       />
-      <canvas ref={canvasRef} />
+      <div class="flex flex-col my-2 ml-6">
+        <span class="-ml-4 mb-4 font-bold text-lg">
+          Slice {props.configuration.index + 1} Configuration
+        </span>
+        <SliderPicker
+          label="Brightness"
+          value={brightness() || 0}
+          min={0}
+          max={100}
+          setValue={(value) => {
+            setBrightness(value);
+            props.setConfiguration({ brightness: value });
+          }}
+          unit="%"
+        />
+        <SliderPicker
+          label="Contrast"
+          value={contrast() || 0}
+          min={0}
+          max={100}
+          setValue={(value) => {
+            setContrast(value);
+            props.setConfiguration({ contrast: value });
+          }}
+          unit="%"
+        />
+        <SliderPicker
+          label="Working Distance"
+          value={focus() || 0}
+          min={1}
+          max={100}
+          setValue={(value) => {
+            setFocus(value);
+            props.setConfiguration({ focus: value });
+          }}
+          unit="mm"
+        />
+      </div>
+      <Show when={loading()}>Loading...</Show>
+      <canvas
+        ref={canvasRef}
+        width="1000"
+        height="1000"
+        class="w-[clamp(300px,_100%,_85vh)] mx-auto"
+      />
     </div>
   );
 };
