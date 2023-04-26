@@ -315,7 +315,7 @@ export const Canvas = () => {
       }
       ctx.globalAlpha = 1;
       ctx.lineWidth = 3 / scale;
-      const radius = 3 / scale * 2;
+      const radius = (3 / scale) * 2;
       for (const point of trapezoidSet.matchedPoints) {
         ctx.beginPath();
         ctx.arc(point.x, point.y, radius, 0, 2 * Math.PI);
@@ -786,10 +786,15 @@ export const Canvas = () => {
         };
       });
     console.log(finalConfigurations);
-    await handleFinalImaging(finalConfigurations, setPercentComplete);
+    try {
+      await handleFinalImaging(finalConfigurations, setPercentComplete);
+      alert(`Done imaging for ${ribbon.name}!`);
+    } catch (err) {
+      console.error(err);
+      alert(`Error imaging ${ribbon.name}. ${(err as Error).message}`);
+    }
     setGrabbing(false);
     setFocusedRibbon(-1);
-    alert(`Done imaging for ${ribbon.name}!`);
   };
 
   const handleMoveStageToSlice = () => {
@@ -923,7 +928,7 @@ export const Canvas = () => {
                     setRefresh(refresh() + 1);
                   }}
                 >
-                  Remove All Sets
+                  Remove All Ribbons
                 </Button>
               </Show>
             </div>

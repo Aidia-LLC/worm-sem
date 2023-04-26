@@ -51,12 +51,14 @@ export const TrapezoidSetConfig = (props: {
             })
           }
         />
-        <button
-          class="text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-red-500 hover:bg-red-700 active:bg-red-800"
-          onClick={() => props.onDelete(props.trapezoidSet)}
-        >
-          Remove
-        </button>
+        <Show when={!props.grabbing}>
+          <button
+            class="text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-red-500 hover:bg-red-700 active:bg-red-800"
+            onClick={() => props.onDelete(props.trapezoidSet)}
+          >
+            Remove
+          </button>
+        </Show>
       </div>
       <Show when={!props.grabbing}>
         <div class="flex flex-col gap-1 col-span-2 my-auto">
@@ -114,6 +116,7 @@ export const TrapezoidSetConfig = (props: {
                 >
                   Reverse Direction
                 </button>
+                <span>(the bolded slice is the first one in the ribbon)</span>
               </Show>
             </div>
             <label class="flex flex-row items-center gap-1">

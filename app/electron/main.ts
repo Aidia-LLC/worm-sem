@@ -128,7 +128,16 @@ const init = (childProcess: ChildProcessWithoutNullStreams) => {
       if (command.type === "grabFullFrame") {
         const grabCommand = command as GrabFullFrameCommand;
         getFilename(grabCommand).then((filename) => {
-          if (!filename) return;
+          if (!filename) {
+            const message: Message = {
+              id: grabCommand.id,
+              code: 400,
+              type: "error",
+              message: "File selector aborted",
+            };
+            browserWindow?.webContents.send("SEMClient:Received", message);
+            return;
+          }
           grabCommand.filename = filename;
           console.log("Sending message to C#:", grabCommand);
           childProcess.stdin.write(JSON.stringify(grabCommand) + "\n");
@@ -140,8 +149,6 @@ const init = (childProcess: ChildProcessWithoutNullStreams) => {
         childProcess.stdin.write(JSON.stringify(command) + "\n");
       }
     });
-
-    ipcMain.handle("GetInitialPath", () => __dirname);
 
     createWindow();
   });

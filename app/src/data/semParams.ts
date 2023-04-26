@@ -31,13 +31,13 @@ export const grabSEMImage = (command: GrabFullFrameCommand): Promise<void> => {
         if (message.type === "success") {
           resolve();
         } else {
-          reject();
+          reject(new Error(message.message));
         }
       }
     });
     window.semClient.send(command);
   });
-}
+};
 
 export const SLOWEST_SCAN_SPEED = 1;
 export const MEDIUM_SCAN_SPEED = 8;

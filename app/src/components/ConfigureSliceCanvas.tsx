@@ -111,6 +111,8 @@ export const ConfigureSliceCanvas = (props: {
     if (!src) return console.log("no image src");
     const img = new Image();
     img.onload = () => {
+      canvasRef.width = img.width;
+      canvasRef.height = img.height;
       context.clearRect(0, 0, canvasRef.width, canvasRef.height);
       context.drawImage(img, 0, 0);
     };
