@@ -64,21 +64,21 @@ export const ConfigureSliceCanvas = (props: {
       type: "setParam",
       id: getNextCommandId(),
       param: "AP_STAGE_GOTO_X",
-      value: coordinates.x,
+      doubleValue: coordinates.x,
     });
 
     window.semClient.send({
       type: "setParam",
       id: getNextCommandId(),
       param: "AP_STAGE_GOTO_Y",
-      value: coordinates.y,
+      doubleValue: coordinates.y,
     });
 
     window.semClient.send({
       type: "setParam",
       id: getNextCommandId(),
       param: "AP_MAG",
-      value: props.magnification,
+      intValue: props.magnification,
     });
 
     window.semClient.send({
@@ -157,7 +157,7 @@ export const ConfigureSliceCanvas = (props: {
             type: "setParam",
             id: getNextCommandId(),
             param: "AP_MAG",
-            value,
+            intValue: value,
           });
         }}
         unit="x"

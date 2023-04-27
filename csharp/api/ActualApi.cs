@@ -59,7 +59,33 @@ namespace wormsem.api
             Grab(name, filename, 0, 0, FRAME_WIDTH, FRAME_HEIGHT);
         }
 
-        public void SetParam(string param, object value)
+        public void SetParam(string param, int value)
+        {
+            object wrapper = new VariantWrapper(value);
+            int response = api.Set(param, ref wrapper);
+
+            switch ((ZeissErrorCode)response)
+            {
+                case ZeissErrorCode.NO_ERROR:
+                    break;
+                case ZeissErrorCode.NOT_INITIALIZED:
+                    throw new Exception("API not initialized.");
+                case ZeissErrorCode.SET_TRANSLATE_FAIL:
+                    throw new Exception("Translate fail");
+                case ZeissErrorCode.SET_STATE_FAIL:
+                    throw new Exception("Set state fail");
+                case ZeissErrorCode.SET_FLOAT_FAIL:
+                    throw new Exception("set float fail");
+                case ZeissErrorCode.SET_BAD_VALUE:
+                    throw new Exception("Set bad value");
+                case ZeissErrorCode.PARAMETER_IS_DISABLED:
+                    throw new Exception("Parameter is diabled");
+                default:
+                    throw new Exception("Unknown error " + response);
+            }
+        }
+
+        public void SetParam(string param, double value)
         {
             object wrapper = new VariantWrapper(value);
             int response = api.Set(param, ref wrapper);

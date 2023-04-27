@@ -33,28 +33,28 @@ export const handleFinalImaging = async (
       id: getNextCommandId(),
       type: "setParam",
       param: "AP_STAGE_GOTO_X",
-      value: config.point.x,
+      doubleValue: config.point.x,
     });
     await sleep(200);
     window.semClient.send({
       id: getNextCommandId(),
       type: "setParam",
       param: "AP_STAGE_GOTO_Y",
-      value: config.point.y,
+      doubleValue: config.point.y,
     });
     await sleep(200);
     window.semClient.send({
       id: getNextCommandId(),
       type: "setParam",
       param: "DP_IMAGE_STORE",
-      value: HIGHEST_IMAGE_QUALITY,
+      intValue: HIGHEST_IMAGE_QUALITY,
     });
     await sleep(200);
     window.semClient.send({
       id: getNextCommandId(),
       type: "setParam",
       param: "AP_MAG",
-      value: config.magnification,
+      intValue: config.magnification,
     });
     await sleep(200);
     window.semClient.send({
@@ -67,14 +67,14 @@ export const handleFinalImaging = async (
       id: getNextCommandId(),
       type: "setParam",
       param: "DP_FROZEN",
-      value: 0, // not frozen
+      intValue: 0, // not frozen
     });
     await sleep(500);
     window.semClient.send({
       id: getNextCommandId(),
       type: "setParam",
       param: "DP_FREEZE_ON",
-      value: 0, // freeze on end frame
+      intValue: 0, // freeze on end frame
     });
     await sleep(10000);
     while (true) {

@@ -46,7 +46,12 @@ namespace wormsem.api
             Grab("test", filename, 0, 0, 0, 0);
         }
 
-        public void SetParam(string param, object value)
+        public void SetParam(string param, int value)
+        {
+            return;
+        }
+
+        public void SetParam(string param, double value)
         {
             return;
         }

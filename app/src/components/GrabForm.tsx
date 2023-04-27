@@ -62,7 +62,7 @@ export const GrabForm = (props: {
             id: ids[0],
             type: "setParam",
             param: "DP_IMAGE_STORE",
-            value: LOWER_IMAGE_QUALITY, // 1024 * 768
+            intValue: LOWER_IMAGE_QUALITY, // 1024 * 768
           });
           enqueueCommand({
             id: ids[1],
@@ -80,7 +80,7 @@ export const GrabForm = (props: {
             id: ids[3],
             type: "setParam",
             param: "DP_IMAGE_STORE",
-            value: MEDIUM_IMAGE_QUALITY, // 8192 x 6144
+            intValue: MEDIUM_IMAGE_QUALITY, // 8192 x 6144
           });
           enqueueCommand({
             id: ids[4],

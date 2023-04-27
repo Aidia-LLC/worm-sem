@@ -89,7 +89,8 @@ type Param =
 export interface SetParamCommand extends BaseCommand {
   type: "setParam";
   param: Param;
-  value: number;
+  intValue?: number;
+  doubleValue?: number;
 }
 
 export interface GetParamCommand extends BaseCommand {

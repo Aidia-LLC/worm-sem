@@ -809,13 +809,13 @@ export const Canvas = () => {
       type: "setParam",
       id: getNextCommandId(),
       param: "AP_STAGE_GOTO_X",
-      value: coordinates.x,
+      doubleValue: coordinates.x,
     });
     window.semClient.send({
       type: "setParam",
       id: getNextCommandId(),
       param: "AP_STAGE_GOTO_Y",
-      value: coordinates.y,
+      doubleValue: coordinates.y,
     });
   };
 
@@ -841,7 +841,7 @@ export const Canvas = () => {
                     id: getNextCommandId(),
                     type: "setParam",
                     param: "AP_BRIGHTNESS",
-                    value: newConfiguration.brightness,
+                    doubleValue: newConfiguration.brightness,
                   });
                 }
                 if (newConfiguration.contrast) {
@@ -849,7 +849,7 @@ export const Canvas = () => {
                     id: getNextCommandId(),
                     type: "setParam",
                     param: "AP_CONTRAST",
-                    value: newConfiguration.contrast,
+                    doubleValue: newConfiguration.contrast,
                   });
                 }
                 if (newConfiguration.focus) {
@@ -857,7 +857,7 @@ export const Canvas = () => {
                     id: getNextCommandId(),
                     type: "setParam",
                     param: "AP_WD",
-                    value: newConfiguration.focus,
+                    doubleValue: newConfiguration.focus,
                   });
                 }
                 setSliceConfiguration(
