@@ -26,9 +26,11 @@ namespace wormsem.commands
                 case "setParam":
                     if (serializedCommand.param == null)
                         throw new Exception("expecting param");
-                    if (serializedCommand.value == null)
-                        throw new Exception("expecting value");
-                    return new SetParamCommand(id, serializedCommand.param, (int)serializedCommand.value);
+                    if (serializedCommand.intValue != null)
+                        return new SetParamCommand(id, serializedCommand.param, serializedCommand.intValue, null);
+                    if (serializedCommand.doubleValue != null)
+                        return new SetParamCommand(id, serializedCommand.param, null, serializedCommand.doubleValue);
+                    throw new Exception("expecting value");
                 case "getParam":
                     if (serializedCommand.param == null)
                         throw new Exception("expecting param");
