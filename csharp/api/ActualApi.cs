@@ -77,7 +77,7 @@ namespace wormsem.api
                 case ZeissErrorCode.SET_FLOAT_FAIL:
                     throw new Exception("set float fail");
                 case ZeissErrorCode.SET_BAD_VALUE:
-                    throw new Exception("Set bad value");
+                    throw new Exception("Set bad value (it's not an int)");
                 case ZeissErrorCode.PARAMETER_IS_DISABLED:
                     throw new Exception("Parameter is diabled");
                 default:
@@ -103,7 +103,7 @@ namespace wormsem.api
                 case ZeissErrorCode.SET_FLOAT_FAIL:
                     throw new Exception("set float fail");
                 case ZeissErrorCode.SET_BAD_VALUE:
-                    throw new Exception("Set bad value");
+                    throw new Exception("Set bad value (it's not a double)");
                 case ZeissErrorCode.PARAMETER_IS_DISABLED:
                     throw new Exception("Parameter is diabled");
                 default:
