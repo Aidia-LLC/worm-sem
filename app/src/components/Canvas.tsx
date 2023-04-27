@@ -325,6 +325,15 @@ export const Canvas = () => {
         ctx.stroke();
       }
     }
+
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.rect(0, 0, options.options.squareSize, options.options.squareSize);
+    ctx.strokeStyle = "red";
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    ctx.closePath();
+
     ctx.restore();
   };
 

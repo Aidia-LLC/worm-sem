@@ -2,7 +2,7 @@ import { ProcessingOptions } from "@dto/ProcessingOptions";
 import { createStore, SetStoreFunction } from "solid-js/store";
 
 const defaultOptions: ProcessingOptions = {
-  squareSize: 80,
+  squareSize: 500,
   gaussianKernel: [0.06242931069425457, 0.1247976249479739, 0.2524974040020353],
   hysteresisHigh: 0.075,
   hysteresisLow: 0.0275,
