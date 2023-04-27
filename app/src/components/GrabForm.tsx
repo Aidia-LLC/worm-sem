@@ -3,6 +3,7 @@ import { sleep } from "src/data/handleFinalImaging";
 import {
   FASTEST_SCAN_SPEED,
   grabSEMImage,
+  LOWER_IMAGE_QUALITY,
   MEDIUM_IMAGE_QUALITY,
   MEDIUM_SCAN_SPEED,
 } from "src/data/semParams";
@@ -58,7 +59,7 @@ export const GrabForm = (props: {
             id: getNextCommandId(),
             type: "setParam",
             param: "DP_IMAGE_STORE",
-            doubleValue: MEDIUM_IMAGE_QUALITY, // 1024 * 768
+            doubleValue: LOWER_IMAGE_QUALITY,
           });
           await sleep(1000);
           window.semClient.send({
@@ -92,7 +93,7 @@ export const GrabForm = (props: {
             id: getNextCommandId(),
             type: "setParam",
             param: "DP_IMAGE_STORE",
-            doubleValue: MEDIUM_IMAGE_QUALITY, // 8192 x 6144
+            doubleValue: MEDIUM_IMAGE_QUALITY,
           });
           await sleep(1000);
           window.semClient.send({

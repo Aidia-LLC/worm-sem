@@ -335,7 +335,8 @@ export const Canvas = () => {
       ctx.putImageData(edgeData()!, 0, 0);
       ctx.restore();
     } else {
-      const src = highResImageSrc();
+      // const src = highResImageSrc();
+      const src = imageSrc();
       if (!src) return;
       const img = new Image();
       img.onload = () => {
