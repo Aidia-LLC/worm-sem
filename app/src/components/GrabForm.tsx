@@ -67,7 +67,7 @@ export const GrabForm = (props: {
             type: "execute",
             command: `CMD_SCANRATE${FASTEST_SCAN_SPEED}`,
           });
-          await sleep(5000);
+          await sleep(12000);
           window.semClient.send({
             id: getNextCommandId(),
             type: "setParam",
