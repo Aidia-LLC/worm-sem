@@ -28,10 +28,11 @@ export const GrabForm = (props: {
       if (message.type !== "success") return;
       if (message.id === fastGrabId() && message.code === 200) {
         setFastGrab(message.payload!);
-      }
-      if (message.id === slowGrabId() && message.code === 200) {
         setSlowGrab(message.payload!);
       }
+      // if (message.id === slowGrabId() && message.code === 200) {
+      //   setSlowGrab(message.payload!);
+      // }
     });
   });
 
@@ -67,40 +68,6 @@ export const GrabForm = (props: {
             type: "execute",
             command: `CMD_SCANRATE${FASTEST_SCAN_SPEED}`,
           });
-          await sleep(12000);
-          window.semClient.send({
-            id: getNextCommandId(),
-            type: "setParam",
-            param: "DP_FROZEN",
-            doubleValue: 0,
-          });
-          await sleep(2000);
-          window.semClient.send({
-            id: getNextCommandId(),
-            type: "setParam",
-            param: "DP_FREEZE_ON",
-            doubleValue: 0, // end frame
-          });
-          await sleep(10000);
-          await grabSEMImage({
-            id: ids[0],
-            type: "grabFullFrame",
-            name: "grabFullFrame",
-            reduction: REDUCTION,
-            temporary: true,
-          });
-          window.semClient.send({
-            id: getNextCommandId(),
-            type: "setParam",
-            param: "DP_IMAGE_STORE",
-            doubleValue: MEDIUM_IMAGE_QUALITY,
-          });
-          await sleep(1000);
-          window.semClient.send({
-            id: getNextCommandId(),
-            type: "execute",
-            command: `CMD_SCANRATE${MEDIUM_SCAN_SPEED}`,
-          });
           await sleep(5000);
           window.semClient.send({
             id: getNextCommandId(),
@@ -115,14 +82,48 @@ export const GrabForm = (props: {
             param: "DP_FREEZE_ON",
             doubleValue: 0, // end frame
           });
-          await sleep(12000);
+          await sleep(30000);
           await grabSEMImage({
-            id: ids[1],
+            id: ids[0],
             type: "grabFullFrame",
             name: "grabFullFrame",
             reduction: REDUCTION,
             temporary: true,
           });
+          // window.semClient.send({
+          //   id: getNextCommandId(),
+          //   type: "setParam",
+          //   param: "DP_IMAGE_STORE",
+          //   doubleValue: MEDIUM_IMAGE_QUALITY,
+          // });
+          // await sleep(1000);
+          // window.semClient.send({
+          //   id: getNextCommandId(),
+          //   type: "execute",
+          //   command: `CMD_SCANRATE${MEDIUM_SCAN_SPEED}`,
+          // });
+          // await sleep(5000);
+          // window.semClient.send({
+          //   id: getNextCommandId(),
+          //   type: "setParam",
+          //   param: "DP_FROZEN",
+          //   doubleValue: 0,
+          // });
+          // await sleep(2000);
+          // window.semClient.send({
+          //   id: getNextCommandId(),
+          //   type: "setParam",
+          //   param: "DP_FREEZE_ON",
+          //   doubleValue: 0, // end frame
+          // });
+          // await sleep(12000);
+          // await grabSEMImage({
+          //   id: ids[1],
+          //   type: "grabFullFrame",
+          //   name: "grabFullFrame",
+          //   reduction: REDUCTION,
+          //   temporary: true,
+          // });
         }}
       >
         Grab Initial Image
