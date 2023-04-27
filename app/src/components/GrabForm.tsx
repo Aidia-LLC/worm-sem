@@ -1,9 +1,13 @@
 import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
-import { FASTEST_SCAN_SPEED, LOWER_IMAGE_QUALITY, MEDIUM_IMAGE_QUALITY, MEDIUM_SCAN_SPEED } from "src/data/semParams";
+import { sleep } from "src/data/handleFinalImaging";
 import {
-  enqueueCommand,
-  getNextCommandId,
-} from "src/data/signals/commandQueue";
+  FASTEST_SCAN_SPEED,
+  grabSEMImage,
+  LOWER_IMAGE_QUALITY,
+  MEDIUM_IMAGE_QUALITY,
+  MEDIUM_SCAN_SPEED,
+} from "src/data/semParams";
+import { getNextCommandId } from "src/data/signals/commandQueue";
 import { Button } from "./Button";
 
 const REDUCTION = -1;
@@ -46,8 +50,10 @@ export const GrabForm = (props: {
     <div class="flex flex-col gap-3">
       <Button
         disabled={loading()}
-        onClick={() => {
+        onClick={async () => {
           const ids = [
+            getNextCommandId(),
+            getNextCommandId(),
             getNextCommandId(),
             getNextCommandId(),
             getNextCommandId(),
@@ -58,36 +64,52 @@ export const GrabForm = (props: {
           setFastGrabId(ids[2]);
           setSlowGrabId(ids[5]);
           setLoading(true);
-          enqueueCommand({
+          window.semClient.send({
             id: ids[0],
             type: "setParam",
             param: "DP_IMAGE_STORE",
             doubleValue: LOWER_IMAGE_QUALITY, // 1024 * 768
           });
-          enqueueCommand({
+          window.semClient.send({
             id: ids[1],
             type: "execute",
             command: `CMD_SCANRATE${FASTEST_SCAN_SPEED}`,
           });
-          enqueueCommand({
+          await sleep(1000);
+          window.semClient.send({
+            id: ids[6],
+            type: "setParam",
+            param: "DP_FROZEN",
+            doubleValue: 0,
+          });
+          await sleep(2000);
+          await grabSEMImage({
             id: ids[2],
             type: "grabFullFrame",
             name: "grabFullFrame",
             reduction: REDUCTION,
             temporary: true,
           });
-          enqueueCommand({
+          window.semClient.send({
             id: ids[3],
             type: "setParam",
             param: "DP_IMAGE_STORE",
             doubleValue: MEDIUM_IMAGE_QUALITY, // 8192 x 6144
           });
-          enqueueCommand({
+          window.semClient.send({
             id: ids[4],
             type: "execute",
             command: `CMD_SCANRATE${MEDIUM_SCAN_SPEED}`,
           });
-          enqueueCommand({
+          await sleep(1000);
+          window.semClient.send({
+            id: ids[6],
+            type: "setParam",
+            param: "DP_FROZEN",
+            doubleValue: 0,
+          });
+          await sleep(10000);
+          await grabSEMImage({
             id: ids[5],
             type: "grabFullFrame",
             name: "grabFullFrame",

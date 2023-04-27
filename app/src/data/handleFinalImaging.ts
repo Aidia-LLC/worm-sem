@@ -7,7 +7,7 @@ import {
 } from "./semParams";
 import { getNextCommandId } from "./signals/commandQueue";
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const handleFinalImaging = async (
   configurations: FinalSliceConfiguration[],
