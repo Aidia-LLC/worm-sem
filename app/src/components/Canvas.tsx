@@ -66,6 +66,7 @@ export const Canvas = () => {
   const [hidden, setHidden] = createSignal(true);
   const [refresh, setRefresh] = createSignal(0);
   const [nextId, setNextId] = createSignal(1);
+  const [optionsSequence, setOptionsSequence] = createSignal(0);
 
   const [points, setPoints] = createSignal<[number, number][]>([]);
   const [edgeData, setEdgeData] = createSignal<ImageData>();
@@ -226,6 +227,7 @@ export const Canvas = () => {
 
   createEffect(async () => {
     refresh();
+    optionsSequence();
     const src = imageSrc();
     if (!src) return;
     const o = options.options;
@@ -1053,9 +1055,10 @@ export const Canvas = () => {
                 <Param
                   label="Square Size"
                   value={options.options.squareSize}
-                  onChange={(value) =>
-                    setOptions("options", "squareSize", value)
-                  }
+                  onChange={(value) => {
+                    setOptions("options", "squareSize", value);
+                    setOptionsSequence(optionsSequence() + 1);
+                  }}
                 />
               </div>
               <div class="flex=col">
@@ -1068,9 +1071,10 @@ export const Canvas = () => {
                 <Param
                   label="Minimum Fit for Recurrence"
                   value={options.options.minimumFit}
-                  onChange={(value) =>
-                    setOptions("options", "minimumFit", value)
-                  }
+                  onChange={(value) => {
+                    setOptions("options", "minimumFit", value);
+                    setOptionsSequence(optionsSequence() + 1);
+                  }}
                 />
               </div>
               <div class="flex-col">
@@ -1082,7 +1086,10 @@ export const Canvas = () => {
                 <Param
                   label="Minimum Fit for First"
                   value={options.options.firstFit}
-                  onChange={(value) => setOptions("options", "firstFit", value)}
+                  onChange={(value) => {
+                    setOptions("options", "firstFit", value);
+                    setOptionsSequence(optionsSequence() + 1);
+                  }}
                 />
               </div>
               <Show when={!hidden()}>
@@ -1095,9 +1102,10 @@ export const Canvas = () => {
                   <Param
                     label="Hysteresis Low"
                     value={options.options.hysteresisLow}
-                    onChange={(value) =>
-                      setOptions("options", "hysteresisLow", value)
-                    }
+                    onChange={(value) => {
+                      setOptions("options", "hysteresisLow", value);
+                      setOptionsSequence(optionsSequence() + 1);
+                    }}
                   />
                 </div>
                 <div class="flex-col">
@@ -1111,9 +1119,10 @@ export const Canvas = () => {
                   <Param
                     label="Hysteresis High"
                     value={options.options.hysteresisHigh}
-                    onChange={(value) =>
-                      setOptions("options", "hysteresisHigh", value)
-                    }
+                    onChange={(value) => {
+                      setOptions("options", "hysteresisHigh", value);
+                      setOptionsSequence(optionsSequence() + 1);
+                    }}
                   />
                 </div>
                 <div class="flex-col">
@@ -1126,13 +1135,14 @@ export const Canvas = () => {
                   <Param
                     label="Min Neighbors for Noise Reduction"
                     value={options.options.minNeighborsForNoiseReduction}
-                    onChange={(value) =>
+                    onChange={(value) => {
                       setOptions(
                         "options",
                         "minNeighborsForNoiseReduction",
                         value
-                      )
-                    }
+                      );
+                      setOptionsSequence(optionsSequence() + 1);
+                    }}
                   />
                 </div>
                 <div class="flex-col">
@@ -1145,9 +1155,10 @@ export const Canvas = () => {
                   <Param
                     label="Hough Vote Threshold"
                     value={options.options.houghVoteThreshold}
-                    onChange={(value) =>
-                      setOptions("options", "houghVoteThreshold", value)
-                    }
+                    onChange={(value) => {
+                      setOptions("options", "houghVoteThreshold", value);
+                      setOptionsSequence(optionsSequence() + 1);
+                    }}
                   />
                 </div>
                 <div class="flex-col">
@@ -1158,9 +1169,10 @@ export const Canvas = () => {
                   <Param
                     label="Merge Theta Threshold"
                     value={options.options.mergeThetaThreshold}
-                    onChange={(value) =>
-                      setOptions("options", "mergeThetaThreshold", value)
-                    }
+                    onChange={(value) => {
+                      setOptions("options", "mergeThetaThreshold", value);
+                      setOptionsSequence(optionsSequence() + 1);
+                    }}
                   />
                 </div>
                 <div class="flex-col">
@@ -1171,9 +1183,10 @@ export const Canvas = () => {
                   <Param
                     label="Pixels Per Line Percentage Threshold"
                     value={options.options.pixelThreshold}
-                    onChange={(value) =>
-                      setOptions("options", "pixelThreshold", value)
-                    }
+                    onChange={(value) => {
+                      setOptions("options", "pixelThreshold", value);
+                      setOptionsSequence(optionsSequence() + 1);
+                    }}
                   />
                 </div>
                 <div class="flex-col">
@@ -1184,9 +1197,10 @@ export const Canvas = () => {
                   <Param
                     label="Max Lines Per Square"
                     value={options.options.maxLines}
-                    onChange={(value) =>
-                      setOptions("options", "maxLines", value)
-                    }
+                    onChange={(value) => {
+                      setOptions("options", "maxLines", value);
+                      setOptionsSequence(optionsSequence() + 1);
+                    }}
                   />
                 </div>
                 <div class="flex-col">
@@ -1197,9 +1211,10 @@ export const Canvas = () => {
                   <Param
                     label="Noise Reduction Iterations"
                     value={options.options.noiseReductionIterations}
-                    onChange={(value) =>
-                      setOptions("options", "noiseReductionIterations", value)
-                    }
+                    onChange={(value) => {
+                      setOptions("options", "noiseReductionIterations", value);
+                      setOptionsSequence(optionsSequence() + 1);
+                    }}
                   />
                 </div>
                 <div class="flex-col">
@@ -1212,9 +1227,10 @@ export const Canvas = () => {
                   <Param
                     label="Density Threshold"
                     value={options.options.densityThreshold}
-                    onChange={(value) =>
-                      setOptions("options", "densityThreshold", value)
-                    }
+                    onChange={(value) => {
+                      setOptions("options", "densityThreshold", value);
+                      setOptionsSequence(optionsSequence() + 1);
+                    }}
                   />
                 </div>
                 <div class="flex-col">
@@ -1224,9 +1240,10 @@ export const Canvas = () => {
                   <Param
                     label="Density Step"
                     value={options.options.densityStep}
-                    onChange={(value) =>
-                      setOptions("options", "densityStep", value)
-                    }
+                    onChange={(value) => {
+                      setOptions("options", "densityStep", value);
+                      setOptionsSequence(optionsSequence() + 1);
+                    }}
                   />
                 </div>
                 <div class="flex-col">
@@ -1236,9 +1253,10 @@ export const Canvas = () => {
                   <Param
                     label="Density Size"
                     value={options.options.densitySize}
-                    onChange={(value) =>
-                      setOptions("options", "densitySize", value)
-                    }
+                    onChange={(value) => {
+                      setOptions("options", "densitySize", value);
+                      setOptionsSequence(optionsSequence() + 1);
+                    }}
                   />
                 </div>
               </Show>
@@ -1250,13 +1268,14 @@ export const Canvas = () => {
               </h2>
               <KernelParam
                 values={options.options.gaussianKernel}
-                onChange={(value) =>
+                onChange={(value) => {
                   setOptions(
                     "options",
                     "gaussianKernel",
                     value as [number, number, number]
-                  )
-                }
+                  );
+                  setOptionsSequence(optionsSequence() + 1);
+                }}
               />
               <Button onClick={resetOptions}>Reset Parameters</Button>
             </Show>
