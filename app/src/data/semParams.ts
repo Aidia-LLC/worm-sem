@@ -44,5 +44,5 @@ export const MEDIUM_SCAN_SPEED = 3;
 export const SLOWEST_SCAN_SPEED = 15;
 
 export const LOWER_IMAGE_QUALITY = 0;
-export const MEDIUM_IMAGE_QUALITY = 7;
+export const MEDIUM_IMAGE_QUALITY = 6;
 export const HIGHEST_IMAGE_QUALITY = 11;

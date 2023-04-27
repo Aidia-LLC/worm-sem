@@ -3,7 +3,6 @@ import { sleep } from "src/data/handleFinalImaging";
 import {
   FASTEST_SCAN_SPEED,
   grabSEMImage,
-  LOWER_IMAGE_QUALITY,
   MEDIUM_IMAGE_QUALITY,
   MEDIUM_SCAN_SPEED,
 } from "src/data/semParams";
@@ -51,10 +50,7 @@ export const GrabForm = (props: {
       <Button
         disabled={loading()}
         onClick={async () => {
-          const ids = [
-            getNextCommandId(),
-            getNextCommandId(),
-          ] as const;
+          const ids = [getNextCommandId(), getNextCommandId()] as const;
           setFastGrabId(ids[0]);
           setSlowGrabId(ids[1]);
           setLoading(true);
@@ -62,7 +58,7 @@ export const GrabForm = (props: {
             id: getNextCommandId(),
             type: "setParam",
             param: "DP_IMAGE_STORE",
-            doubleValue: LOWER_IMAGE_QUALITY, // 1024 * 768
+            doubleValue: MEDIUM_IMAGE_QUALITY, // 1024 * 768
           });
           await sleep(1000);
           window.semClient.send({
