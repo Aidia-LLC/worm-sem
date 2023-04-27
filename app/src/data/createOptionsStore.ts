@@ -5,7 +5,7 @@ const defaultOptions: ProcessingOptions = {
   squareSize: 500,
   gaussianKernel: [0.06242931069425457, 0.1247976249479739, 0.2524974040020353],
   hysteresisHigh: 0.075,
-  hysteresisLow: 0.0275,
+  hysteresisLow: 0.012,
   minNeighborsForNoiseReduction: 6,
   houghVoteThreshold: 0.65,
   mergeThetaThreshold: 10,
