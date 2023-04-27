@@ -54,65 +54,73 @@ export const GrabForm = (props: {
           const ids = [
             getNextCommandId(),
             getNextCommandId(),
-            getNextCommandId(),
-            getNextCommandId(),
-            getNextCommandId(),
-            getNextCommandId(),
-            getNextCommandId(),
-            getNextCommandId(),
           ] as const;
-          setFastGrabId(ids[2]);
-          setSlowGrabId(ids[5]);
+          setFastGrabId(ids[0]);
+          setSlowGrabId(ids[1]);
           setLoading(true);
           window.semClient.send({
-            id: ids[0],
+            id: getNextCommandId(),
             type: "setParam",
             param: "DP_IMAGE_STORE",
             doubleValue: LOWER_IMAGE_QUALITY, // 1024 * 768
           });
           await sleep(1000);
           window.semClient.send({
-            id: ids[1],
+            id: getNextCommandId(),
             type: "execute",
             command: `CMD_SCANRATE${FASTEST_SCAN_SPEED}`,
           });
           await sleep(5000);
           window.semClient.send({
-            id: ids[6],
+            id: getNextCommandId(),
             type: "setParam",
             param: "DP_FROZEN",
             doubleValue: 0,
           });
+          await sleep(2000);
+          window.semClient.send({
+            id: getNextCommandId(),
+            type: "setParam",
+            param: "DP_FREEZE_ON",
+            doubleValue: 0, // end frame
+          });
           await sleep(5000);
           await grabSEMImage({
-            id: ids[2],
+            id: ids[0],
             type: "grabFullFrame",
             name: "grabFullFrame",
             reduction: REDUCTION,
             temporary: true,
           });
           window.semClient.send({
-            id: ids[3],
+            id: getNextCommandId(),
             type: "setParam",
             param: "DP_IMAGE_STORE",
             doubleValue: MEDIUM_IMAGE_QUALITY, // 8192 x 6144
           });
           await sleep(1000);
           window.semClient.send({
-            id: ids[4],
+            id: getNextCommandId(),
             type: "execute",
             command: `CMD_SCANRATE${MEDIUM_SCAN_SPEED}`,
           });
           await sleep(5000);
           window.semClient.send({
-            id: ids[6],
+            id: getNextCommandId(),
             type: "setParam",
             param: "DP_FROZEN",
             doubleValue: 0,
           });
+          await sleep(2000);
+          window.semClient.send({
+            id: getNextCommandId(),
+            type: "setParam",
+            param: "DP_FREEZE_ON",
+            doubleValue: 0, // end frame
+          });
           await sleep(10000);
           await grabSEMImage({
-            id: ids[5],
+            id: ids[1],
             type: "grabFullFrame",
             name: "grabFullFrame",
             reduction: REDUCTION,
