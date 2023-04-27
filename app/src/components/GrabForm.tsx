@@ -84,7 +84,7 @@ export const GrabForm = (props: {
             param: "DP_FREEZE_ON",
             doubleValue: 0, // end frame
           });
-          await sleep(5000);
+          await sleep(10000);
           await grabSEMImage({
             id: ids[0],
             type: "grabFullFrame",
@@ -118,7 +118,7 @@ export const GrabForm = (props: {
             param: "DP_FREEZE_ON",
             doubleValue: 0, // end frame
           });
-          await sleep(10000);
+          await sleep(25000);
           await grabSEMImage({
             id: ids[1],
             type: "grabFullFrame",
