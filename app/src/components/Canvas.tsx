@@ -1032,7 +1032,7 @@ export const Canvas = () => {
           classList={{
             hidden: !imageSrc(),
             "cursor-zoom-in": zoomState() === "pickingCenter",
-            "cursor-crosshair": zoomState() !== "pickingCenter",
+            // "cursor-crosshair": zoomState() !== "pickingCenter",
           }}
         ></canvas>
         <Show
