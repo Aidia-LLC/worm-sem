@@ -70,19 +70,20 @@ export const GrabForm = (props: {
             param: "DP_IMAGE_STORE",
             doubleValue: LOWER_IMAGE_QUALITY, // 1024 * 768
           });
+          await sleep(1000);
           window.semClient.send({
             id: ids[1],
             type: "execute",
             command: `CMD_SCANRATE${FASTEST_SCAN_SPEED}`,
           });
-          await sleep(1000);
+          await sleep(5000);
           window.semClient.send({
             id: ids[6],
             type: "setParam",
             param: "DP_FROZEN",
             doubleValue: 0,
           });
-          await sleep(2000);
+          await sleep(5000);
           await grabSEMImage({
             id: ids[2],
             type: "grabFullFrame",
@@ -96,12 +97,13 @@ export const GrabForm = (props: {
             param: "DP_IMAGE_STORE",
             doubleValue: MEDIUM_IMAGE_QUALITY, // 8192 x 6144
           });
+          await sleep(1000);
           window.semClient.send({
             id: ids[4],
             type: "execute",
             command: `CMD_SCANRATE${MEDIUM_SCAN_SPEED}`,
           });
-          await sleep(1000);
+          await sleep(5000);
           window.semClient.send({
             id: ids[6],
             type: "setParam",

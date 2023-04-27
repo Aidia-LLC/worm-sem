@@ -39,7 +39,7 @@ export const grabSEMImage = (command: GrabFullFrameCommand): Promise<void> => {
   });
 };
 
-export const FASTEST_SCAN_SPEED = 1;
+export const FASTEST_SCAN_SPEED = 0;
 export const MEDIUM_SCAN_SPEED = 5;
 export const SLOWEST_SCAN_SPEED = 15;
 
