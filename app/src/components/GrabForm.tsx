@@ -1,4 +1,4 @@
-import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
+import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
 import { sleep } from "src/data/handleFinalImaging";
 import {
   FASTEST_SCAN_SPEED,
@@ -88,6 +88,9 @@ export const GrabForm = (props: { onGrabbed: (fast: string) => void }) => {
       >
         Grab Initial Image
       </Button>
+      <Show when={loading()}>
+        <span>Getting initial image...</span>
+      </Show>
     </div>
   );
 };
