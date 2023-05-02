@@ -42,7 +42,7 @@ export const grabSEMImage = (command: GrabFullFrameCommand): Promise<void> => {
 
 export const grabSEMImageOnFrameEnd = async (
   command: GrabFullFrameCommand,
-  options?: { minSleepMs?: number }
+  options?: { minSleepMs?: number; pollIntervalMs?: number }
 ): Promise<void> => {
   window.semClient.send({
     id: getNextCommandId(),
@@ -61,7 +61,7 @@ export const grabSEMImageOnFrameEnd = async (
   while (true) {
     const isFrozen = await getSEMParam("DP_FROZEN");
     if (isFrozen === "1") break;
-    await sleep(10000);
+    await sleep(options?.pollIntervalMs || 10000);
   }
   return grabSEMImage(command);
 };
