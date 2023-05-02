@@ -57,9 +57,6 @@ const DEFAULT_ZOOM_SCALE = 10;
 
 export const Canvas = () => {
   const [imageSrc, setImageSrc] = createSignal<string | null>(null);
-  const [highResImageSrc, setHighResImageSrc] = createSignal<string | null>(
-    null
-  );
 
   let canvasRef!: HTMLCanvasElement;
   let overlayCanvasRef!: HTMLCanvasElement;
@@ -1037,14 +1034,7 @@ export const Canvas = () => {
         ></canvas>
         <Show
           when={imageSrc()}
-          fallback={
-            <GrabForm
-              onGrabbed={(src, slowSrc) => {
-                setImageSrc(src);
-                setHighResImageSrc(slowSrc);
-              }}
-            />
-          }
+          fallback={<GrabForm onGrabbed={(src) => setImageSrc(src)} />}
         >
           <>
             <h3 class="font-bold text-xl mt-4">Options</h3>

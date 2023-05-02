@@ -1,4 +1,5 @@
 import { GetParamCommand, GrabFullFrameCommand, Param } from "@dto/semClient";
+import { sleep } from "./handleFinalImaging";
 import { getNextCommandId } from "./signals/commandQueue";
 
 export const getSEMParam = (param: Param): Promise<string> => {
@@ -37,6 +38,32 @@ export const grabSEMImage = (command: GrabFullFrameCommand): Promise<void> => {
     });
     window.semClient.send(command);
   });
+};
+
+export const grabSEMImageOnFrameEnd = async (
+  command: GrabFullFrameCommand,
+  options?: { minSleepMs?: number }
+): Promise<void> => {
+  window.semClient.send({
+    id: getNextCommandId(),
+    type: "setParam",
+    param: "DP_FROZEN",
+    intValue: 0, // not frozen
+  });
+  await sleep(500);
+  window.semClient.send({
+    id: getNextCommandId(),
+    type: "setParam",
+    param: "DP_FREEZE_ON",
+    intValue: 0, // freeze on end frame
+  });
+  await sleep(options?.minSleepMs || 10000);
+  while (true) {
+    const isFrozen = await getSEMParam("DP_FROZEN");
+    if (isFrozen === "1") break;
+    await sleep(10000);
+  }
+  return grabSEMImage(command);
 };
 
 export const FASTEST_SCAN_SPEED = 7;
