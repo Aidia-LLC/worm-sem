@@ -14,9 +14,10 @@ process.env.PUBLIC = isProduction
   ? process.env.DIST
   : path.join(process.env.DIST, "../public");
 
-const resourcePath = isProduction
-  ? path.join(path.dirname(appRootDir.get()), "bin")
-  : path.join(appRootDir.get(), "resources", getPlatform());
+const resourcePath =
+  isProduction && false
+    ? path.join(path.dirname(appRootDir.get()), "bin")
+    : path.join(appRootDir.get(), "resources", getPlatform());
 
 let browserWindow: BrowserWindow | null;
 const devServerUrl = process.env.VITE_DEV_SERVER_URL;
@@ -163,8 +164,10 @@ const init = (childProcess: ChildProcessWithoutNullStreams) => {
 };
 
 app.whenReady().then(() => {
-  if (isProduction) {
-    const childProcess = spawn(path.join(resourcePath, "csharp"));
+  if (true || isProduction) {
+    const childProcess = spawn(path.join(resourcePath, "csharp"), [
+      "--dry-run",
+    ]);
     init(childProcess);
   } else {
     console.log("Building C# program...");

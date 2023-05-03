@@ -52,7 +52,6 @@ import { KernelParam } from "./KernelParam";
 import { Param } from "./Param";
 import { SliderPicker } from "./SliderPicker";
 import { availableColors, TrapezoidSetConfig } from "./TrapezoidSetConfig";
-
 const DEFAULT_ZOOM_SCALE = 10;
 
 export const Canvas = () => {
@@ -85,6 +84,8 @@ export const Canvas = () => {
   const [percentComplete, setPercentComplete] = createSignal(0);
   const [initialStage, setInitialStage] =
     createSignal<StageConfiguration | null>(null);
+  const [rotated, setRotated] = createSignal(false);
+  const [searchData, setSearchData] = createSignal<any>({ pause: false });
 
   const handleKeyPress = (e: KeyboardEvent) => {
     if (e.key.toLowerCase() === "z") handleZoomButtonPressed();
@@ -111,6 +112,20 @@ export const Canvas = () => {
 
   const [options, setOptions, resetOptions] = createOptionsStore();
 
+  const rotateImage = async () => {
+    setRotated((prev) => !prev);
+    const ctx = canvasRef.getContext("2d")!;
+    const ctx2 = overlayCanvasRef.getContext("2d")!;
+    if (rotated()) {
+      ctx.translate(canvasRef.width / 2, canvasRef.height / 2);
+      ctx.rotate((90 * Math.PI) / 180);
+      ctx.translate(-canvasRef.width / 2, -canvasRef.height / 2);
+      ctx2.translate(overlayCanvasRef.width / 2, overlayCanvasRef.height / 2);
+      ctx2.rotate((90 * Math.PI) / 180);
+      ctx2.translate(-overlayCanvasRef.width / 2, -overlayCanvasRef.height / 2);
+    }
+  };
+
   const handleClick = (e: MouseEvent) => {
     let toggleOriginalImage = false;
     if (showOriginalImage()) {
@@ -131,6 +146,7 @@ export const Canvas = () => {
     const valid =
       trapezoid &&
       trapezoidIsValid(trapezoid, imgX, imgY, options.options, fit);
+    console.log("valid", valid);
     if (!valid) {
       const square = getSquare(
         imageData,
@@ -145,6 +161,7 @@ export const Canvas = () => {
         imgX - options.options.squareSize / 2,
         imgY - options.options.squareSize / 2
       )!;
+      console.log("trapezoid ransac", trapezoid);
       if (!trapezoid) return;
       trapezoid = convertLocalToGlobal(
         trapezoid,
@@ -162,6 +179,40 @@ export const Canvas = () => {
       trapezoid = newTrapezoid;
     }
     if (!trapezoid) return;
+    setSearchData({
+      pause: true,
+      fit,
+      trapezoid,
+      imgX,
+      imgY,
+      ctx,
+      imageData,
+      toggleOriginalImage,
+    });
+    // Draw trapezoid
+    DrawTrapezoid(trapezoid, ctx);
+    const colors = new Set(availableColors);
+    ribbons().forEach((set) => colors.delete(set.color));
+    const color = colors.size > 0 ? colors.values().next().value : "red";
+    const id = nextId();
+    setRibbons((prev) => [
+      ...prev,
+      {
+        trapezoids: [trapezoid],
+        id,
+        name: `Ribbon ${id}`,
+        color,
+        thickness: 5,
+        status: "editing",
+        matchedPoints: [],
+        reversed: false,
+      } as TrapezoidSet,
+    ]);
+  };
+
+  const getConnectedSlices = () => {
+    let { trapezoid, imgX, imgY, ctx, imageData, fit, toggleOriginalImage } =
+      searchData();
     if (!fit) {
       const square = getSquare(
         imageData,
@@ -211,7 +262,14 @@ export const Canvas = () => {
     if (toggleOriginalImage) {
       setShowOriginalImage(true);
     }
+    setSearchData({ pause: false });
   };
+
+  createEffect(() => {
+    const pause = searchData().pause;
+    if (pause) return;
+    getConnectedSlices();
+  });
 
   const orderTrapezoids = (trapezoids: Trapezoid[]) => {
     // order with the top trapezoid being 1
@@ -228,7 +286,7 @@ export const Canvas = () => {
     const src = imageSrc();
     if (!src) return;
     const o = options.options;
-    await setupCanvas(canvasRef, o, src, overlayCanvasRef);
+    await setupCanvas(canvasRef, o, src, overlayCanvasRef, rotated());
     const imageData = canvasRef
       .getContext("2d")!
       .getImageData(0, 0, canvasRef.width, canvasRef.height);
@@ -278,11 +336,23 @@ export const Canvas = () => {
       canvas.width = img.width;
       canvas.height = img.height;
       const ctx = canvas.getContext("2d")!;
+      const ctx2 = overlayCanvasRef.getContext("2d")!;
       ctx.drawImage(img, 0, 0);
+      if (rotated()) {
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((90 * Math.PI) / 180);
+        ctx.translate(-canvas.width / 2, -canvas.height / 2);
+        ctx2.translate(overlayCanvasRef.width / 2, overlayCanvasRef.height / 2);
+        ctx2.rotate((90 * Math.PI) / 180);
+        ctx2.translate(
+          -overlayCanvasRef.width / 2,
+          -overlayCanvasRef.height / 2
+        );
+      }
     };
     img.src = base64ToImageSrc(src);
     const o = options.options;
-    await setupCanvas(canvasRef, o, src, overlayCanvasRef);
+    await setupCanvas(canvasRef, o, src, overlayCanvasRef, rotated());
   }
 
   const drawOverlay = () => {
@@ -322,14 +392,6 @@ export const Canvas = () => {
         ctx.stroke();
       }
     }
-
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.rect(0, 0, options.options.squareSize, options.options.squareSize);
-    ctx.strokeStyle = "red";
-    ctx.lineWidth = 4;
-    ctx.stroke();
-    ctx.closePath();
 
     ctx.restore();
   };
@@ -941,6 +1003,7 @@ export const Canvas = () => {
                 </Button>
               </Show>
             </div>
+            <Button onClick={rotateImage}>Rotate Image</Button>
             <Button
               onClick={() => {
                 setShowOriginalImage(!showOriginalImage());

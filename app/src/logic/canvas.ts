@@ -7,7 +7,8 @@ export const setupCanvas = async (
   canvas: HTMLCanvasElement,
   options: ProcessingOptions,
   src: string,
-  overlayCanvas: HTMLCanvasElement
+  overlayCanvas: HTMLCanvasElement,
+  rotated: boolean
 ): Promise<void> => {
   const ctx = canvas.getContext("2d")!;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -21,6 +22,11 @@ export const setupCanvas = async (
       canvas.height = img.height;
       overlayCanvas.width = img.width;
       overlayCanvas.height = img.height;
+      if (rotated) {
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((90 * Math.PI) / 180);
+        ctx.translate(-canvas.width / 2, -canvas.height / 2);
+      }
       ctx.drawImage(img, 0, 0);
       imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       edgeFilter(canvas, options, imageData, ctx);
@@ -325,6 +331,7 @@ export function RANSAC(
 ): Trapezoid | undefined {
   const areaThreshold = [trapezoidArea * 0.9, trapezoidArea * 1.1];
   const iterations = 25000;
+  const size = squareSize ?? options.squareSize;
   let bestTrapezoid: Trapezoid | undefined;
   let bestFit: number | undefined;
   for (let i = 0; i < iterations; i++) {
@@ -338,7 +345,8 @@ export function RANSAC(
     if (
       (trapezoidArea !== 0 &&
         (area < areaThreshold[0] || area > areaThreshold[1])) ||
-      (trapezoidArea == 0 && (area < 45 * 45 || area > 60 * 55))
+      (trapezoidArea == 0 &&
+        (area < (size * 0.5) ** 2 || area > (size * 0.95) ** 2))
     )
       continue;
     const points = getPointsOnTrapezoid(
