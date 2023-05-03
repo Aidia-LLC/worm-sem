@@ -8,15 +8,17 @@ import { Command, GrabFullFrameCommand, Message } from "../src/dto/semClient";
 import { getPlatform } from "./platform";
 
 const isProduction = app.isPackaged;
+const isLinux = getPlatform() === "linux";
 
 process.env.DIST = path.join(__dirname, "../dist");
 process.env.PUBLIC = isProduction
   ? process.env.DIST
   : path.join(process.env.DIST, "../public");
 
-const resourcePath = isProduction
-  ? path.join(path.dirname(appRootDir.get()), "bin")
-  : path.join(appRootDir.get(), "resources", getPlatform());
+const resourcePath =
+  isProduction && !isLinux
+    ? path.join(path.dirname(appRootDir.get()), "bin")
+    : path.join(appRootDir.get(), "resources", getPlatform());
 
 let browserWindow: BrowserWindow | null;
 const devServerUrl = process.env.VITE_DEV_SERVER_URL;
@@ -163,8 +165,10 @@ const init = (childProcess: ChildProcessWithoutNullStreams) => {
 };
 
 app.whenReady().then(() => {
-  if (isProduction) {
-    const childProcess = spawn(path.join(resourcePath, "csharp"));
+  if (isProduction || isLinux) {
+    const childProcess = spawn(path.join(resourcePath, "csharp"), [
+      "--dry-run",
+    ]);
     init(childProcess);
   } else {
     console.log("Building C# program...");
