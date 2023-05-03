@@ -84,7 +84,7 @@ export const Canvas = () => {
   const [percentComplete, setPercentComplete] = createSignal(0);
   const [initialStage, setInitialStage] =
     createSignal<StageConfiguration | null>(null);
-  const [rotated, setRotated] = createSignal(false);
+  // const [rotated, setRotated] = createSignal(false);
   const [searchData, setSearchData] = createSignal<any>({ pause: false });
 
   const handleKeyPress = (e: KeyboardEvent) => {
@@ -112,19 +112,19 @@ export const Canvas = () => {
 
   const [options, setOptions, resetOptions] = createOptionsStore();
 
-  const rotateImage = async () => {
-    setRotated((prev) => !prev);
-    const ctx = canvasRef.getContext("2d")!;
-    const ctx2 = overlayCanvasRef.getContext("2d")!;
-    if (rotated()) {
-      ctx.translate(canvasRef.width / 2, canvasRef.height / 2);
-      ctx.rotate((90 * Math.PI) / 180);
-      ctx.translate(-canvasRef.width / 2, -canvasRef.height / 2);
-      ctx2.translate(overlayCanvasRef.width / 2, overlayCanvasRef.height / 2);
-      ctx2.rotate((90 * Math.PI) / 180);
-      ctx2.translate(-overlayCanvasRef.width / 2, -overlayCanvasRef.height / 2);
-    }
-  };
+  // const rotateImage = async () => {
+  //   setRotated((prev) => !prev);
+  //   const ctx = canvasRef.getContext("2d")!;
+  //   const ctx2 = overlayCanvasRef.getContext("2d")!;
+  //   if (rotated()) {
+  //     ctx.translate(canvasRef.width / 2, canvasRef.height / 2);
+  //     ctx.rotate((90 * Math.PI) / 180);
+  //     ctx.translate(-canvasRef.width / 2, -canvasRef.height / 2);
+  //     ctx2.translate(overlayCanvasRef.width / 2, overlayCanvasRef.height / 2);
+  //     ctx2.rotate((90 * Math.PI) / 180);
+  //     ctx2.translate(-overlayCanvasRef.width / 2, -overlayCanvasRef.height / 2);
+  //   }
+  // };
 
   const handleClick = (e: MouseEvent) => {
     let toggleOriginalImage = false;
@@ -179,6 +179,8 @@ export const Canvas = () => {
       trapezoid = newTrapezoid;
     }
     if (!trapezoid) return;
+    const id = nextId();
+    setNextId((prev) => prev + 1);
     setSearchData({
       pause: true,
       fit,
@@ -188,13 +190,13 @@ export const Canvas = () => {
       ctx,
       imageData,
       toggleOriginalImage,
+      id,
     });
     // Draw trapezoid
     DrawTrapezoid(trapezoid, ctx);
     const colors = new Set(availableColors);
     ribbons().forEach((set) => colors.delete(set.color));
     const color = colors.size > 0 ? colors.values().next().value : "red";
-    const id = nextId();
     setRibbons((prev) => [
       ...prev,
       {
@@ -206,11 +208,12 @@ export const Canvas = () => {
         status: "editing",
         matchedPoints: [],
         reversed: false,
+        phase: 1,
       } as TrapezoidSet,
     ]);
   };
 
-  const getConnectedSlices = () => {
+  const getConnectedSlices = (id: number) => {
     let { trapezoid, imgX, imgY, ctx, imageData, fit, toggleOriginalImage } =
       searchData();
     if (!fit) {
@@ -236,29 +239,25 @@ export const Canvas = () => {
       options.options,
       fit
     );
-    const colors = new Set(availableColors);
-    ribbons().forEach((set) => colors.delete(set.color));
-    const color = colors.size > 0 ? colors.values().next().value : "red";
     const filteredTrapezoids = filterTrapezoids(connectedTrapezoids, ribbons());
     const orderedTrapezoids = orderTrapezoids([
       ...filteredTrapezoids,
       trapezoid,
     ]);
-    const id = nextId();
-    setRibbons((prev) => [
-      ...prev,
-      {
-        trapezoids: orderedTrapezoids,
-        id,
-        name: `Ribbon ${id}`,
-        color,
-        thickness: 5,
-        status: "editing",
-        matchedPoints: [],
-        reversed: false,
-      } as TrapezoidSet,
-    ]);
-    setNextId((prev) => prev + 1);
+    setRibbons((prev) => {
+      const newRibbons: TrapezoidSet[] = prev.map((ribbon) => {
+        if (ribbon.id === id) {
+          return {
+            ...ribbon,
+            trapezoids: [...ribbon.trapezoids, ...orderedTrapezoids],
+            status: "editing",
+            phase: 2,
+          };
+        }
+        return ribbon;
+      });
+      return newRibbons;
+    });
     if (toggleOriginalImage) {
       setShowOriginalImage(true);
     }
@@ -266,9 +265,9 @@ export const Canvas = () => {
   };
 
   createEffect(() => {
-    const pause = searchData().pause;
+    const { pause, id } = searchData();
     if (pause) return;
-    getConnectedSlices();
+    getConnectedSlices(id);
   });
 
   const orderTrapezoids = (trapezoids: Trapezoid[]) => {
@@ -286,7 +285,7 @@ export const Canvas = () => {
     const src = imageSrc();
     if (!src) return;
     const o = options.options;
-    await setupCanvas(canvasRef, o, src, overlayCanvasRef, rotated());
+    await setupCanvas(canvasRef, o, src, overlayCanvasRef);
     const imageData = canvasRef
       .getContext("2d")!
       .getImageData(0, 0, canvasRef.width, canvasRef.height);
@@ -336,23 +335,23 @@ export const Canvas = () => {
       canvas.width = img.width;
       canvas.height = img.height;
       const ctx = canvas.getContext("2d")!;
-      const ctx2 = overlayCanvasRef.getContext("2d")!;
+      // const ctx2 = overlayCanvasRef.getContext("2d")!;
       ctx.drawImage(img, 0, 0);
-      if (rotated()) {
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate((90 * Math.PI) / 180);
-        ctx.translate(-canvas.width / 2, -canvas.height / 2);
-        ctx2.translate(overlayCanvasRef.width / 2, overlayCanvasRef.height / 2);
-        ctx2.rotate((90 * Math.PI) / 180);
-        ctx2.translate(
-          -overlayCanvasRef.width / 2,
-          -overlayCanvasRef.height / 2
-        );
-      }
+      // if (rotated()) {
+      //   ctx.translate(canvas.width / 2, canvas.height / 2);
+      //   ctx.rotate((90 * Math.PI) / 180);
+      //   ctx.translate(-canvas.width / 2, -canvas.height / 2);
+      //   ctx2.translate(overlayCanvasRef.width / 2, overlayCanvasRef.height / 2);
+      //   ctx2.rotate((90 * Math.PI) / 180);
+      //   ctx2.translate(
+      //     -overlayCanvasRef.width / 2,
+      //     -overlayCanvasRef.height / 2
+      //   );
+      // }
     };
     img.src = base64ToImageSrc(src);
     const o = options.options;
-    await setupCanvas(canvasRef, o, src, overlayCanvasRef, rotated());
+    await setupCanvas(canvasRef, o, src, overlayCanvasRef);
   }
 
   const drawOverlay = () => {
@@ -544,15 +543,8 @@ export const Canvas = () => {
         );
       }
     }
-    // const ctx = canvasRef.getContext("2d")!;
     const { trapezoid, inTrapezoid } = isPointInTrapezoid(x, y, trapezoids);
     if (!inTrapezoid || !trapezoid) return;
-    // ctx.beginPath();
-    // ctx.arc(x, y, 5, 0, 2 * Math.PI);
-    // ctx.fillStyle = trapezoidSet.color;
-    // ctx.closePath();
-    // ctx.fill();
-    // find distance from point to every vertex, and the center of the trapezoid
     const center = {
       x:
         (trapezoid.top.x1 +
@@ -1003,7 +995,7 @@ export const Canvas = () => {
                 </Button>
               </Show>
             </div>
-            <Button onClick={rotateImage}>Rotate Image</Button>
+            {/* <Button onClick={rotateImage}>Rotate Image</Button> */}
             <Button
               onClick={() => {
                 setShowOriginalImage(!showOriginalImage());
@@ -1051,6 +1043,7 @@ export const Canvas = () => {
               onDelete={({ id }) =>
                 setRibbons(ribbons().filter((t) => t.id !== id))
               }
+              setSearchData={setSearchData}
             />
           )}
         </For>

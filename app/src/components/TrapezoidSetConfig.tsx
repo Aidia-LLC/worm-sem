@@ -19,6 +19,7 @@ export const TrapezoidSetConfig = (props: {
   canvasSize: { width: number; height: number };
   onGrab: (id: TrapezoidSet["id"] | null) => void;
   grabbing: boolean;
+  setSearchData: (x: any) => any;
 }) => {
   const radioName = () => `status-${props.trapezoidSet.id}`;
 
@@ -60,6 +61,21 @@ export const TrapezoidSetConfig = (props: {
           </button>
         </Show>
       </div>
+      <Show when={props.trapezoidSet.phase === 1}>
+        <div class="flex flex-col gap-1 col-span-2 my-auto">
+          {/* Button to confirm init */}
+          <label class="font-bold">Is the first slice good?</label>
+          <button
+            class="text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-green-500 hover:bg-green-700 active:bg-green-800"
+            onClick={() => {
+              props.setTrapezoidSet({ ...props.trapezoidSet, phase: 2 });
+              props.setSearchData((prev: any) => ({ ...prev, pause: false }));
+            }}
+          >
+            Confirm
+          </button>
+        </div>
+      </Show>
       <Show when={!props.grabbing}>
         <div class="flex flex-col gap-1 col-span-2 my-auto">
           <label class="font-bold">Color</label>

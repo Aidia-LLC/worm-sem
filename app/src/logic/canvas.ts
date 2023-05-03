@@ -7,9 +7,10 @@ export const setupCanvas = async (
   canvas: HTMLCanvasElement,
   options: ProcessingOptions,
   src: string,
-  overlayCanvas: HTMLCanvasElement,
-  rotated: boolean
+  overlayCanvas: HTMLCanvasElement
+  // rotated: boolean
 ): Promise<void> => {
+  console.log("here");
   const ctx = canvas.getContext("2d")!;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const img = new Image();
@@ -22,11 +23,11 @@ export const setupCanvas = async (
       canvas.height = img.height;
       overlayCanvas.width = img.width;
       overlayCanvas.height = img.height;
-      if (rotated) {
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate((90 * Math.PI) / 180);
-        ctx.translate(-canvas.width / 2, -canvas.height / 2);
-      }
+      // if (rotated) {
+      //   ctx.translate(canvas.width / 2, canvas.height / 2);
+      //   ctx.rotate((90 * Math.PI) / 180);
+      //   ctx.translate(-canvas.width / 2, -canvas.height / 2);
+      // }
       ctx.drawImage(img, 0, 0);
       imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       edgeFilter(canvas, options, imageData, ctx);

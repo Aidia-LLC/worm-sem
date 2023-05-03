@@ -22,6 +22,7 @@ export type TrapezoidSet = {
   thickness: number;
   status: Status;
   matchedPoints: Vertex[];
+  phase: 1 | 2;
 };
 
 export type Trapezoid = {
@@ -53,4 +54,4 @@ export type FinalSliceConfiguration = {
   point: Vertex;
   ribbonId: number;
   ribbonName: string;
-}
+};
