@@ -63,6 +63,7 @@ export const Canvas = () => {
   const [refresh, setRefresh] = createSignal(0);
   const [nextId, setNextId] = createSignal(1);
   const [optionsSequence, setOptionsSequence] = createSignal(0);
+  const [detection, setDetection] = createSignal(true);
 
   const [points, setPoints] = createSignal<[number, number][]>([]);
   const [edgeData, setEdgeData] = createSignal<ImageData>();
@@ -87,7 +88,6 @@ export const Canvas = () => {
   const [cursorPosition, setCursorPosition] = createSignal<[number, number]>([
     0, 0,
   ]);
-  const [showCursor, setShowCursor] = createSignal(false);
 
   const handleKeyPress = (e: KeyboardEvent) => {
     if (e.key.toLowerCase() === "z") handleZoomButtonPressed();
@@ -103,7 +103,7 @@ export const Canvas = () => {
     ribbons();
     zoomState();
     cursorPosition();
-    showCursor();
+    detection();
     drawOverlay();
   });
 
@@ -117,10 +117,16 @@ export const Canvas = () => {
   const [options, setOptions, resetOptions] = createOptionsStore();
   const [searchData, setSearchData] = createSignal<any>({ pause: false });
   const [VERTEX_DIST, setVertexDist] = createSignal(
-    options.options.squareSize / 5 ?? 30
+    options.options.squareSize / 5
   );
 
+  createEffect(() => {
+    optionsSequence();
+    setVertexDist(options.options.squareSize / 5);
+  });
+
   const handleClick = (e: MouseEvent) => {
+    if (!detection()) return;
     let toggleOriginalImage = false;
     if (showOriginalImage()) {
       toggleOriginalImage = true;
@@ -297,7 +303,7 @@ export const Canvas = () => {
       ctx.translate(-x, -y);
     }
 
-    if (showCursor()) {
+    if (detection()) {
       const [x, y] = cursorPosition();
       if (x && y) {
         ctx.beginPath();
@@ -938,8 +944,11 @@ export const Canvas = () => {
             >
               Clear Image
             </Button>
-            <Button onClick={() => setShowCursor(!showCursor())}>
-              Toggle Cursor
+            <Button onClick={() => setDetection(!detection())}>
+              <Show when={detection()} fallback="Enable">
+                Disable
+              </Show>{" "}
+              Ribbon Detection
             </Button>
             <div class="w-full flex flex-col">
               <Show when={ribbons().length > 0}>
