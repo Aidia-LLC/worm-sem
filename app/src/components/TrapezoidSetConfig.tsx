@@ -1,5 +1,4 @@
 import { Trapezoid, TrapezoidSet } from "@dto/canvas";
-import { DrawTrapezoid } from "@logic/canvas";
 import { Show } from "solid-js";
 import { Button } from "./Button";
 
@@ -141,6 +140,37 @@ export const TrapezoidSetConfig = (props: {
                   Reverse Direction
                 </button>
                 <span>(the bolded slice is the first one in the ribbon)</span>
+                <Button
+                  onClick={() => {
+                    const newSet = addTrapezoid(
+                      props.trapezoidSet.trapezoids,
+                      true,
+                      props.ctx
+                    );
+                    props.setTrapezoidSet({
+                      ...props.trapezoidSet,
+                      trapezoids: newSet,
+                    });
+                  }}
+                >
+                  Add slice to top of ribbon
+                </Button>
+                <Button
+                  onClick={() => {
+                    const newSet = addTrapezoid(
+                      props.trapezoidSet.trapezoids,
+                      false,
+                      props.ctx
+                    );
+                    console.log(newSet);
+                    props.setTrapezoidSet({
+                      ...props.trapezoidSet,
+                      trapezoids: newSet,
+                    });
+                  }}
+                >
+                  Add slice to bottom of ribbon
+                </Button>
               </Show>
             </div>
             <label class="flex flex-row items-center gap-1">
@@ -176,37 +206,6 @@ export const TrapezoidSetConfig = (props: {
               Locked
             </label>
           </div>
-          <Button
-            onClick={() => {
-              const newSet = addTrapezoid(
-                props.trapezoidSet.trapezoids,
-                true,
-                props.ctx
-              );
-              props.setTrapezoidSet({
-                ...props.trapezoidSet,
-                trapezoids: newSet,
-              });
-            }}
-          >
-            Add slice to top of ribbon
-          </Button>
-          <Button
-            onClick={() => {
-              const newSet = addTrapezoid(
-                props.trapezoidSet.trapezoids,
-                false,
-                props.ctx
-              );
-              console.log(newSet);
-              props.setTrapezoidSet({
-                ...props.trapezoidSet,
-                trapezoids: newSet,
-              });
-            }}
-          >
-            Add slice to bottom of ribbon
-          </Button>
         </div>
       </Show>
       <Show when={props.trapezoidSet.matchedPoints.length > 0}>
@@ -293,9 +292,6 @@ const addTrapezoid = (
           (newTrapezoid.right.y2 - referenceTrapezoid.right.y2),
       },
     };
-    DrawTrapezoid(topTrapezoid, ctx, "purple", 15);
-    DrawTrapezoid(newTrapezoid, ctx, "green", 15);
-    DrawTrapezoid(referenceTrapezoid, ctx, "yellow", 15);
     newTrapezoidSet.unshift(topTrapezoid);
   } else {
     const newTrapezoid = trapezoids[trapezoids.length - 1];
@@ -358,9 +354,6 @@ const addTrapezoid = (
           (newTrapezoid.right.y2 - referenceTrapezoid.right.y2),
       },
     };
-    DrawTrapezoid(bottomTrapezoid, ctx, "purple", 15);
-    DrawTrapezoid(newTrapezoid, ctx, "green", 15);
-    DrawTrapezoid(referenceTrapezoid, ctx, "yellow", 15);
     newTrapezoidSet.push(bottomTrapezoid);
   }
   return newTrapezoidSet;
