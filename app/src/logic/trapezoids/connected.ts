@@ -14,16 +14,17 @@ export const getConnectedSlices = (
   setSearchData: any,
   setShowOriginalImage: any,
   ribbons: any,
-  setNextId: any
+  setNextId: any,
+  trapezoid: Trapezoid
 ) => {
-  let { trapezoid, imgX, imgY, ctx, imageData, toggleOriginalImage } =
+  let { imgX, imgY, ctx, imageData, toggleOriginalImage } =
     searchData();
   trapezoid = computeTrapezoid([
     { x: trapezoid.top.x1, y: trapezoid.top.y1 },
     { x: trapezoid.top.x2, y: trapezoid.top.y2 },
     { x: trapezoid.bottom.x2, y: trapezoid.bottom.y2 },
     { x: trapezoid.bottom.x1, y: trapezoid.bottom.y1 },
-  ]);
+  ])!;
   const square = getSquare(imageData, imgX, imgY, options.options.squareSize);
   let fit = getPointsOnTrapezoid(
     square,
