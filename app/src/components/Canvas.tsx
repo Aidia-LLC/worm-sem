@@ -84,6 +84,9 @@ export const Canvas = () => {
   const [percentComplete, setPercentComplete] = createSignal(0);
   const [initialStage, setInitialStage] =
     createSignal<StageConfiguration | null>(null);
+  const [cursorPosition, setCursorPosition] = createSignal<[number, number]>([
+    0, 0,
+  ]);
 
   const handleKeyPress = (e: KeyboardEvent) => {
     if (e.key.toLowerCase() === "z") handleZoomButtonPressed();
@@ -98,6 +101,7 @@ export const Canvas = () => {
     // re-draw the overlay canvas when the ribbons or zoom change
     ribbons();
     zoomState();
+    cursorPosition();
     drawOverlay();
   });
 
@@ -289,6 +293,15 @@ export const Canvas = () => {
       ctx.translate(canvasRef.width / 2, canvasRef.height / 2);
       ctx.scale(scale, scale);
       ctx.translate(-x, -y);
+    }
+
+    // draw point at cursorPosition
+    const [x, y] = cursorPosition();
+    if (x && y) {
+      ctx.beginPath();
+      ctx.arc(x, y, 5 / scale, 0, 2 * Math.PI);
+      ctx.fillStyle = "red";
+      ctx.fill();
     }
 
     for (const trapezoidSet of ribbons()) {
@@ -995,6 +1008,28 @@ export const Canvas = () => {
         class="relative"
         classList={{
           hidden: focusedSlice() !== -1 || grabbing(),
+        }}
+        onMouseMove={(e) => {
+          const rect = canvasRef.getBoundingClientRect();
+          const rectWidth = rect.right - rect.left;
+          const rectHeight = rect.bottom - rect.top;
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const imgX1 = Math.round((x / rectWidth) * canvasRef.width);
+          const imgY1 = Math.round((y / rectHeight) * canvasRef.height);
+
+          const zoom =
+            zoomState() && zoomState() !== "pickingCenter"
+              ? (zoomState() as ZoomState)
+              : null;
+          const { x: imgX, y: imgY } = convertZoomedCoordinatesToFullImage(
+            imgX1,
+            imgY1,
+            zoom,
+            canvasRef.width,
+            canvasRef.height
+          );
+          setCursorPosition([imgX, imgY]);
         }}
       >
         <canvas
