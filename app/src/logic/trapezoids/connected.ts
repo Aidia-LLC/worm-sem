@@ -1,6 +1,5 @@
 import { Trapezoid, TrapezoidSet, Vertex } from "@dto/canvas";
 import {
-  DrawTrapezoid,
   findConnectedTrapezoids,
   getPointsOnTrapezoid,
   getSquare,
@@ -20,14 +19,12 @@ export const getConnectedSlices = (
 ) => {
   let { imgX, imgY, ctx, imageData, toggleOriginalImage } =
     searchData();
-  DrawTrapezoid(trapezoid, ctx, 'yellow', 15);
   trapezoid = computeTrapezoid([
     { x: trapezoid.top.x1, y: trapezoid.top.y1 },
     { x: trapezoid.top.x2, y: trapezoid.top.y2 },
     { x: trapezoid.bottom.x2, y: trapezoid.bottom.y2 },
     { x: trapezoid.bottom.x1, y: trapezoid.bottom.y1 },
   ])!;
-  DrawTrapezoid(trapezoid, ctx, 'orange', 15);
   const square = getSquare(imageData, imgX, imgY, options.options.squareSize);
   let fit = getPointsOnTrapezoid(
     square,

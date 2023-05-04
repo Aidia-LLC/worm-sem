@@ -1,5 +1,3 @@
-import { DrawTrapezoid } from "@logic/canvas";
-
 type Options = {
   squareSize: number;
   gaussianKernel: [number, number, number];
@@ -24,50 +22,50 @@ export function detectTrapezoid(
 ) {
   const imageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
   const square = getSquare(imageData, x, y, options.squareSize);
-  ctx.beginPath();
-  ctx.rect(
-    x - options.squareSize / 2,
-    y - options.squareSize / 2,
-    options.squareSize,
-    options.squareSize
-  );
-  ctx.strokeStyle = "red";
-  ctx.stroke();
-  ctx.closePath();
+  // ctx.beginPath();
+  // ctx.rect(
+  //   x - options.squareSize / 2,
+  //   y - options.squareSize / 2,
+  //   options.squareSize,
+  //   options.squareSize
+  // );
+  // ctx.strokeStyle = "red";
+  // ctx.stroke();
+  // ctx.closePath();
 
   const lines = hough(square, options);
 
   const goodLines = pixelsPerLine(lines, square, options);
-  for (const line of goodLines) {
-    ctx.beginPath();
-    ctx.moveTo(
-      line.x1 + x - options.squareSize / 2,
-      line.y1 + y - options.squareSize / 2
-    );
-    ctx.lineTo(
-      line.x2 + x - options.squareSize / 2,
-      line.y2 + y - options.squareSize / 2
-    );
-    ctx.strokeStyle = "red";
-    ctx.stroke();
-    ctx.closePath();
-  }
+  // for (const line of goodLines) {
+  //   ctx.beginPath();
+  //   ctx.moveTo(
+  //     line.x1 + x - options.squareSize / 2,
+  //     line.y1 + y - options.squareSize / 2
+  //   );
+  //   ctx.lineTo(
+  //     line.x2 + x - options.squareSize / 2,
+  //     line.y2 + y - options.squareSize / 2
+  //   );
+  //   ctx.strokeStyle = "red";
+  //   ctx.stroke();
+  //   ctx.closePath();
+  // }
   const vertices = computeVertices(goodLines, options).map((vertex) => ({
     x: vertex.x + x - options.squareSize / 2,
     y: vertex.y + y - options.squareSize / 2,
   }));
   // filter out similar vertices
 
-  for (const vertex of vertices) {
-    ctx.beginPath();
-    ctx.arc(vertex.x, vertex.y, 15, 0, 2 * Math.PI);
-    ctx.fillStyle = "red";
-    ctx.fill();
-    ctx.closePath();
-  }
+  // for (const vertex of vertices) {
+  //   ctx.beginPath();
+  //   ctx.arc(vertex.x, vertex.y, 15, 0, 2 * Math.PI);
+  //   ctx.fillStyle = "red";
+  //   ctx.fill();
+  //   ctx.closePath();
+  // }
 
   const trapezoid: Trapezoid | null = computeTrapezoid(vertices);
-  console.log("trapezoid", trapezoid);
+  // console.log("trapezoid", trapezoid);
   if (!trapezoid) {
     return { trapezoid: null, fit: null };
   }
