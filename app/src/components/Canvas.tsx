@@ -207,7 +207,8 @@ export const Canvas = () => {
       setRibbons,
       setSearchData,
       setShowOriginalImage,
-      ribbons
+      ribbons,
+      setNextId
     );
   });
 

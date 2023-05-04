@@ -13,7 +13,8 @@ export const getConnectedSlices = (
   setRibbons: any,
   setSearchData: any,
   setShowOriginalImage: any,
-  ribbons: any
+  ribbons: any,
+  setNextId: any
 ) => {
   let { trapezoid, imgX, imgY, ctx, imageData, toggleOriginalImage } =
     searchData();
@@ -59,6 +60,7 @@ export const getConnectedSlices = (
       },
     ];
   });
+  setNextId(id + 1);
   console.log("connected trapezoids", orderedTrapezoids);
   if (toggleOriginalImage) {
     setShowOriginalImage(true);
