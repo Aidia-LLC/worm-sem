@@ -53,7 +53,6 @@ import { SliderPicker } from "./SliderPicker";
 import { availableColors, TrapezoidSetConfig } from "./TrapezoidSetConfig";
 
 const DEFAULT_ZOOM_SCALE = 10;
-const VERTEX_DIST = 25;
 
 export const Canvas = () => {
   const [imageSrc, setImageSrc] = createSignal<string | null>(null);
@@ -111,6 +110,9 @@ export const Canvas = () => {
 
   const [options, setOptions, resetOptions] = createOptionsStore();
   const [searchData, setSearchData] = createSignal<any>({ pause: false });
+  const [VERTEX_DIST, setVertexDist] = createSignal(
+    options.options.squareSize / 5 ?? 30
+  );
 
   const handleClick = (e: MouseEvent) => {
     let toggleOriginalImage = false;
@@ -417,7 +419,7 @@ export const Canvas = () => {
         .map((t) => t.trapezoids)
         .flat()
     );
-    if (nearestDistance < VERTEX_DIST || inTrapezoid) {
+    if (nearestDistance < VERTEX_DIST() || inTrapezoid) {
       setClickedPoint({ x: imgX, y: imgY });
       overlayCanvasRef.addEventListener("mousemove", handleMouseMove);
       overlayCanvasRef.addEventListener("mouseup", handleMouseUp);
@@ -620,7 +622,11 @@ export const Canvas = () => {
         }
       }
       // Dragging a trapezoid
-      else if (nearestVertex && nearestDistance > VERTEX_DIST && trapezoidSet) {
+      else if (
+        nearestVertex &&
+        nearestDistance > VERTEX_DIST() &&
+        trapezoidSet
+      ) {
         const dy = imgY - clickedPoint()!.y ?? 0;
         const dx = imgX - clickedPoint()!.x ?? 0;
         setClickedPoint({ x: imgX, y: imgY });
