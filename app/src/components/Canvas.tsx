@@ -451,7 +451,6 @@ export const Canvas = () => {
       );
       setEdgeData(imageData);
     }
-    console.log("mousedown", imgX, imgY, ribbons());
     const { inTrapezoid, trapezoid } = isPointInTrapezoid(
       imgX,
       imgY,
@@ -501,13 +500,11 @@ export const Canvas = () => {
       );
       if (nearestDistance < 10) {
         // click and drag
-        console.log("click and drag");
         overlayCanvasRef.addEventListener("mousemove", handleMouseMove);
         overlayCanvasRef.addEventListener("mouseup", handleMouseUp);
         setClickedPoint(nearestPoint);
         return;
       } else {
-        console.log("not click and drag");
         setRibbons(
           ribbons().map((t) => {
             if (t.trapezoids === trapezoids) {
@@ -521,16 +518,8 @@ export const Canvas = () => {
         );
       }
     }
-    // const ctx = canvasRef.getContext("2d")!;
     const { trapezoid, inTrapezoid } = isPointInTrapezoid(x, y, trapezoids);
-    if (!inTrapezoid || !trapezoid) return console.log("no trapezoid found");
-    console.log("in trapezoid");
-    // ctx.beginPath();
-    // ctx.arc(x, y, 5, 0, 2 * Math.PI);
-    // ctx.fillStyle = trapezoidSet.color;
-    // ctx.closePath();
-    // ctx.fill();
-    // find distance from point to every vertex, and the center of the trapezoid
+    if (!inTrapezoid || !trapezoid) return;
     const center = {
       x:
         (trapezoid.top.x1 +

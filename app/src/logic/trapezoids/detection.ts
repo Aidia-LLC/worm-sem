@@ -426,7 +426,6 @@ function intersectionPoint(
   line1: LineSegment | Pick<LineSegment, "x1" | "x2" | "y1" | "y2">,
   line2: LineSegment | Pick<LineSegment, "x1" | "x2" | "y1" | "y2">
 ): Vertex | null {
-  console.log(line1, line2);
   const x1 = line1.x1;
   const y1 = line1.y1;
   const x2 = line1.x2;
@@ -446,7 +445,6 @@ function intersectionPoint(
 
   const ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denominator;
   const ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denominator;
-  console.log(ua, ub);
   if (ua < -0.5 || ua > 1.5 || ub < -0.5 || ub > 1.5) {
     // The intersection point is outside of at least one of the line segments
     return null;
@@ -454,7 +452,6 @@ function intersectionPoint(
 
   const x = x1 + ua * (x2 - x1);
   const y = y1 + ua * (y2 - y1);
-  console.log(x, y);
   return { x, y };
 }
 

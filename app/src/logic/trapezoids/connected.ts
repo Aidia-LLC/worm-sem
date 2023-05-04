@@ -61,7 +61,6 @@ export const getConnectedSlices = (
     ];
   });
   setNextId((nid: number) => nid + 1);
-  console.log("connected trapezoids", orderedTrapezoids);
   if (toggleOriginalImage) {
     setShowOriginalImage(true);
   }

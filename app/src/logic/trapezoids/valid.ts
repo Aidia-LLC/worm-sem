@@ -50,6 +50,5 @@ export function trapezoidIsValid(
   const centerPointValid =
     Math.abs(centerPoint.x - x) < 80 && Math.abs(centerPoint.y - y) < 80;
   const valid = areaValid && fitValid && sideValid && centerPointValid;
-  console.log({ areaValid, fitValid, sideValid, centerPointValid, valid });
   return valid;
 }

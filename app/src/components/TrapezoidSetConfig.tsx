@@ -162,7 +162,6 @@ export const TrapezoidSetConfig = (props: {
                       false,
                       props.ctx
                     );
-                    console.log(newSet);
                     props.setTrapezoidSet({
                       ...props.trapezoidSet,
                       trapezoids: newSet,
