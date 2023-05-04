@@ -87,6 +87,7 @@ export const Canvas = () => {
   const [cursorPosition, setCursorPosition] = createSignal<[number, number]>([
     0, 0,
   ]);
+  const [showCursor, setShowCursor] = createSignal(false);
 
   const handleKeyPress = (e: KeyboardEvent) => {
     if (e.key.toLowerCase() === "z") handleZoomButtonPressed();
@@ -102,6 +103,7 @@ export const Canvas = () => {
     ribbons();
     zoomState();
     cursorPosition();
+    showCursor();
     drawOverlay();
   });
 
@@ -295,13 +297,22 @@ export const Canvas = () => {
       ctx.translate(-x, -y);
     }
 
-    // draw point at cursorPosition
-    const [x, y] = cursorPosition();
-    if (x && y) {
-      ctx.beginPath();
-      ctx.arc(x, y, 5 / scale, 0, 2 * Math.PI);
-      ctx.fillStyle = "red";
-      ctx.fill();
+    if (showCursor()) {
+      const [x, y] = cursorPosition();
+      if (x && y) {
+        ctx.beginPath();
+        const halfSquare = options.options.squareSize / 2;
+        ctx.rect(
+          x - halfSquare,
+          y - halfSquare,
+          options.options.squareSize,
+          options.options.squareSize
+        );
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 15;
+        ctx.closePath();
+        ctx.stroke();
+      }
     }
 
     for (const trapezoidSet of ribbons()) {
@@ -915,7 +926,7 @@ export const Canvas = () => {
       </Show>
       <Show when={focusedSlice() === -1}>
         <Show when={imageSrc()}>
-          <div class="grid grid-cols-4 gap-4 mt-1">
+          <div class="grid grid-cols-5 gap-4 mt-1">
             <Button
               onClick={() => {
                 setImageSrc(null);
@@ -926,6 +937,9 @@ export const Canvas = () => {
               }}
             >
               Clear Image
+            </Button>
+            <Button onClick={() => setShowCursor(!showCursor())}>
+              Toggle Cursor
             </Button>
             <div class="w-full flex flex-col">
               <Show when={ribbons().length > 0}>
