@@ -1002,6 +1002,7 @@ export const Canvas = () => {
                 setRibbons(ribbons().filter((t) => t.id !== id))
               }
               setSearchData={setSearchData}
+              ctx={canvasRef.getContext("2d")!}
             />
           )}
         </For>
