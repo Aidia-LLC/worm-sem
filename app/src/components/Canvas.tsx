@@ -224,7 +224,7 @@ export const Canvas = () => {
       setShowOriginalImage,
       ribbons,
       setNextId,
-      ribbons().find((r) => r.id === id)!.trapezoids[0]!,
+      ribbons().find((r) => r.id === id)!.trapezoids[0]!
     );
   });
 
@@ -329,6 +329,7 @@ export const Canvas = () => {
         // render the first trapezoid distinctly
         const isFirstTrapezoid = i === 0;
         ctx.globalAlpha = isFirstTrapezoid ? 1 : 0.7;
+        ctx.fillText(`${i + 1}`, trapezoids[i].left.x1, trapezoids[i].left.y1);
         DrawTrapezoid(
           trapezoids[i],
           ctx,
