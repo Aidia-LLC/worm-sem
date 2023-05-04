@@ -225,7 +225,7 @@ function recurseSearchTrapezoid(
     fit
   );
   if (secondTest) {
-    DrawTrapezoid(secondTest, ctx);
+    // DrawTrapezoid(secondTest, ctx);
     trapezoids.push(secondTest);
     let xShift = Math.round(
       ((trapezoid.top.x1 + trapezoid.top.x2) / 2 +

@@ -71,7 +71,7 @@ export function detectTrapezoid(
   if (!trapezoid) {
     return { trapezoid: null, fit: null };
   }
-  DrawTrapezoid(trapezoid, ctx, "green", 15);
+  // DrawTrapezoid(trapezoid, ctx, "green", 15);
 
   const { trapezoid: newTrapezoid, fit } = DirectSearchOptimization(
     getPointsOnTrapezoid,

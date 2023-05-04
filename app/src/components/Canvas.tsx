@@ -190,6 +190,7 @@ export const Canvas = () => {
       toggleOriginalImage,
       id,
     });
+    setDetection(false);
     // Draw trapezoid
     DrawTrapezoid(trapezoid, ctx);
     const colors = new Set(availableColors);
@@ -222,7 +223,8 @@ export const Canvas = () => {
       setSearchData,
       setShowOriginalImage,
       ribbons,
-      setNextId
+      setNextId,
+      ribbons().find((r) => r.id === id)!.trapezoids[0]!,
     );
   });
 
@@ -956,7 +958,6 @@ export const Canvas = () => {
                   onClick={() => {
                     setPoints([]);
                     setRibbons([]);
-                    setRefresh(refresh() + 1);
                   }}
                 >
                   Remove All Ribbons
