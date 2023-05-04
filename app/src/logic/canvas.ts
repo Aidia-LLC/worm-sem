@@ -33,7 +33,7 @@ export const setupCanvas = async (
   });
 };
 
-export function convertLocalToGlobal(
+export function translateTrapezoid(
   trapezoid: Trapezoid,
   x: number,
   y: number
@@ -201,7 +201,7 @@ function recurseSearchTrapezoid(
   if (!trapezoid || count > 20) return trapezoids;
   const imageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
   const square = getSquare(imageData, x + deltaX, y + deltaY, squareSize);
-  const shiftedTrapezoid = convertLocalToGlobal(trapezoid, deltaX, deltaY);
+  const shiftedTrapezoid = translateTrapezoid(trapezoid, deltaX, deltaY);
   const firstTest = FixedDirectSearchOptimization(
     getPointsOnTrapezoid,
     shiftedTrapezoid,
@@ -348,7 +348,7 @@ export function RANSAC(
       continue;
     const points = getPointsOnTrapezoid(
       edgePixels,
-      convertLocalToGlobal(trapezoid, x, y),
+      translateTrapezoid(trapezoid, x, y),
       options,
       x,
       y,

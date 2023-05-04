@@ -7,7 +7,6 @@ import type {
   ZoomState,
 } from "@dto/canvas";
 import {
-  convertLocalToGlobal,
   convertZoomedCoordinatesToFullImage,
   DirectSearchOptimization,
   DrawTrapezoid,
@@ -16,6 +15,7 @@ import {
   lerp,
   RANSAC,
   setupCanvas,
+  translateTrapezoid,
 } from "@logic/canvas";
 import { base64ToImageSrc } from "@logic/image";
 import {
@@ -161,7 +161,7 @@ export const Canvas = () => {
         imgY - options.options.squareSize / 2
       )!;
       if (!trapezoid) return;
-      trapezoid = convertLocalToGlobal(
+      trapezoid = translateTrapezoid(
         trapezoid,
         imgX - options.options.squareSize / 2,
         imgY - options.options.squareSize / 2
@@ -225,6 +225,24 @@ export const Canvas = () => {
       ribbons,
       setNextId,
       ribbons().find((r) => r.id === id)!.trapezoids[0]!
+    );
+    const w = canvasRef.width;
+    const h = canvasRef.height;
+    setRibbons((ribbons) =>
+      ribbons.map((r) => ({
+        ...r,
+        trapezoids: r.trapezoids.filter(
+          (t) =>
+            t.left.x1 > 0 &&
+            t.left.x2 < w &&
+            t.right.x1 > 0 &&
+            t.right.x2 < w &&
+            t.top.y1 > 0 &&
+            t.top.y2 < h &&
+            t.bottom.y1 > 0 &&
+            t.bottom.y2 < h
+        ),
+      }))
     );
   });
 
@@ -505,7 +523,8 @@ export const Canvas = () => {
     }
     // const ctx = canvasRef.getContext("2d")!;
     const { trapezoid, inTrapezoid } = isPointInTrapezoid(x, y, trapezoids);
-    if (!inTrapezoid || !trapezoid) return;
+    if (!inTrapezoid || !trapezoid) return console.log("no trapezoid found");
+    console.log("in trapezoid");
     // ctx.beginPath();
     // ctx.arc(x, y, 5, 0, 2 * Math.PI);
     // ctx.fillStyle = trapezoidSet.color;
@@ -668,7 +687,7 @@ export const Canvas = () => {
         const dy = imgY - clickedPoint()!.y ?? 0;
         const dx = imgX - clickedPoint()!.x ?? 0;
         setClickedPoint({ x: imgX, y: imgY });
-        const newTrapezoid = convertLocalToGlobal(trapezoid, dx, dy);
+        const newTrapezoid = translateTrapezoid(trapezoid, dx, dy);
         // if new trapezoid is touching the edge of the image, delete it
         if (
           newTrapezoid.left.x1 < 0 ||
