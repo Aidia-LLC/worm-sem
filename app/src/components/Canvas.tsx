@@ -949,7 +949,10 @@ export const Canvas = () => {
             >
               Clear Image
             </Button>
-            <Button onClick={() => setDetection(!detection())}>
+            <Button
+              onClick={() => setDetection(!detection())}
+              disabled={searchData()?.pause}
+            >
               <Show when={detection()} fallback="Enable">
                 Disable
               </Show>{" "}
@@ -1011,9 +1014,15 @@ export const Canvas = () => {
                 );
                 setRibbons(newTrapezoidSets);
               }}
-              onDelete={({ id }) =>
-                setRibbons(ribbons().filter((t) => t.id !== id))
-              }
+              onDelete={({ id }) => {
+                setRibbons(ribbons().filter((t) => t.id !== id));
+                const search = searchData();
+                if (search && search.id === id) {
+                  setSearchData({
+                    pause: false,
+                  });
+                }
+              }}
               setSearchData={setSearchData}
               ctx={canvasRef.getContext("2d")!}
             />
