@@ -451,6 +451,7 @@ export const Canvas = () => {
       );
       setEdgeData(imageData);
     }
+    console.log("mousedown", imgX, imgY, ribbons());
     const { inTrapezoid, trapezoid } = isPointInTrapezoid(
       imgX,
       imgY,
@@ -500,11 +501,13 @@ export const Canvas = () => {
       );
       if (nearestDistance < 10) {
         // click and drag
+        console.log("click and drag");
         overlayCanvasRef.addEventListener("mousemove", handleMouseMove);
         overlayCanvasRef.addEventListener("mouseup", handleMouseUp);
         setClickedPoint(nearestPoint);
         return;
       } else {
+        console.log("not click and drag");
         setRibbons(
           ribbons().map((t) => {
             if (t.trapezoids === trapezoids) {

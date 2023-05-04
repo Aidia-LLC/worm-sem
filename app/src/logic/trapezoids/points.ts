@@ -13,35 +13,35 @@ export function isPointInTrapezoid(
     // sum up area of triangle between the point and each side of the trapezoid
     sum += Math.abs(
       0.5 *
-        (x * (top.y2 - top.y1) +
-          y * (top.x1 - top.x2) +
-          top.x2 * top.y1 -
-          top.x1 * top.y2)
+        (x * (top.y2 - top.y1) + top.x1 * (y - top.y2) + top.x2 * (top.y1 - y))
     );
     sum += Math.abs(
       0.5 *
         (x * (bottom.y2 - bottom.y1) +
-          y * (bottom.x1 - bottom.x2) +
-          bottom.x2 * bottom.y1 -
-          bottom.x1 * bottom.y2)
+          bottom.x1 * (y - bottom.y2) +
+          bottom.x2 * (bottom.y1 - y))
     );
     sum += Math.abs(
       0.5 *
         (x * (left.y2 - left.y1) +
-          y * (left.x1 - left.x2) +
-          left.x2 * left.y1 -
-          left.x1 * left.y2)
+          left.x1 * (y - left.y2) +
+          left.x2 * (left.y1 - y))
     );
     sum += Math.abs(
       0.5 *
         (x * (right.y2 - right.y1) +
-          y * (right.x1 - right.x2) +
-          right.x2 * right.y1 -
-          right.x1 * right.y2)
+          right.x1 * (y - right.y2) +
+          right.x2 * (right.y1 - y))
     );
+    console.log({ sum, trapezoidArea });
     // if the sum of the areas of the triangles is equal to the area of the trapezoid, the point is inside the trapezoid
-    if (sum < trapezoidArea) return { inTrapezoid: true, trapezoid };
+    if (sum < trapezoidArea) {
+      console.log("in trapezoid");
+      return { inTrapezoid: true, trapezoid };
+    }
   }
+  console.log("not in trapezoid");
+
   return { inTrapezoid: false, trapezoid: null };
 }
 
