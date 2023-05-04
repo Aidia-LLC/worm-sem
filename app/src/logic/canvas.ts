@@ -75,11 +75,14 @@ export function DrawTrapezoid(
   ctx.beginPath();
   ctx.moveTo(trapezoid.top.x1, trapezoid.top.y1);
   ctx.lineTo(trapezoid.top.x2, trapezoid.top.y2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = thickness + 5;
+  ctx.stroke();
   ctx.lineTo(trapezoid.bottom.x2, trapezoid.bottom.y2);
   ctx.lineTo(trapezoid.bottom.x1, trapezoid.bottom.y1);
   ctx.lineTo(trapezoid.top.x1, trapezoid.top.y1);
-  ctx.strokeStyle = color;
   ctx.lineWidth = thickness;
+
   ctx.stroke();
   ctx.closePath();
 }
@@ -325,6 +328,7 @@ export function RANSAC(
 ): Trapezoid | undefined {
   const areaThreshold = [trapezoidArea * 0.9, trapezoidArea * 1.1];
   const iterations = 25000;
+  const size = squareSize ?? options.squareSize;
   let bestTrapezoid: Trapezoid | undefined;
   let bestFit: number | undefined;
   for (let i = 0; i < iterations; i++) {
@@ -338,7 +342,8 @@ export function RANSAC(
     if (
       (trapezoidArea !== 0 &&
         (area < areaThreshold[0] || area > areaThreshold[1])) ||
-      (trapezoidArea == 0 && (area < 45 * 45 || area > 60 * 55))
+      (trapezoidArea == 0 &&
+        (area < (size * 0.5) ** 2 || area > (size * 0.9) ** 2))
     )
       continue;
     const points = getPointsOnTrapezoid(

@@ -1,7 +1,6 @@
-import { ProcessingOptions } from "@dto/ProcessingOptions";
 import { Trapezoid } from "@dto/canvas";
+import { ProcessingOptions } from "@dto/ProcessingOptions";
 import { calculateArea } from "@logic/canvas";
-
 
 export function trapezoidIsValid(
   trapezoid: Trapezoid,
@@ -12,7 +11,7 @@ export function trapezoidIsValid(
 ) {
   const { squareSize } = options;
   const area = calculateArea(trapezoid);
-  const areaThreshold = squareSize ** 2 * 0.2;
+  const areaThreshold = squareSize ** 2 * 0.3;
   const areaValid = area > areaThreshold;
   const fitValid = fit && Math.abs(fit) > options.firstFit;
   // make sure each side is at least 1/3 of the square size

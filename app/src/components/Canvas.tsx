@@ -11,7 +11,6 @@ import {
   convertZoomedCoordinatesToFullImage,
   DirectSearchOptimization,
   DrawTrapezoid,
-  findConnectedTrapezoids,
   getPointsOnTrapezoid,
   getSquare,
   lerp,
@@ -24,8 +23,8 @@ import {
   StageConfiguration,
 } from "@logic/semCoordinates";
 import { getIndicesOfSlicesToConfigure } from "@logic/sliceConfiguration";
+import { getConnectedSlices } from "@logic/trapezoids/connected";
 import { detectTrapezoid } from "@logic/trapezoids/detection";
-import { filterTrapezoids } from "@logic/trapezoids/filter";
 import { findNearestPoint, isPointInTrapezoid } from "@logic/trapezoids/points";
 import { trapezoidIsValid } from "@logic/trapezoids/valid";
 import { findNearestVertex, moveVertex } from "@logic/trapezoids/vertices";
@@ -54,6 +53,7 @@ import { SliderPicker } from "./SliderPicker";
 import { availableColors, TrapezoidSetConfig } from "./TrapezoidSetConfig";
 
 const DEFAULT_ZOOM_SCALE = 10;
+const VERTEX_DIST = 25;
 
 export const Canvas = () => {
   const [imageSrc, setImageSrc] = createSignal<string | null>(null);
@@ -110,6 +110,7 @@ export const Canvas = () => {
   });
 
   const [options, setOptions, resetOptions] = createOptionsStore();
+  const [searchData, setSearchData] = createSignal<any>({ pause: false });
 
   const handleClick = (e: MouseEvent) => {
     let toggleOriginalImage = false;
@@ -162,42 +163,28 @@ export const Canvas = () => {
       trapezoid = newTrapezoid;
     }
     if (!trapezoid) return;
-    if (!fit) {
-      const square = getSquare(
-        imageData,
-        imgX,
-        imgY,
-        options.options.squareSize
-      );
-      fit = getPointsOnTrapezoid(
-        square,
-        trapezoid,
-        options.options,
-        imgX - options.options.squareSize / 2,
-        imgY - options.options.squareSize / 2
-      );
-    }
-    const connectedTrapezoids = findConnectedTrapezoids(
+    const id = nextId();
+    setNextId((prev) => prev + 1);
+    setSearchData({
+      pause: true,
+      fit,
       trapezoid,
-      ctx,
       imgX,
       imgY,
-      options.options,
-      fit
-    );
+      ctx,
+      imageData,
+      toggleOriginalImage,
+      id,
+    });
+    // Draw trapezoid
+    DrawTrapezoid(trapezoid, ctx);
     const colors = new Set(availableColors);
     ribbons().forEach((set) => colors.delete(set.color));
     const color = colors.size > 0 ? colors.values().next().value : "red";
-    const filteredTrapezoids = filterTrapezoids(connectedTrapezoids, ribbons());
-    const orderedTrapezoids = orderTrapezoids([
-      ...filteredTrapezoids,
-      trapezoid,
-    ]);
-    const id = nextId();
     setRibbons((prev) => [
       ...prev,
       {
-        trapezoids: orderedTrapezoids,
+        trapezoids: [trapezoid],
         id,
         name: `Ribbon ${id}`,
         color,
@@ -205,22 +192,24 @@ export const Canvas = () => {
         status: "editing",
         matchedPoints: [],
         reversed: false,
+        phase: 1,
       } as TrapezoidSet,
     ]);
-    setNextId((prev) => prev + 1);
-    if (toggleOriginalImage) {
-      setShowOriginalImage(true);
-    }
   };
 
-  const orderTrapezoids = (trapezoids: Trapezoid[]) => {
-    // order with the top trapezoid being 1
-    return trapezoids.sort((a, b) => {
-      const aTop = Math.min(a.top.y1, a.top.y2);
-      const bTop = Math.min(b.top.y1, b.top.y2);
-      return aTop - bTop;
-    });
-  };
+  createEffect(() => {
+    const { pause, id } = searchData();
+    if (pause || !id) return;
+    getConnectedSlices(
+      id,
+      options,
+      searchData,
+      setRibbons,
+      setSearchData,
+      setShowOriginalImage,
+      ribbons
+    );
+  });
 
   createEffect(async () => {
     refresh();
@@ -313,8 +302,8 @@ export const Canvas = () => {
         );
       }
       ctx.globalAlpha = 1;
-      ctx.lineWidth = 3 / scale;
-      const radius = (3 / scale) * 2;
+      ctx.lineWidth = 6 / scale;
+      const radius = (3 / scale) * 3;
       for (const point of trapezoidSet.matchedPoints) {
         ctx.beginPath();
         ctx.arc(point.x, point.y, radius, 0, 2 * Math.PI);
@@ -322,15 +311,6 @@ export const Canvas = () => {
         ctx.stroke();
       }
     }
-
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.rect(0, 0, options.options.squareSize, options.options.squareSize);
-    ctx.strokeStyle = "red";
-    ctx.lineWidth = 4;
-    ctx.stroke();
-    ctx.closePath();
-
     ctx.restore();
   };
 
@@ -436,7 +416,7 @@ export const Canvas = () => {
         .map((t) => t.trapezoids)
         .flat()
     );
-    if (nearestDistance < 15 || inTrapezoid) {
+    if (nearestDistance < VERTEX_DIST || inTrapezoid) {
       setClickedPoint({ x: imgX, y: imgY });
       overlayCanvasRef.addEventListener("mousemove", handleMouseMove);
       overlayCanvasRef.addEventListener("mouseup", handleMouseUp);
@@ -639,7 +619,7 @@ export const Canvas = () => {
         }
       }
       // Dragging a trapezoid
-      else if (nearestVertex && nearestDistance > 15 && trapezoidSet) {
+      else if (nearestVertex && nearestDistance > VERTEX_DIST && trapezoidSet) {
         const dy = imgY - clickedPoint()!.y ?? 0;
         const dx = imgX - clickedPoint()!.x ?? 0;
         setClickedPoint({ x: imgX, y: imgY });
@@ -794,7 +774,6 @@ export const Canvas = () => {
           ribbonName,
         };
       });
-    console.log(finalConfigurations);
     try {
       await handleFinalImaging(finalConfigurations, setPercentComplete);
       alert(`Done imaging for ${ribbon.name}!`);
@@ -988,6 +967,7 @@ export const Canvas = () => {
               onDelete={({ id }) =>
                 setRibbons(ribbons().filter((t) => t.id !== id))
               }
+              setSearchData={setSearchData}
             />
           )}
         </For>

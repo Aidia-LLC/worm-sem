@@ -25,8 +25,7 @@ const client: SEMClient = {
 };
 
 ipcRenderer.on("SEMClient:Received", (_, data) => {
-  const message = data as Message;
-  subscribers.forEach((callback) => callback(message));
+  subscribers.forEach((callback) => callback(data));
 });
 
 contextBridge.exposeInMainWorld("semClient", client);
