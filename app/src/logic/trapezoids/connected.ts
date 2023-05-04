@@ -17,8 +17,7 @@ export const getConnectedSlices = (
   setNextId: any,
   trapezoid: Trapezoid
 ) => {
-  let { imgX, imgY, ctx, imageData, toggleOriginalImage } =
-    searchData();
+  let { imgX, imgY, ctx, imageData, toggleOriginalImage } = searchData();
   trapezoid = computeTrapezoid([
     { x: trapezoid.top.x1, y: trapezoid.top.y1 },
     { x: trapezoid.top.x2, y: trapezoid.top.y2 },
@@ -61,7 +60,7 @@ export const getConnectedSlices = (
       },
     ];
   });
-  setNextId(id + 1);
+  setNextId((nid: number) => nid + 1);
   console.log("connected trapezoids", orderedTrapezoids);
   if (toggleOriginalImage) {
     setShowOriginalImage(true);

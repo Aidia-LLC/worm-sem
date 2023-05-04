@@ -340,8 +340,8 @@ export const Canvas = () => {
         ctx.fillText(`${i + 1}`, trapezoids[i].left.x1, trapezoids[i].left.y1);
       }
       ctx.globalAlpha = 1;
-      ctx.lineWidth = 6 / scale;
-      const radius = (3 / scale) * 3;
+      ctx.lineWidth = 9 / scale;
+      const radius = (3 / scale) * 4;
       for (const point of trapezoidSet.matchedPoints) {
         ctx.beginPath();
         ctx.arc(point.x, point.y, radius, 0, 2 * Math.PI);
