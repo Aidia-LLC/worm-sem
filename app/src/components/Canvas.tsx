@@ -329,13 +329,15 @@ export const Canvas = () => {
         // render the first trapezoid distinctly
         const isFirstTrapezoid = i === 0;
         ctx.globalAlpha = isFirstTrapezoid ? 1 : 0.7;
-        ctx.fillText(`${i + 1}`, trapezoids[i].left.x1, trapezoids[i].left.y1);
         DrawTrapezoid(
           trapezoids[i],
           ctx,
           color,
           thickness * (isFirstTrapezoid ? 1.5 : 0.9)
         );
+        ctx.fillStyle = "white";
+        ctx.font = `${thickness * 6}px Arial`;
+        ctx.fillText(`${i + 1}`, trapezoids[i].left.x1, trapezoids[i].left.y1);
       }
       ctx.globalAlpha = 1;
       ctx.lineWidth = 6 / scale;
