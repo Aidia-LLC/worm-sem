@@ -16,3 +16,10 @@ You can use the command line argument `--dry-run` to skip the microscope connect
 ## Running the Electron app
 
 Install `node`. Navigate to the `app` directory and run `yarn`. Then run `yarn dev`. The app will start and connect to the CLI program.
+
+## Unknowns
+
+- [ ] Testing when frame freezes
+- [ ] Moving the stage
+- [ ] Changing the magnification
+- [ ] Scale of brightness, contrast, and working distance (sliders have hard-coded limits)
