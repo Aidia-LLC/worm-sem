@@ -336,7 +336,7 @@ export const Canvas = () => {
           thickness * (isFirstTrapezoid ? 1.5 : 0.9)
         );
         ctx.fillStyle = "white";
-        ctx.font = `${thickness * 6}px Arial`;
+        ctx.font = `${Math.ceil(thickness * 9)}px Arial`;
         ctx.fillText(`${i + 1}`, trapezoids[i].left.x1, trapezoids[i].left.y1);
       }
       ctx.globalAlpha = 1;
