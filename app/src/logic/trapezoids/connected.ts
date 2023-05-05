@@ -52,7 +52,7 @@ export const getConnectedSlices = (
         phase: 2,
         status: "editing",
         id: id + 1,
-        name: `Ribbon ${id + 1}`,
+        name: `Ribbon ${Math.ceil(id / 2)}`,
         color: ribbon.color,
         matchedPoints: [],
         reversed: false,

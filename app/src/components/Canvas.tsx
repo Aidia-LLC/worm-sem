@@ -201,7 +201,7 @@ export const Canvas = () => {
       {
         trapezoids: [trapezoid],
         id,
-        name: `Ribbon ${id}`,
+        name: `Ribbon ${Math.ceil(id / 2)}`,
         color,
         thickness: 5,
         status: "editing",
