@@ -234,12 +234,20 @@ export const Canvas = () => {
         trapezoids: r.trapezoids.filter(
           (t) =>
             t.left.x1 > 0 &&
+            t.left.x1 < w &&
+            t.left.x2 > 0 &&
             t.left.x2 < w &&
             t.right.x1 > 0 &&
+            t.right.x1 < w &&
+            t.right.x2 > 0 &&
             t.right.x2 < w &&
             t.top.y1 > 0 &&
+            t.top.y1 < h &&
+            t.top.y2 > 0 &&
             t.top.y2 < h &&
             t.bottom.y1 > 0 &&
+            t.bottom.y1 < h &&
+            t.bottom.y2 > 0 &&
             t.bottom.y2 < h
         ),
       }))
