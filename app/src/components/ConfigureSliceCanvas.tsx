@@ -106,11 +106,11 @@ export const ConfigureSliceCanvas = (props: {
     //   doubleValue: 2, // command
     // });
 
-    window.semClient.send({
-      id: getNextCommandId(),
-      type: "execute",
-      command: "CMD_UNFREEZE_ALL",
-    });
+    // window.semClient.send({
+    //   id: getNextCommandId(),
+    //   type: "execute",
+    //   command: "CMD_UNFREEZE_ALL",
+    // });
 
     timerRef = window.setTimeout(() => {
       timerRef = window.setInterval(() => {
