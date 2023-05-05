@@ -332,6 +332,7 @@ export const Canvas = () => {
         y: [parseFloat(stageLowLimitY), parseFloat(stageHighLimitY)],
       },
     });
+    console.log(initialStage());
   });
 
   onCleanup(() => {
