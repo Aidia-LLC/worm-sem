@@ -228,22 +228,27 @@ export const Canvas = () => {
     );
     const w = canvasRef.width;
     const h = canvasRef.height;
-    setRibbons((ribbons) =>
-      ribbons.map((r) => ({
-        ...r,
-        trapezoids: r.trapezoids.filter(
-          (t) =>
-            t.left.x1 > 0 &&
-            t.left.x2 < w &&
-            t.right.x1 > 0 &&
-            t.right.x2 < w &&
-            t.top.y1 > 0 &&
-            t.top.y2 < h &&
-            t.bottom.y1 > 0 &&
-            t.bottom.y2 < h
-        ),
-      }))
-    );
+    console.log({
+      ribbons: ribbons(),
+      w,
+      h,
+    });
+    // setRibbons((ribbons) =>
+    //   ribbons.map((r) => ({
+    //     ...r,
+    //     trapezoids: r.trapezoids.filter(
+    //       (t) =>
+    //         t.left.x1 > 0 &&
+    //         t.left.x2 < w &&
+    //         t.right.x1 > 0 &&
+    //         t.right.x2 < w &&
+    //         t.top.y1 > 0 &&
+    //         t.top.y2 < h &&
+    //         t.bottom.y1 > 0 &&
+    //         t.bottom.y2 < h
+    //     ),
+    //   }))
+    // );
   });
 
   createEffect(async () => {
