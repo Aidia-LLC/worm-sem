@@ -60,14 +60,14 @@ export const ConfigureSliceCanvas = (props: {
       stageConfiguration: props.stage,
     });
 
-    console.log({
+    window.semClient.send({
       type: "setParam",
       id: getNextCommandId(),
       param: "AP_STAGE_GOTO_X",
       doubleValue: coordinates.x,
     });
 
-    console.log({
+    window.semClient.send({
       type: "setParam",
       id: getNextCommandId(),
       param: "AP_STAGE_GOTO_Y",
