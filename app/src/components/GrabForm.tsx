@@ -82,6 +82,7 @@ export const GrabForm = (props: { onGrabbed: (fast: string) => void }) => {
             },
             {
               minSleepMs: 15000,
+              pollIntervalMs: 2000,
             }
           );
         }}
