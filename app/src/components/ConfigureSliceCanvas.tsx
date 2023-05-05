@@ -1,4 +1,4 @@
-import { SliceConfiguration, TrapezoidSet } from "@dto/canvas";
+import { SliceConfiguration, RibbonData } from "@dto/canvas";
 import { base64ToImageSrc } from "@logic/image";
 import {
   computeStageCoordinates,
@@ -11,11 +11,11 @@ import { getNextCommandId } from "src/data/signals/commandQueue";
 import { Button } from "./Button";
 import { SliderPicker } from "./SliderPicker";
 
-const PREVIEW_INTERVAL = 1000;
+const PREVIEW_INTERVAL = 3000;
 const INITIAL_WAIT_INTERVAL = 5000;
 
 export const ConfigureSliceCanvas = (props: {
-  ribbon: TrapezoidSet;
+  ribbon: RibbonData;
   magnification: number;
   setMagnification: (magnification: number) => void;
   configuration: SliceConfiguration;
