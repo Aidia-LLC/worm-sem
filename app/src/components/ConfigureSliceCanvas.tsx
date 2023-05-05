@@ -5,12 +5,12 @@ import {
   StageConfiguration,
 } from "@logic/semCoordinates";
 import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
+import { sleep } from "src/data/handleFinalImaging";
 import { MAX_MAG } from "src/data/magnification";
 import { getSEMParam, MEDIUM_SCAN_SPEED } from "src/data/semParams";
 import { getNextCommandId } from "src/data/signals/commandQueue";
 import { Button } from "./Button";
 import { SliderPicker } from "./SliderPicker";
-import { sleep } from "src/data/handleFinalImaging";
 
 const PREVIEW_INTERVAL = 3000;
 const INITIAL_WAIT_INTERVAL = 5000;
@@ -99,11 +99,17 @@ export const ConfigureSliceCanvas = (props: {
       doubleValue: 0,
     });
     await sleep(500);
+    // window.semClient.send({
+    //   id: getNextCommandId(),
+    //   type: "setParam",
+    //   param: "DP_FREEZE_ON",
+    //   doubleValue: 2, // command
+    // });
+
     window.semClient.send({
       id: getNextCommandId(),
-      type: "setParam",
-      param: "DP_FREEZE_ON",
-      doubleValue: 2, // command
+      type: "execute",
+      command: "CMD_UNFREEZE_ALL",
     });
 
     timerRef = window.setTimeout(() => {
