@@ -1,10 +1,5 @@
-import { Trapezoid, RibbonData, Vertex } from "@dto/canvas";
-import {
-  findConnectedTrapezoids,
-  getPointsOnTrapezoid,
-  getSquare,
-} from "@logic/canvas";
-import { filterTrapezoids } from "./filter";
+import { RibbonData, Trapezoid, Vertex } from "@dto/canvas";
+import { calculateArea, translateTrapezoid } from "@logic/canvas";
 
 export const getConnectedSlices = (
   id: number,
@@ -18,39 +13,65 @@ export const getConnectedSlices = (
   trapezoid: Trapezoid
 ) => {
   let { imgX, imgY, ctx, imageData, toggleOriginalImage } = searchData();
-  console.log('inside')
+  console.log("inside");
   trapezoid = computeTrapezoid([
     { x: trapezoid.top.x1, y: trapezoid.top.y1 },
     { x: trapezoid.top.x2, y: trapezoid.top.y2 },
     { x: trapezoid.bottom.x2, y: trapezoid.bottom.y2 },
     { x: trapezoid.bottom.x1, y: trapezoid.bottom.y1 },
   ])!;
-  const square = getSquare(imageData, imgX, imgY, options.options.squareSize);
-  let fit = getPointsOnTrapezoid(
-    square,
-    trapezoid,
-    options.options,
-    imgX - options.options.squareSize / 2,
-    imgY - options.options.squareSize / 2
+  // const square = getSquare(imageData, imgX, imgY, options.options.squareSize);
+  // let fit = getPointsOnTrapezoid(
+  //   square,
+  //   trapezoid,
+  //   options.options,
+  //   imgX - options.options.squareSize / 2,
+  //   imgY - options.options.squareSize / 2
+  // );
+  // const connectedTrapezoids = findConnectedTrapezoids(
+  //   trapezoid,
+  //   ctx,
+  //   imgX,
+  //   imgY,
+  //   options.options,
+  //   fit
+  // );
+  // const filteredTrapezoids = filterTrapezoids(connectedTrapezoids, ribbons());
+  // const orderedTrapezoids = orderTrapezoids([...filteredTrapezoids, trapezoid]);
+  // console.log('found', orderedTrapezoids.length)
+  // Copy a new trapezoid on top of the old one
+  const yShift =
+    Math.round(
+      (trapezoid.top.y1 + trapezoid.top.y2) / 2 -
+        (trapezoid.bottom.y1 + trapezoid.bottom.y2) / 2
+    ) - 5;
+  const length = Math.round(
+    Math.sqrt(
+      (trapezoid.top.x1 - trapezoid.top.x2) ** 2 +
+        (trapezoid.top.y1 - trapezoid.top.y2) ** 2
+    )
   );
-  const connectedTrapezoids = findConnectedTrapezoids(
-    trapezoid,
-    ctx,
-    imgX,
-    imgY,
-    options.options,
-    fit
+  const bottomLength = Math.round(
+    Math.sqrt(
+      (trapezoid.bottom.x1 - trapezoid.bottom.x2) ** 2 +
+        (trapezoid.bottom.y1 - trapezoid.bottom.y2) ** 2
+    )
   );
-  const filteredTrapezoids = filterTrapezoids(connectedTrapezoids, ribbons());
-  const orderedTrapezoids = orderTrapezoids([...filteredTrapezoids, trapezoid]);
-  console.log('found', orderedTrapezoids.length)
+  const area = calculateArea(trapezoid);
+  const height = Math.round((2 * area) / (length + bottomLength));
+  const xShift = Math.round(
+    ((trapezoid.top.y1 - trapezoid.top.y2) / length) * height
+  );
+
+  const topTrapezoid = translateTrapezoid(trapezoid, yShift, xShift);
+  const bottomTrapezoid = translateTrapezoid(trapezoid, -yShift, -xShift);
   const ribbon = ribbons().find((ribbon: any) => ribbon.id === id);
   setRibbons((prev: any) => prev.filter((ribbon: any) => ribbon.id !== id));
   setRibbons((prev: RibbonData[]) => {
     return [
       ...prev,
       {
-        trapezoids: [...orderedTrapezoids],
+        trapezoids: [topTrapezoid, trapezoid, bottomTrapezoid],
         phase: 2,
         status: "editing",
         id: id + 1,

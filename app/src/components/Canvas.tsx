@@ -1,19 +1,15 @@
 import type {
   FinalSliceConfiguration,
+  RibbonData,
   SliceConfiguration,
   Trapezoid,
-  RibbonData,
   Vertex,
   ZoomState,
 } from "@dto/canvas";
 import {
   convertZoomedCoordinatesToFullImage,
-  DirectSearchOptimization,
   DrawTrapezoid,
-  getPointsOnTrapezoid,
-  getSquare,
   lerp,
-  RANSAC,
   setupCanvas,
   translateTrapezoid,
 } from "@logic/canvas";
@@ -26,7 +22,6 @@ import { getIndicesOfSlicesToConfigure } from "@logic/sliceConfiguration";
 import { getConnectedSlices } from "@logic/trapezoids/connected";
 import { detectTrapezoid } from "@logic/trapezoids/detection";
 import { findNearestPoint, isPointInTrapezoid } from "@logic/trapezoids/points";
-import { trapezoidIsValid } from "@logic/trapezoids/valid";
 import { findNearestVertex, moveVertex } from "@logic/trapezoids/vertices";
 import {
   createEffect,
@@ -49,8 +44,8 @@ import { ConfigureSliceCanvas } from "./ConfigureSliceCanvas";
 import { GrabForm } from "./GrabForm";
 import { KernelParam } from "./KernelParam";
 import { Param } from "./Param";
-import { SliderPicker } from "./SliderPicker";
 import { availableColors, RibbonConfig } from "./RibbonConfig";
+import { SliderPicker } from "./SliderPicker";
 
 const DEFAULT_ZOOM_SCALE = 10;
 
@@ -144,7 +139,7 @@ export const Canvas = () => {
     let toggleOriginalImage = false;
     if (showOriginalImage()) {
       toggleOriginalImage = true;
-      setShowOriginalImage(false);
+      // setShowOriginalImage(false);
     }
     const ctx = canvasRef.getContext("2d")!;
     const imageData = ctx.getImageData(0, 0, canvasRef.width, canvasRef.height);
@@ -156,42 +151,69 @@ export const Canvas = () => {
     const imgX = Math.round((x / rectWidth) * canvasRef.width);
     const imgY = Math.round((y / rectHeight) * canvasRef.height);
     setPoints([...points(), [imgX, imgY]]);
-    let { trapezoid, fit } = detectTrapezoid(imgX, imgY, ctx, options.options);
-    const valid =
-      trapezoid &&
-      trapezoidIsValid(trapezoid, imgX, imgY, options.options, fit);
-    console.log("valid", valid);
-    if (!valid) {
-      const square = getSquare(
-        imageData,
-        imgX,
-        imgY,
-        options.options.squareSize
-      );
-      trapezoid = RANSAC(
-        square,
-        0,
-        options.options,
-        imgX - options.options.squareSize / 2,
-        imgY - options.options.squareSize / 2
-      )!;
-      console.log("trapezoid ransac", trapezoid);
-      if (!trapezoid) return;
-      trapezoid = translateTrapezoid(
-        trapezoid,
-        imgX - options.options.squareSize / 2,
-        imgY - options.options.squareSize / 2
-      );
-      const { trapezoid: newTrapezoid } = DirectSearchOptimization(
-        getPointsOnTrapezoid,
-        trapezoid,
-        square,
-        options.options,
-        imgX - options.options.squareSize / 2,
-        imgY - options.options.squareSize / 2
-      );
-      trapezoid = newTrapezoid;
-    }
+    // let { trapezoid, fit } = detectTrapezoid(imgX, imgY, ctx, options.options);
+    // const valid =
+    //   trapezoid &&
+    //   trapezoidIsValid(trapezoid, imgX, imgY, options.options, fit);
+    // console.log("valid", valid);
+    // if (!valid) {
+    //   const square = getSquare(
+    //     imageData,
+    //     imgX,
+    //     imgY,
+    //     options.options.squareSize
+    //   );
+    //   trapezoid = RANSAC(
+    //     square,
+    //     0,
+    //     options.options,
+    //     imgX - options.options.squareSize / 2,
+    //     imgY - options.options.squareSize / 2
+    //   )!;
+    //   console.log("trapezoid ransac", trapezoid);
+    //   if (!trapezoid) return;
+    //   trapezoid = translateTrapezoid(
+    //     trapezoid,
+    //     imgX - options.options.squareSize / 2,
+    //     imgY - options.options.squareSize / 2
+    //   );
+    //   const { trapezoid: newTrapezoid } = DirectSearchOptimization(
+    //     getPointsOnTrapezoid,
+    //     trapezoid,
+    //     square,
+    //     options.options,
+    //     imgX - options.options.squareSize / 2,
+    //     imgY - options.options.squareSize / 2
+    //   );
+    //   trapezoid = newTrapezoid;
+    // }
+    let trapezoid: Trapezoid = {
+      top: {
+        x1: imgX - options.options.squareSize / 2,
+        y1: imgY - options.options.squareSize / 2,
+        x2: imgX + options.options.squareSize / 2,
+        y2: imgY - options.options.squareSize / 2,
+      },
+      bottom: {
+        x1: imgX - options.options.squareSize / 2,
+        y1: imgY + options.options.squareSize / 2,
+        x2: imgX + options.options.squareSize / 2,
+        y2: imgY + options.options.squareSize / 2,
+      },
+      left: {
+        x1: imgX - options.options.squareSize / 2,
+        y1: imgY - options.options.squareSize / 2,
+        x2: imgX - options.options.squareSize / 2,
+        y2: imgY + options.options.squareSize / 2,
+      },
+      right: {
+        x1: imgX + options.options.squareSize / 2,
+        y1: imgY - options.options.squareSize / 2,
+        x2: imgX + options.options.squareSize / 2,
+        y2: imgY + options.options.squareSize / 2,
+      },
+    };
+    let fit;
     if (!trapezoid) return;
     const id = nextId();
     setNextId((prev) => prev + 1);
@@ -274,10 +296,10 @@ export const Canvas = () => {
     if (!src) return;
     const o = options.options;
     await setupCanvas(canvasRef, o, src, overlayCanvasRef);
-    const imageData = canvasRef
-      .getContext("2d")!
-      .getImageData(0, 0, canvasRef.width, canvasRef.height);
-    setEdgeData(imageData);
+    // const imageData = canvasRef
+    //   .getContext("2d")!
+    //   .getImageData(0, 0, canvasRef.width, canvasRef.height);
+    // setEdgeData(imageData);
     untrack(() => {
       draw();
       const ctx = canvasRef.getContext("2d")!;
@@ -1015,13 +1037,13 @@ export const Canvas = () => {
               </Show>
             </div>
             {/* <Button onClick={rotateImage}>Rotate Image</Button> */}
-            <Button
+            {/* <Button
               onClick={() => {
                 setShowOriginalImage(!showOriginalImage());
               }}
             >
               Show {showOriginalImage() ? "Edge Data" : "Original Image"}
-            </Button>
+            </Button> */}
             <Button onClick={handleZoomButtonPressed}>
               <Switch fallback="Zoom in">
                 <Match when={zoomState() === "pickingCenter"}>

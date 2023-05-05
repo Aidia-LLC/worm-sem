@@ -1,6 +1,5 @@
 import { Trapezoid, Vertex, ZoomState } from "@dto/canvas";
 import { ProcessingOptions } from "@dto/ProcessingOptions";
-import { edgeFilter } from "./edgeFilter";
 import { base64ToImageSrc } from "./image";
 
 export const setupCanvas = async (
@@ -30,7 +29,7 @@ export const setupCanvas = async (
       // }
       ctx.drawImage(img, 0, 0);
       imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      edgeFilter(canvas, options, imageData, ctx);
+      // edgeFilter(canvas, options, imageData, ctx);
       resolve();
     };
     img.onerror = (e) => {
