@@ -70,6 +70,6 @@ export const FASTEST_SCAN_SPEED = 6;
 export const MEDIUM_SCAN_SPEED = 3;
 export const SLOWEST_SCAN_SPEED = 15;
 
-export const LOWER_IMAGE_QUALITY = 1;
+export const LOWER_IMAGE_QUALITY = 4;
 export const MEDIUM_IMAGE_QUALITY = 4;
 export const HIGHEST_IMAGE_QUALITY = 11;
