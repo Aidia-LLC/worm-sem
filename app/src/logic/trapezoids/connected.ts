@@ -40,11 +40,6 @@ export const getConnectedSlices = (
   // const orderedTrapezoids = orderTrapezoids([...filteredTrapezoids, trapezoid]);
   // console.log('found', orderedTrapezoids.length)
   // Copy a new trapezoid on top of the old one
-  const yShift =
-    Math.round(
-      (trapezoid.top.y1 + trapezoid.top.y2) / 2 -
-        (trapezoid.bottom.y1 + trapezoid.bottom.y2) / 2
-    ) - 5;
   const length = Math.round(
     Math.sqrt(
       (trapezoid.top.x1 - trapezoid.top.x2) ** 2 +
@@ -62,9 +57,12 @@ export const getConnectedSlices = (
   const xShift = Math.round(
     ((trapezoid.top.y1 - trapezoid.top.y2) / length) * height
   );
+  const yShift = Math.round(
+    ((trapezoid.top.x2 - trapezoid.top.x1) / length) * height
+  );
 
-  const topTrapezoid = translateTrapezoid(trapezoid, xShift, yShift);
-  const bottomTrapezoid = translateTrapezoid(trapezoid, -xShift, -yShift);
+  const topTrapezoid = translateTrapezoid(trapezoid, -xShift, -yShift);
+  const bottomTrapezoid = translateTrapezoid(trapezoid, xShift, yShift);
   const ribbon = ribbons().find((ribbon: any) => ribbon.id === id);
   setRibbons((prev: any) => prev.filter((ribbon: any) => ribbon.id !== id));
   setRibbons((prev: RibbonData[]) => {
