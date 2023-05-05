@@ -31,7 +31,7 @@ export const handleFinalImaging = async (
     id: getNextCommandId(),
     type: "setParam",
     param: "AP_MAG",
-    intValue: configurations[0].magnification,
+    doubleValue: configurations[0].magnification,
   });
   await sleep(500);
   window.semClient.send({
@@ -44,7 +44,7 @@ export const handleFinalImaging = async (
     id: getNextCommandId(),
     type: "setParam",
     param: "DP_IMAGE_STORE",
-    intValue: HIGHEST_IMAGE_QUALITY,
+    doubleValue: HIGHEST_IMAGE_QUALITY,
   });
   await sleep(3000);
   for (let i = 0; i < configurations.length; i++) {
