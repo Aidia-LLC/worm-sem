@@ -320,6 +320,8 @@ export const Canvas = () => {
     const stageHighLimitY = await getSEMParam("AP_STAGE_HIGH_Y");
     const fieldOfViewWidth = await getSEMParam("AP_WIDTH");
     const fieldOfViewHeight = await getSEMParam("AP_HEIGHT");
+    const currentMag = await getSEMParam("AP_MAG");
+    setMagnification(parseFloat(currentMag));
     setInitialStage({
       x: parseFloat(stageX),
       y: parseFloat(stageY),
