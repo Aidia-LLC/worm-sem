@@ -25,11 +25,11 @@ export const computeStageCoordinates = ({
   const percentY = point.y / canvasConfiguration.height;
   const newX =
     stageConfiguration.x +
-    percentX * stageConfiguration.width -
+    percentY * stageConfiguration.width -
     stageConfiguration.width / 2;
   const newY =
     stageConfiguration.y +
-    percentY * stageConfiguration.height -
+    percentX * stageConfiguration.height -
     stageConfiguration.height / 2;
   const limitedX = Math.max(
     stageConfiguration.limits.x[0],
