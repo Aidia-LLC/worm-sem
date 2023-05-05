@@ -1,4 +1,4 @@
-import { Trapezoid, TrapezoidSet, Vertex } from "@dto/canvas";
+import { Trapezoid, RibbonData, Vertex } from "@dto/canvas";
 import {
   findConnectedTrapezoids,
   getPointsOnTrapezoid,
@@ -44,7 +44,7 @@ export const getConnectedSlices = (
   const orderedTrapezoids = orderTrapezoids([...filteredTrapezoids, trapezoid]);
   const ribbon = ribbons().find((ribbon: any) => ribbon.id === id);
   setRibbons((prev: any) => prev.filter((ribbon: any) => ribbon.id !== id));
-  setRibbons((prev: TrapezoidSet[]) => {
+  setRibbons((prev: RibbonData[]) => {
     return [
       ...prev,
       {

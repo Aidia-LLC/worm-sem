@@ -1,4 +1,4 @@
-import { Trapezoid, TrapezoidSet } from "@dto/canvas";
+import { Trapezoid, RibbonData } from "@dto/canvas";
 import { Show } from "solid-js";
 import { Button } from "./Button";
 
@@ -11,45 +11,45 @@ export const availableColors = [
   "orange",
 ];
 
-export const TrapezoidSetConfig = (props: {
-  trapezoidSet: TrapezoidSet;
+export const RibbonConfig = (props: {
+  ribbon: RibbonData;
   setTrapezoidSet: (
-    trapezoidSet: Pick<TrapezoidSet, "id"> & Partial<TrapezoidSet>
+    trapezoidSet: Pick<RibbonData, "id"> & Partial<RibbonData>
   ) => void;
-  onDelete: (trapezoid: Pick<TrapezoidSet, "id">) => void;
+  onDelete: (trapezoid: Pick<RibbonData, "id">) => void;
   canvasSize: { width: number; height: number };
-  onGrab: (id: TrapezoidSet["id"] | null) => void;
+  onGrab: (id: RibbonData["id"] | null) => void;
   grabbing: boolean;
   setSearchData: (x: any) => any;
   ctx: any;
 }) => {
-  const radioName = () => `status-${props.trapezoidSet.id}`;
+  const radioName = () => `status-${props.ribbon.id}`;
 
   const toggleGrabbing = () => {
     if (props.grabbing) props.onGrab(null);
-    else props.onGrab(props.trapezoidSet.id);
+    else props.onGrab(props.ribbon.id);
   };
 
   return (
     <div
       class="grid grid-cols-9 gap-3 border-2 p-2 rounded-md pr-4 bg-opacity-40"
       classList={{
-        "bg-red-300": props.trapezoidSet.color === "red",
-        "bg-blue-300": props.trapezoidSet.color === "blue",
-        "bg-green-300": props.trapezoidSet.color === "green",
-        "bg-yellow-300": props.trapezoidSet.color === "yellow",
-        "bg-purple-300": props.trapezoidSet.color === "purple",
-        "bg-orange-300": props.trapezoidSet.color === "orange",
+        "bg-red-300": props.ribbon.color === "red",
+        "bg-blue-300": props.ribbon.color === "blue",
+        "bg-green-300": props.ribbon.color === "green",
+        "bg-yellow-300": props.ribbon.color === "yellow",
+        "bg-purple-300": props.ribbon.color === "purple",
+        "bg-orange-300": props.ribbon.color === "orange",
       }}
     >
       <div class="flex flex-col gap-1 items-center justify-center font-bold text-lg">
         <input
           class="w-full"
           type="text"
-          value={props.trapezoidSet.name}
+          value={props.ribbon.name}
           onChange={(e) =>
             props.setTrapezoidSet({
-              id: props.trapezoidSet.id,
+              id: props.ribbon.id,
               name: e.currentTarget.value,
             })
           }
@@ -57,14 +57,14 @@ export const TrapezoidSetConfig = (props: {
         <Show when={!props.grabbing}>
           <button
             class="text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-red-500 hover:bg-red-700 active:bg-red-800"
-            onClick={() => props.onDelete(props.trapezoidSet)}
+            onClick={() => props.onDelete(props.ribbon)}
           >
             Remove
           </button>
         </Show>
       </div>
       <Show
-        when={!props.grabbing && props.trapezoidSet.phase === 2}
+        when={!props.grabbing && props.ribbon.phase === 2}
         fallback={
           <>
             <h2>Confirm Initial Trapezoid is good</h2>
@@ -73,7 +73,7 @@ export const TrapezoidSetConfig = (props: {
               onClick={() => {
                 props.setSearchData((prev: any) => ({ ...prev, pause: false }));
                 props.setTrapezoidSet({
-                  ...props.trapezoidSet,
+                  ...props.ribbon,
                   phase: 2,
                 });
               }}
@@ -87,10 +87,10 @@ export const TrapezoidSetConfig = (props: {
           <label class="font-bold">Color</label>
           <select
             class="p-2 rounded-md border border-gray-300"
-            value={props.trapezoidSet.color}
+            value={props.ribbon.color}
             onChange={(e) => {
               props.setTrapezoidSet({
-                id: props.trapezoidSet.id,
+                id: props.ribbon.id,
                 color: e.currentTarget.value,
               });
             }}
@@ -104,8 +104,8 @@ export const TrapezoidSetConfig = (props: {
         <div
           class="flex flex-col gap-2 justify-between my-auto"
           classList={{
-            "col-span-4": props.trapezoidSet.matchedPoints.length === 0,
-            "col-span-3": props.trapezoidSet.matchedPoints.length > 0,
+            "col-span-4": props.ribbon.matchedPoints.length === 0,
+            "col-span-3": props.ribbon.matchedPoints.length > 0,
           }}
         >
           <label class="font-bold">Status</label>
@@ -116,39 +116,38 @@ export const TrapezoidSetConfig = (props: {
                   type="radio"
                   name={radioName()}
                   value="editing"
-                  checked={props.trapezoidSet.status === "editing"}
+                  checked={props.ribbon.status === "editing"}
                   onChange={(e) => {
                     if (e.currentTarget.checked)
                       props.setTrapezoidSet({
-                        id: props.trapezoidSet.id,
+                        id: props.ribbon.id,
                         status: "editing",
                       });
                   }}
                 />
                 Editing
               </label>
-              <Show when={props.trapezoidSet.status === "editing"}>
+              <Show when={props.ribbon.status === "editing"}>
                 <button
                   class="text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-green-500 hover:bg-green-700 active:bg-green-800"
                   onClick={() =>
                     props.setTrapezoidSet({
-                      id: props.trapezoidSet.id,
-                      trapezoids: props.trapezoidSet.trapezoids.reverse(),
+                      id: props.ribbon.id,
+                      trapezoids: props.ribbon.trapezoids.reverse(),
                     })
                   }
                 >
                   Reverse Direction
                 </button>
-                <span>(the bolded slice is the first one in the ribbon)</span>
                 <Button
                   onClick={() => {
                     const newSet = addTrapezoid(
-                      props.trapezoidSet.trapezoids,
+                      props.ribbon.trapezoids,
                       true,
                       props.ctx
                     );
                     props.setTrapezoidSet({
-                      ...props.trapezoidSet,
+                      ...props.ribbon,
                       trapezoids: newSet,
                     });
                   }}
@@ -158,12 +157,12 @@ export const TrapezoidSetConfig = (props: {
                 <Button
                   onClick={() => {
                     const newSet = addTrapezoid(
-                      props.trapezoidSet.trapezoids,
+                      props.ribbon.trapezoids,
                       false,
                       props.ctx
                     );
                     props.setTrapezoidSet({
-                      ...props.trapezoidSet,
+                      ...props.ribbon,
                       trapezoids: newSet,
                     });
                   }}
@@ -177,11 +176,11 @@ export const TrapezoidSetConfig = (props: {
                 type="radio"
                 name={radioName()}
                 value="matching"
-                checked={props.trapezoidSet.status === "matching"}
+                checked={props.ribbon.status === "matching"}
                 onChange={(e) => {
                   if (e.currentTarget.checked)
                     props.setTrapezoidSet({
-                      id: props.trapezoidSet.id,
+                      id: props.ribbon.id,
                       status: "matching",
                     });
                 }}
@@ -193,11 +192,11 @@ export const TrapezoidSetConfig = (props: {
                 type="radio"
                 name={radioName()}
                 value="saved"
-                checked={props.trapezoidSet.status === "saved"}
+                checked={props.ribbon.status === "saved"}
                 onChange={(e) => {
                   if (e.currentTarget.checked)
                     props.setTrapezoidSet({
-                      id: props.trapezoidSet.id,
+                      id: props.ribbon.id,
                       status: "saved",
                     });
                 }}
@@ -207,7 +206,7 @@ export const TrapezoidSetConfig = (props: {
           </div>
         </div>
       </Show>
-      <Show when={props.trapezoidSet.matchedPoints.length > 0}>
+      <Show when={props.ribbon.matchedPoints.length > 0}>
         <Show when={!props.grabbing} fallback="Grabbing...">
           <div class="flex items-center justify-center">
             <button
@@ -224,7 +223,7 @@ export const TrapezoidSetConfig = (props: {
 };
 
 const addTrapezoid = (
-  trapezoids: TrapezoidSet["trapezoids"],
+  trapezoids: RibbonData["trapezoids"],
   top = false,
   ctx: any
 ) => {

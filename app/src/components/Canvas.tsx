@@ -2,7 +2,7 @@ import type {
   FinalSliceConfiguration,
   SliceConfiguration,
   Trapezoid,
-  TrapezoidSet,
+  RibbonData,
   Vertex,
   ZoomState,
 } from "@dto/canvas";
@@ -50,7 +50,7 @@ import { GrabForm } from "./GrabForm";
 import { KernelParam } from "./KernelParam";
 import { Param } from "./Param";
 import { SliderPicker } from "./SliderPicker";
-import { availableColors, TrapezoidSetConfig } from "./TrapezoidSetConfig";
+import { availableColors, RibbonConfig } from "./RibbonConfig";
 
 const DEFAULT_ZOOM_SCALE = 10;
 
@@ -69,9 +69,9 @@ export const Canvas = () => {
   const [edgeData, setEdgeData] = createSignal<ImageData>();
   const [clickedPoint, setClickedPoint] = createSignal<Vertex>();
   const [showOriginalImage, setShowOriginalImage] = createSignal(true);
-  const [ribbons, setRibbons] = createSignal<TrapezoidSet[]>([]);
+  const [ribbons, setRibbons] = createSignal<RibbonData[]>([]);
   const [focusedRibbon, setFocusedRibbon] = createSignal<
-    TrapezoidSet["id"] | null
+    RibbonData["id"] | null
   >(null);
   const [focusedSlice, setFocusedSlice] = createSignal<number>(-1);
   const [sliceConfiguration, setSliceConfiguration] = createSignal<
@@ -208,7 +208,7 @@ export const Canvas = () => {
         matchedPoints: [],
         reversed: false,
         phase: 1,
-      } as TrapezoidSet,
+      } as RibbonData,
     ]);
   };
 
@@ -494,7 +494,7 @@ export const Canvas = () => {
     return { trapezoidSet: undefined };
   }
 
-  function pointMatching(x: number, y: number, trapezoidSet: TrapezoidSet) {
+  function pointMatching(x: number, y: number, trapezoidSet: RibbonData) {
     const { trapezoids } = trapezoidSet;
     if (trapezoidSet.matchedPoints.length !== 0) {
       // find closest matched point
@@ -1005,7 +1005,7 @@ export const Canvas = () => {
         </Show>
         <For each={ribbons()}>
           {(trapezoidSet) => (
-            <TrapezoidSetConfig
+            <RibbonConfig
               grabbing={focusedRibbon() === trapezoidSet.id}
               onGrab={(id) => {
                 setFocusedRibbon(id);
@@ -1023,7 +1023,7 @@ export const Canvas = () => {
                 setFocusedSlice(indicesToConfigure[0]);
               }}
               canvasSize={canvasRef}
-              trapezoidSet={trapezoidSet}
+              ribbon={trapezoidSet}
               setTrapezoidSet={(newTrapezoidSet) => {
                 const newTrapezoidSets = ribbons().map((t) =>
                   t.id === newTrapezoidSet.id ? { ...t, ...newTrapezoidSet } : t
@@ -1104,7 +1104,7 @@ export const Canvas = () => {
           classList={{
             hidden: !imageSrc(),
             "cursor-zoom-in": zoomState() === "pickingCenter",
-            // "cursor-crosshair": zoomState() !== "pickingCenter",
+            "cursor-crosshair": zoomState() !== "pickingCenter" && detection(),
           }}
         ></canvas>
         <Show
