@@ -18,6 +18,7 @@ export const getConnectedSlices = (
   trapezoid: Trapezoid
 ) => {
   let { imgX, imgY, ctx, imageData, toggleOriginalImage } = searchData();
+  console.log('inside')
   trapezoid = computeTrapezoid([
     { x: trapezoid.top.x1, y: trapezoid.top.y1 },
     { x: trapezoid.top.x2, y: trapezoid.top.y2 },
@@ -42,6 +43,7 @@ export const getConnectedSlices = (
   );
   const filteredTrapezoids = filterTrapezoids(connectedTrapezoids, ribbons());
   const orderedTrapezoids = orderTrapezoids([...filteredTrapezoids, trapezoid]);
+  console.log('found', orderedTrapezoids.length)
   const ribbon = ribbons().find((ribbon: any) => ribbon.id === id);
   setRibbons((prev: any) => prev.filter((ribbon: any) => ribbon.id !== id));
   setRibbons((prev: RibbonData[]) => {
