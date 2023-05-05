@@ -66,7 +66,7 @@ export const grabSEMImageOnFrameEnd = async (
   return grabSEMImage(command);
 };
 
-export const FASTEST_SCAN_SPEED = 6;
+export const FASTEST_SCAN_SPEED = 5;
 export const MEDIUM_SCAN_SPEED = 3;
 export const SLOWEST_SCAN_SPEED = 15;
 

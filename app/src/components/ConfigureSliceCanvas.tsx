@@ -74,7 +74,7 @@ export const ConfigureSliceCanvas = (props: {
       doubleValue: coordinates.y,
     });
 
-    console.log({
+    window.semClient.send({
       type: "setParam",
       id: getNextCommandId(),
       param: "AP_MAG",
