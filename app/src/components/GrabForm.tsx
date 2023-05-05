@@ -81,7 +81,7 @@ export const GrabForm = (props: { onGrabbed: (fast: string) => void }) => {
               temporary: true,
             },
             {
-              minSleepMs: 1000,
+              minSleepMs: 15000,
             }
           );
         }}
