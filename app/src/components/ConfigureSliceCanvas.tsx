@@ -1,10 +1,11 @@
-import { SliceConfiguration, RibbonData } from "@dto/canvas";
+import { RibbonData, SliceConfiguration } from "@dto/canvas";
 import { base64ToImageSrc } from "@logic/image";
 import {
   computeStageCoordinates,
   StageConfiguration,
 } from "@logic/semCoordinates";
 import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
+import { sleep } from "src/data/handleFinalImaging";
 import { MAX_MAG } from "src/data/magnification";
 import { getSEMParam, MEDIUM_SCAN_SPEED } from "src/data/semParams";
 import { getNextCommandId } from "src/data/signals/commandQueue";
@@ -66,6 +67,7 @@ export const ConfigureSliceCanvas = (props: {
       param: "AP_STAGE_GOTO_X",
       doubleValue: coordinates.x,
     });
+    await sleep(200);
 
     window.semClient.send({
       type: "setParam",
@@ -73,6 +75,7 @@ export const ConfigureSliceCanvas = (props: {
       param: "AP_STAGE_GOTO_Y",
       doubleValue: coordinates.y,
     });
+    await sleep(200);
 
     window.semClient.send({
       type: "setParam",
@@ -80,11 +83,33 @@ export const ConfigureSliceCanvas = (props: {
       param: "AP_MAG",
       doubleValue: props.magnification,
     });
+    await sleep(200);
 
     window.semClient.send({
       type: "execute",
       id: getNextCommandId(),
       command: `CMD_SCANRATE${MEDIUM_SCAN_SPEED}`,
+    });
+    await sleep(200);
+
+    window.semClient.send({
+      id: getNextCommandId(),
+      type: "setParam",
+      param: "DP_FROZEN",
+      doubleValue: 0,
+    });
+    await sleep(500);
+    // window.semClient.send({
+    //   id: getNextCommandId(),
+    //   type: "setParam",
+    //   param: "DP_FREEZE_ON",
+    //   doubleValue: 2, // command
+    // });
+
+    window.semClient.send({
+      id: getNextCommandId(),
+      type: "execute",
+      command: "CMD_UNFREEZE_ALL",
     });
 
     timerRef = window.setTimeout(() => {

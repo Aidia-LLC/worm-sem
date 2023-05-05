@@ -62,7 +62,7 @@ export interface ExecuteCommand extends BaseCommand {
   command: CommandString;
 }
 
-export type CommandString = `CMD_SCANRATE${number}`;
+export type CommandString = `CMD_SCANRATE${number}` | "CMD_UNFREEZE_ALL";
 
 type Param =
   | "DP_IMAGE_STORE"
