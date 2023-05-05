@@ -14,7 +14,7 @@ export type Vertex = {
 
 export type Status = "editing" | "matching" | "saved";
 
-export type TrapezoidSet = {
+export type RibbonData = {
   id: number;
   name: string;
   trapezoids: Trapezoid[];

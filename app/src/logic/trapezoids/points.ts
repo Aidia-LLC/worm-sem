@@ -1,4 +1,5 @@
 import { Trapezoid, Vertex } from "@dto/canvas";
+import { calculateArea } from "@logic/canvas";
 
 export function isPointInTrapezoid(
   x: number,
@@ -7,12 +8,43 @@ export function isPointInTrapezoid(
 ) {
   for (const trapezoid of trapezoids) {
     const { top, bottom, left, right } = trapezoid;
-    if (y < top.y1 && y < top.y2) continue;
-    if (x < left.x1 && x < left.x2) continue;
-    if (x > right.x1 && x > right.x2) continue;
-    if (y > bottom.y1 && y > bottom.y2) continue;
-    return { inTrapezoid: true, trapezoid };
+    const trapezoidArea = calculateArea(trapezoid);
+    let sum = 0;
+    // sum up area of triangle between the point and each side of the trapezoid
+    sum += Math.abs(
+      0.5 *
+        (top.x1 * top.y2 +
+          top.x2 * y +
+          x * top.y1 -
+          (top.x2 * top.y1 + x * top.y2 + top.x1 * y))
+    );
+    sum += Math.abs(
+      0.5 *
+        (bottom.x1 * bottom.y2 +
+          bottom.x2 * y +
+          x * bottom.y1 -
+          (bottom.x2 * bottom.y1 + x * bottom.y2 + bottom.x1 * y))
+    );
+    sum += Math.abs(
+      0.5 *
+        (left.x1 * left.y2 +
+          left.x2 * y +
+          x * left.y1 -
+          (left.x2 * left.y1 + x * left.y2 + left.x1 * y))
+    );
+    sum += Math.abs(
+      0.5 *
+        (right.x1 * right.y2 +
+          right.x2 * y +
+          x * right.y1 -
+          (right.x2 * right.y1 + x * right.y2 + right.x1 * y))
+    );
+    // if the sum of the areas of the triangles is equal to the area of the trapezoid, the point is inside the trapezoid
+    if (sum < trapezoidArea * 1.05) {
+      return { inTrapezoid: true, trapezoid };
+    }
   }
+
   return { inTrapezoid: false, trapezoid: null };
 }
 

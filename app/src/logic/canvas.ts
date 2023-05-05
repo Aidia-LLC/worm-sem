@@ -40,7 +40,7 @@ export const setupCanvas = async (
   });
 };
 
-export function convertLocalToGlobal(
+export function translateTrapezoid(
   trapezoid: Trapezoid,
   x: number,
   y: number
@@ -82,11 +82,14 @@ export function DrawTrapezoid(
   ctx.beginPath();
   ctx.moveTo(trapezoid.top.x1, trapezoid.top.y1);
   ctx.lineTo(trapezoid.top.x2, trapezoid.top.y2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = thickness + 5;
+  ctx.stroke();
   ctx.lineTo(trapezoid.bottom.x2, trapezoid.bottom.y2);
   ctx.lineTo(trapezoid.bottom.x1, trapezoid.bottom.y1);
   ctx.lineTo(trapezoid.top.x1, trapezoid.top.y1);
-  ctx.strokeStyle = color;
   ctx.lineWidth = thickness;
+
   ctx.stroke();
   ctx.closePath();
 }
@@ -154,11 +157,22 @@ export function findConnectedTrapezoids(
       (trapezoid.top.y1 + trapezoid.top.y2) / 2 -
         (trapezoid.bottom.y1 + trapezoid.bottom.y2) / 2
     ) - 5;
+  const length = Math.round(
+    Math.sqrt(
+      (trapezoid.top.x1 - trapezoid.top.x2) ** 2 +
+        (trapezoid.top.y1 - trapezoid.top.y2) ** 2
+    )
+  );
+  const bottomLength = Math.round(
+    Math.sqrt(
+      (trapezoid.bottom.x1 - trapezoid.bottom.x2) ** 2 +
+        (trapezoid.bottom.y1 - trapezoid.bottom.y2) ** 2
+    )
+  );
+  const area = calculateArea(trapezoid);
+  const height = Math.round((2 * area) / (length + bottomLength));
   const xShift = Math.round(
-    (trapezoid.top.y1 -
-      trapezoid.top.y2 +
-      (trapezoid.bottom.y1 - trapezoid.bottom.y2)) /
-      2
+    ((trapezoid.top.y1 - trapezoid.top.y2) / length) * height
   );
   recurseSearchTrapezoid(
     x,
@@ -205,7 +219,7 @@ function recurseSearchTrapezoid(
   if (!trapezoid || count > 20) return trapezoids;
   const imageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
   const square = getSquare(imageData, x + deltaX, y + deltaY, squareSize);
-  const shiftedTrapezoid = convertLocalToGlobal(trapezoid, deltaX, deltaY);
+  const shiftedTrapezoid = translateTrapezoid(trapezoid, deltaX, deltaY);
   const firstTest = FixedDirectSearchOptimization(
     getPointsOnTrapezoid,
     shiftedTrapezoid,
@@ -229,7 +243,7 @@ function recurseSearchTrapezoid(
     fit
   );
   if (secondTest) {
-    DrawTrapezoid(secondTest, ctx);
+    // DrawTrapezoid(secondTest, ctx);
     trapezoids.push(secondTest);
     let xShift = Math.round(
       ((trapezoid.top.x1 + trapezoid.top.x2) / 2 +
@@ -347,12 +361,12 @@ export function RANSAC(
       (trapezoidArea !== 0 &&
         (area < areaThreshold[0] || area > areaThreshold[1])) ||
       (trapezoidArea == 0 &&
-        (area < (size * 0.5) ** 2 || area > (size * 0.95) ** 2))
+        (area < (size * 0.5) ** 2 || area > (size * 0.9) ** 2))
     )
       continue;
     const points = getPointsOnTrapezoid(
       edgePixels,
-      convertLocalToGlobal(trapezoid, x, y),
+      translateTrapezoid(trapezoid, x, y),
       options,
       x,
       y,

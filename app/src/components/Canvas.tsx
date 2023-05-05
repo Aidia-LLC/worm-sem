@@ -2,21 +2,20 @@ import type {
   FinalSliceConfiguration,
   SliceConfiguration,
   Trapezoid,
-  TrapezoidSet,
+  RibbonData,
   Vertex,
   ZoomState,
 } from "@dto/canvas";
 import {
-  convertLocalToGlobal,
   convertZoomedCoordinatesToFullImage,
   DirectSearchOptimization,
   DrawTrapezoid,
-  findConnectedTrapezoids,
   getPointsOnTrapezoid,
   getSquare,
   lerp,
   RANSAC,
   setupCanvas,
+  translateTrapezoid,
 } from "@logic/canvas";
 import { base64ToImageSrc } from "@logic/image";
 import {
@@ -24,8 +23,8 @@ import {
   StageConfiguration,
 } from "@logic/semCoordinates";
 import { getIndicesOfSlicesToConfigure } from "@logic/sliceConfiguration";
+import { getConnectedSlices } from "@logic/trapezoids/connected";
 import { detectTrapezoid } from "@logic/trapezoids/detection";
-import { filterTrapezoids } from "@logic/trapezoids/filter";
 import { findNearestPoint, isPointInTrapezoid } from "@logic/trapezoids/points";
 import { trapezoidIsValid } from "@logic/trapezoids/valid";
 import { findNearestVertex, moveVertex } from "@logic/trapezoids/vertices";
@@ -51,7 +50,8 @@ import { GrabForm } from "./GrabForm";
 import { KernelParam } from "./KernelParam";
 import { Param } from "./Param";
 import { SliderPicker } from "./SliderPicker";
-import { availableColors, TrapezoidSetConfig } from "./TrapezoidSetConfig";
+import { availableColors, RibbonConfig } from "./RibbonConfig";
+
 const DEFAULT_ZOOM_SCALE = 10;
 
 export const Canvas = () => {
@@ -63,14 +63,15 @@ export const Canvas = () => {
   const [refresh, setRefresh] = createSignal(0);
   const [nextId, setNextId] = createSignal(1);
   const [optionsSequence, setOptionsSequence] = createSignal(0);
+  const [detection, setDetection] = createSignal(true);
 
   const [points, setPoints] = createSignal<[number, number][]>([]);
   const [edgeData, setEdgeData] = createSignal<ImageData>();
   const [clickedPoint, setClickedPoint] = createSignal<Vertex>();
   const [showOriginalImage, setShowOriginalImage] = createSignal(true);
-  const [ribbons, setRibbons] = createSignal<TrapezoidSet[]>([]);
+  const [ribbons, setRibbons] = createSignal<RibbonData[]>([]);
   const [focusedRibbon, setFocusedRibbon] = createSignal<
-    TrapezoidSet["id"] | null
+    RibbonData["id"] | null
   >(null);
   const [focusedSlice, setFocusedSlice] = createSignal<number>(-1);
   const [sliceConfiguration, setSliceConfiguration] = createSignal<
@@ -84,8 +85,9 @@ export const Canvas = () => {
   const [percentComplete, setPercentComplete] = createSignal(0);
   const [initialStage, setInitialStage] =
     createSignal<StageConfiguration | null>(null);
-  // const [rotated, setRotated] = createSignal(false);
-  const [searchData, setSearchData] = createSignal<any>({ pause: false });
+  const [cursorPosition, setCursorPosition] = createSignal<[number, number]>([
+    0, 0,
+  ]);
 
   const handleKeyPress = (e: KeyboardEvent) => {
     if (e.key.toLowerCase() === "z") handleZoomButtonPressed();
@@ -100,6 +102,8 @@ export const Canvas = () => {
     // re-draw the overlay canvas when the ribbons or zoom change
     ribbons();
     zoomState();
+    cursorPosition();
+    detection();
     drawOverlay();
   });
 
@@ -111,6 +115,15 @@ export const Canvas = () => {
   });
 
   const [options, setOptions, resetOptions] = createOptionsStore();
+  const [searchData, setSearchData] = createSignal<any>({ pause: false });
+  const [VERTEX_DIST, setVertexDist] = createSignal(
+    options.options.squareSize / 5
+  );
+
+  createEffect(() => {
+    optionsSequence();
+    setVertexDist(options.options.squareSize / 5);
+  });
 
   // const rotateImage = async () => {
   //   setRotated((prev) => !prev);
@@ -127,6 +140,7 @@ export const Canvas = () => {
   // };
 
   const handleClick = (e: MouseEvent) => {
+    if (!detection()) return;
     let toggleOriginalImage = false;
     if (showOriginalImage()) {
       toggleOriginalImage = true;
@@ -163,7 +177,7 @@ export const Canvas = () => {
       )!;
       console.log("trapezoid ransac", trapezoid);
       if (!trapezoid) return;
-      trapezoid = convertLocalToGlobal(
+      trapezoid = translateTrapezoid(
         trapezoid,
         imgX - options.options.squareSize / 2,
         imgY - options.options.squareSize / 2
@@ -192,6 +206,7 @@ export const Canvas = () => {
       toggleOriginalImage,
       id,
     });
+    setDetection(false);
     // Draw trapezoid
     DrawTrapezoid(trapezoid, ctx);
     const colors = new Set(availableColors);
@@ -202,82 +217,55 @@ export const Canvas = () => {
       {
         trapezoids: [trapezoid],
         id,
-        name: `Ribbon ${id}`,
+        name: `Ribbon ${Math.ceil(id / 2)}`,
         color,
         thickness: 5,
         status: "editing",
         matchedPoints: [],
         reversed: false,
         phase: 1,
-      } as TrapezoidSet,
+      } as RibbonData,
     ]);
-  };
-
-  const getConnectedSlices = (id: number) => {
-    let { trapezoid, imgX, imgY, ctx, imageData, fit, toggleOriginalImage } =
-      searchData();
-    if (!fit) {
-      const square = getSquare(
-        imageData,
-        imgX,
-        imgY,
-        options.options.squareSize
-      );
-      fit = getPointsOnTrapezoid(
-        square,
-        trapezoid,
-        options.options,
-        imgX - options.options.squareSize / 2,
-        imgY - options.options.squareSize / 2
-      );
-    }
-    const connectedTrapezoids = findConnectedTrapezoids(
-      trapezoid,
-      ctx,
-      imgX,
-      imgY,
-      options.options,
-      fit
-    );
-    const filteredTrapezoids = filterTrapezoids(connectedTrapezoids, ribbons());
-    const orderedTrapezoids = orderTrapezoids([
-      ...filteredTrapezoids,
-      trapezoid,
-    ]);
-    setRibbons((prev) => {
-      const newRibbons: TrapezoidSet[] = prev.map((ribbon) => {
-        if (ribbon.id === id) {
-          return {
-            ...ribbon,
-            trapezoids: [...ribbon.trapezoids, ...orderedTrapezoids],
-            status: "editing",
-            phase: 2,
-          };
-        }
-        return ribbon;
-      });
-      return newRibbons;
-    });
-    if (toggleOriginalImage) {
-      setShowOriginalImage(true);
-    }
-    setSearchData({ pause: false });
   };
 
   createEffect(() => {
     const { pause, id } = searchData();
-    if (pause) return;
-    getConnectedSlices(id);
-  });
-
-  const orderTrapezoids = (trapezoids: Trapezoid[]) => {
-    // order with the top trapezoid being 1
-    return trapezoids.sort((a, b) => {
-      const aTop = Math.min(a.top.y1, a.top.y2);
-      const bTop = Math.min(b.top.y1, b.top.y2);
-      return aTop - bTop;
+    if (pause || !id) return;
+    getConnectedSlices(
+      id,
+      options,
+      searchData,
+      setRibbons,
+      setSearchData,
+      setShowOriginalImage,
+      ribbons,
+      setNextId,
+      ribbons().find((r) => r.id === id)!.trapezoids[0]!
+    );
+    const w = canvasRef.width;
+    const h = canvasRef.height;
+    console.log({
+      ribbons: ribbons(),
+      w,
+      h,
     });
-  };
+    setRibbons((ribbons) =>
+      ribbons.map((r) => ({
+        ...r,
+        trapezoids: r.trapezoids.filter(
+          (t) =>
+            t.left.x1 > 0 &&
+            t.left.x2 < w &&
+            t.right.x1 > 0 &&
+            t.right.x2 < w &&
+            t.top.y1 > 0 &&
+            t.top.y2 < h &&
+            t.bottom.y1 > 0 &&
+            t.bottom.y2 < h
+        ),
+      }))
+    );
+  });
 
   createEffect(async () => {
     refresh();
@@ -368,6 +356,24 @@ export const Canvas = () => {
       ctx.translate(-x, -y);
     }
 
+    if (detection()) {
+      const [x, y] = cursorPosition();
+      if (x && y) {
+        ctx.beginPath();
+        const halfSquare = options.options.squareSize / 2;
+        ctx.rect(
+          x - halfSquare,
+          y - halfSquare,
+          options.options.squareSize,
+          options.options.squareSize
+        );
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 15;
+        ctx.closePath();
+        ctx.stroke();
+      }
+    }
+
     for (const trapezoidSet of ribbons()) {
       const { trapezoids, color, thickness } = trapezoidSet;
       for (let i = 0; i < trapezoids.length; i++) {
@@ -380,10 +386,13 @@ export const Canvas = () => {
           color,
           thickness * (isFirstTrapezoid ? 1.5 : 0.9)
         );
+        ctx.fillStyle = "white";
+        ctx.font = `${Math.ceil(thickness * 9)}px Arial`;
+        ctx.fillText(`${i + 1}`, trapezoids[i].left.x1, trapezoids[i].left.y1);
       }
       ctx.globalAlpha = 1;
-      ctx.lineWidth = 3 / scale;
-      const radius = (3 / scale) * 2;
+      ctx.lineWidth = 9 / scale;
+      const radius = (3 / scale) * 4;
       for (const point of trapezoidSet.matchedPoints) {
         ctx.beginPath();
         ctx.arc(point.x, point.y, radius, 0, 2 * Math.PI);
@@ -391,7 +400,6 @@ export const Canvas = () => {
         ctx.stroke();
       }
     }
-
     ctx.restore();
   };
 
@@ -497,7 +505,7 @@ export const Canvas = () => {
         .map((t) => t.trapezoids)
         .flat()
     );
-    if (nearestDistance < 15 || inTrapezoid) {
+    if (nearestDistance < VERTEX_DIST() || inTrapezoid) {
       setClickedPoint({ x: imgX, y: imgY });
       overlayCanvasRef.addEventListener("mousemove", handleMouseMove);
       overlayCanvasRef.addEventListener("mouseup", handleMouseUp);
@@ -514,7 +522,7 @@ export const Canvas = () => {
     return { trapezoidSet: undefined };
   }
 
-  function pointMatching(x: number, y: number, trapezoidSet: TrapezoidSet) {
+  function pointMatching(x: number, y: number, trapezoidSet: RibbonData) {
     const { trapezoids } = trapezoidSet;
     if (trapezoidSet.matchedPoints.length !== 0) {
       // find closest matched point
@@ -693,11 +701,15 @@ export const Canvas = () => {
         }
       }
       // Dragging a trapezoid
-      else if (nearestVertex && nearestDistance > 15 && trapezoidSet) {
+      else if (
+        nearestVertex &&
+        nearestDistance > VERTEX_DIST() &&
+        trapezoidSet
+      ) {
         const dy = imgY - clickedPoint()!.y ?? 0;
         const dx = imgX - clickedPoint()!.x ?? 0;
         setClickedPoint({ x: imgX, y: imgY });
-        const newTrapezoid = convertLocalToGlobal(trapezoid, dx, dy);
+        const newTrapezoid = translateTrapezoid(trapezoid, dx, dy);
         // if new trapezoid is touching the edge of the image, delete it
         if (
           newTrapezoid.left.x1 < 0 ||
@@ -848,7 +860,6 @@ export const Canvas = () => {
           ribbonName,
         };
       });
-    console.log(finalConfigurations);
     try {
       await handleFinalImaging(finalConfigurations, setPercentComplete);
       alert(`Done imaging for ${ribbon.name}!`);
@@ -970,7 +981,7 @@ export const Canvas = () => {
       </Show>
       <Show when={focusedSlice() === -1}>
         <Show when={imageSrc()}>
-          <div class="grid grid-cols-4 gap-4 mt-1">
+          <div class="grid grid-cols-5 gap-4 mt-1">
             <Button
               onClick={() => {
                 setImageSrc(null);
@@ -982,13 +993,21 @@ export const Canvas = () => {
             >
               Clear Image
             </Button>
+            <Button
+              onClick={() => setDetection(!detection())}
+              disabled={searchData()?.pause}
+            >
+              <Show when={detection()} fallback="Enable">
+                Disable
+              </Show>{" "}
+              Ribbon Detection
+            </Button>
             <div class="w-full flex flex-col">
               <Show when={ribbons().length > 0}>
                 <Button
                   onClick={() => {
                     setPoints([]);
                     setRibbons([]);
-                    setRefresh(refresh() + 1);
                   }}
                 >
                   Remove All Ribbons
@@ -1015,7 +1034,7 @@ export const Canvas = () => {
         </Show>
         <For each={ribbons()}>
           {(trapezoidSet) => (
-            <TrapezoidSetConfig
+            <RibbonConfig
               grabbing={focusedRibbon() === trapezoidSet.id}
               onGrab={(id) => {
                 setFocusedRibbon(id);
@@ -1033,17 +1052,24 @@ export const Canvas = () => {
                 setFocusedSlice(indicesToConfigure[0]);
               }}
               canvasSize={canvasRef}
-              trapezoidSet={trapezoidSet}
+              ribbon={trapezoidSet}
               setTrapezoidSet={(newTrapezoidSet) => {
                 const newTrapezoidSets = ribbons().map((t) =>
                   t.id === newTrapezoidSet.id ? { ...t, ...newTrapezoidSet } : t
                 );
                 setRibbons(newTrapezoidSets);
               }}
-              onDelete={({ id }) =>
-                setRibbons(ribbons().filter((t) => t.id !== id))
-              }
+              onDelete={({ id }) => {
+                setRibbons(ribbons().filter((t) => t.id !== id));
+                const search = searchData();
+                if (search && search.id === id) {
+                  setSearchData({
+                    pause: false,
+                  });
+                }
+              }}
               setSearchData={setSearchData}
+              ctx={canvasRef.getContext("2d")!}
             />
           )}
         </For>
@@ -1065,6 +1091,28 @@ export const Canvas = () => {
         classList={{
           hidden: focusedSlice() !== -1 || grabbing(),
         }}
+        onMouseMove={(e) => {
+          const rect = canvasRef.getBoundingClientRect();
+          const rectWidth = rect.right - rect.left;
+          const rectHeight = rect.bottom - rect.top;
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const imgX1 = Math.round((x / rectWidth) * canvasRef.width);
+          const imgY1 = Math.round((y / rectHeight) * canvasRef.height);
+
+          const zoom =
+            zoomState() && zoomState() !== "pickingCenter"
+              ? (zoomState() as ZoomState)
+              : null;
+          const { x: imgX, y: imgY } = convertZoomedCoordinatesToFullImage(
+            imgX1,
+            imgY1,
+            zoom,
+            canvasRef.width,
+            canvasRef.height
+          );
+          setCursorPosition([imgX, imgY]);
+        }}
       >
         <canvas
           ref={canvasRef}
@@ -1085,7 +1133,7 @@ export const Canvas = () => {
           classList={{
             hidden: !imageSrc(),
             "cursor-zoom-in": zoomState() === "pickingCenter",
-            // "cursor-crosshair": zoomState() !== "pickingCenter",
+            "cursor-crosshair": zoomState() !== "pickingCenter" && detection(),
           }}
         ></canvas>
         <Show

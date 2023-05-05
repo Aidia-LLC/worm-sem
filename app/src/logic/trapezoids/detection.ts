@@ -14,45 +14,63 @@ type Options = {
   densitySize: number;
 };
 
-export function detectTrapezoid(x: number, y: number, ctx: CanvasRenderingContext2D, options: Options) {
+export function detectTrapezoid(
+  x: number,
+  y: number,
+  ctx: CanvasRenderingContext2D,
+  options: Options
+) {
   const imageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
   const square = getSquare(imageData, x, y, options.squareSize);
-  ctx.beginPath();
-  ctx.rect(
-    x - options.squareSize / 2,
-    y - options.squareSize / 2,
-    options.squareSize,
-    options.squareSize
-  );
-  ctx.strokeStyle = "red";
-  ctx.stroke();
-  ctx.closePath();
+  // ctx.beginPath();
+  // ctx.rect(
+  //   x - options.squareSize / 2,
+  //   y - options.squareSize / 2,
+  //   options.squareSize,
+  //   options.squareSize
+  // );
+  // ctx.strokeStyle = "red";
+  // ctx.stroke();
+  // ctx.closePath();
 
   const lines = hough(square, options);
 
   const goodLines = pixelsPerLine(lines, square, options);
-  for (const line of goodLines) {
-    ctx.beginPath();
-    ctx.moveTo(line.x1 + x - options.squareSize / 2, line.y1 + y - options.squareSize / 2);
-    ctx.lineTo(line.x2 + x - options.squareSize / 2, line.y2 + y - options.squareSize / 2);
-    ctx.strokeStyle = "red";
-    ctx.stroke();
-    ctx.closePath();
-  }
-  const vertices = computeVertices(goodLines).map((vertex) => ({
+  // for (const line of goodLines) {
+  //   ctx.beginPath();
+  //   ctx.moveTo(
+  //     line.x1 + x - options.squareSize / 2,
+  //     line.y1 + y - options.squareSize / 2
+  //   );
+  //   ctx.lineTo(
+  //     line.x2 + x - options.squareSize / 2,
+  //     line.y2 + y - options.squareSize / 2
+  //   );
+  //   ctx.strokeStyle = "red";
+  //   ctx.stroke();
+  //   ctx.closePath();
+  // }
+  const vertices = computeVertices(goodLines, options).map((vertex) => ({
     x: vertex.x + x - options.squareSize / 2,
     y: vertex.y + y - options.squareSize / 2,
   }));
   // filter out similar vertices
-  const filteredVertices = vertices.filter((vertex) => {
-    const similarVertices = vertices.filter(
-      (otherVertex) =>
-        Math.abs(vertex.x - otherVertex.x) < 15 && Math.abs(vertex.y - otherVertex.y) < 15
-    );
-    return similarVertices.length === 1;
-  });
-  const trapezoid: Trapezoid | null = computeTrapezoid(filteredVertices);
-  if (!trapezoid) { return {trapezoid: null, fit: null}; }
+
+  // for (const vertex of vertices) {
+  //   ctx.beginPath();
+  //   ctx.arc(vertex.x, vertex.y, 15, 0, 2 * Math.PI);
+  //   ctx.fillStyle = "red";
+  //   ctx.fill();
+  //   ctx.closePath();
+  // }
+
+  const trapezoid: Trapezoid | null = computeTrapezoid(vertices);
+  // console.log("trapezoid", trapezoid);
+  if (!trapezoid) {
+    return { trapezoid: null, fit: null };
+  }
+  // DrawTrapezoid(trapezoid, ctx, "green", 15);
+
   const { trapezoid: newTrapezoid, fit } = DirectSearchOptimization(
     getPointsOnTrapezoid,
     trapezoid,
@@ -112,7 +130,7 @@ type Vertex = {
 function hough(
   data: Uint8ClampedArray,
   options: Options,
-  thetaStep = Math.PI / 180,
+  thetaStep = Math.PI / 180
 ): LineSegment[] {
   // Calculate the maximum possible distance in the image
   const width = options.squareSize;
@@ -332,39 +350,72 @@ function pixelsPerLine(
     .filter(
       (line) =>
         line.pixels > maxPixels * options.pixelThreshold &&
-        line.length > options.squareSize * 0.25
+        line.length > options.squareSize * 0.15
     )
     .sort((a, b) => a.pixels - b.pixels)
     .slice(0, options.maxLines);
   // return goodLines.filter(line => line.pixels > maxPixels * options.pixelThreshold).sort((a,b) => a.pixels - b.pixels).slice(0, options.maxLines);
 }
 
-function computeVertices(lines: LineSegment[]) {
+function computeVertices(lines: LineSegment[], options: Options) {
   let vertices: Vertex[] = [];
   for (let i = 0; i < lines.length; i++) {
     for (let j = i + 1; j < lines.length; j++) {
       const intersection = intersectionPoint(lines[i], lines[j]);
       if (intersection) {
-        vertices.push(intersection);
-      }
-    }
-  }
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    vertices.push({ x: line.x1, y: line.y1 });
-    vertices.push({ x: line.x2, y: line.y2 });
-  }
-  // Remove duplicates and similar points
-  vertices = vertices.filter((vertex, index) => {
-    for (let i = 0; i < index; i++) {
-      if (Math.abs(vertex.x - vertices[i].x) < 15) {
-        if (Math.abs(vertex.y - vertices[i].y) < 15) {
-          return false;
+        if (
+          vertices.filter(
+            (vertex) =>
+              Math.abs(vertex.x - intersection.x) < options.squareSize / 5 &&
+              Math.abs(vertex.y - intersection.y) < options.squareSize / 5
+          ).length > 0
+        ) {
+          vertices.push(intersection);
         }
       }
     }
-    return true;
-  });
+  }
+  // const filteredVertices = vertices.filter((vertex) => {
+  //   const similarVertices = vertices.filter(
+  //     (otherVertex) =>
+  //       Math.abs(vertex.x - otherVertex.x) < options.squareSize / 5 &&
+  //       Math.abs(vertex.y - otherVertex.y) < options.squareSize / 5
+  //   );
+  //   return similarVertices.length === 1;
+  // // });
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    // only push if not similar to other vertices
+    if (
+      vertices.filter(
+        (vertex) =>
+          Math.abs(vertex.x - line.x1) < options.squareSize / 5 &&
+          Math.abs(vertex.y - line.y1) < options.squareSize / 5
+      ).length === 0
+    ) {
+      vertices.push({ x: line.x1, y: line.y1 });
+    }
+    if (
+      vertices.filter(
+        (vertex) =>
+          Math.abs(vertex.x - line.x2) < options.squareSize / 5 &&
+          Math.abs(vertex.y - line.y2) < options.squareSize / 5
+      ).length === 0
+    ) {
+      vertices.push({ x: line.x2, y: line.y2 });
+    }
+  }
+  // Remove duplicates and similar points
+  // vertices = vertices.filter((vertex, index) => {
+  //   for (let i = 0; i < index; i++) {
+  //     if (Math.abs(vertex.x - vertices[i].x) < 15) {
+  //       if (Math.abs(vertex.y - vertices[i].y) < 15) {
+  //         return false;
+  //       }
+  //     }
+  //   }
+  //   return true;
+  // });
   return vertices.map((vertex) => ({
     x: Math.round(vertex.x),
     y: Math.round(vertex.y),
@@ -394,15 +445,13 @@ function intersectionPoint(
 
   const ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denominator;
   const ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denominator;
-
-  if (ua < 0 || ua > 1 || ub < 0 || ub > 1) {
+  if (ua < -0.5 || ua > 1.5 || ub < -0.5 || ub > 1.5) {
     // The intersection point is outside of at least one of the line segments
     return null;
   }
 
   const x = x1 + ua * (x2 - x1);
   const y = y1 + ua * (y2 - y1);
-
   return { x, y };
 }
 
@@ -458,7 +507,9 @@ function DirectSearchOptimization(
             index === i ? newVertex : { x: Math.round(v.x), y: Math.round(v.y) }
           )
         );
-        if (!newTrapezoid) { continue }
+        if (!newTrapezoid) {
+          continue;
+        }
         const newFt = ft(data, newTrapezoid, options, x, y, squareSize);
         if (bestFt === undefined || newFt > bestFt) {
           bestFt = newFt;
@@ -504,22 +555,35 @@ function getPointsOnTrapezoid(
     let x = line.x1 - xx + (squareSize ?? options.squareSize) / 2;
     let y = line.y1 - yy + (squareSize ?? options.squareSize) / 2;
     for (let j = 0; j < length; j++) {
-      if(!(x+xStep*j > 0 && x+xStep*j < (squareSize ?? options.squareSize) && y+yStep*j > 0 && y+yStep*j < (squareSize ?? options.squareSize))) continue
+      if (
+        !(
+          x + xStep * j > 0 &&
+          x + xStep * j < (squareSize ?? options.squareSize) &&
+          y + yStep * j > 0 &&
+          y + yStep * j < (squareSize ?? options.squareSize)
+        )
+      )
+        continue;
       if (
         data[
-          Math.round(y + (yStep * j)) * (squareSize ?? options.squareSize) + Math.round(x + (xStep*j))
+          Math.round(y + yStep * j) * (squareSize ?? options.squareSize) +
+            Math.round(x + xStep * j)
         ] === 255 ||
         data[
-          Math.round(y + (yStep * j)) * (squareSize ?? options.squareSize) + Math.round(x + (xStep*j) + 1)
+          Math.round(y + yStep * j) * (squareSize ?? options.squareSize) +
+            Math.round(x + xStep * j + 1)
         ] === 255 ||
         data[
-          Math.round(y + (yStep * j)) * (squareSize ?? options.squareSize) + Math.round(x + (xStep*j) - 1)
+          Math.round(y + yStep * j) * (squareSize ?? options.squareSize) +
+            Math.round(x + xStep * j - 1)
         ] === 255 ||
         data[
-          Math.round(y + (yStep * j) + 1) * (squareSize ?? options.squareSize) + Math.round(x + (xStep*j))
+          Math.round(y + yStep * j + 1) * (squareSize ?? options.squareSize) +
+            Math.round(x + xStep * j)
         ] === 255 ||
         data[
-          Math.round(y + (yStep * j) - 1) * (squareSize ?? options.squareSize) + Math.round(x + (xStep*j))
+          Math.round(y + yStep * j - 1) * (squareSize ?? options.squareSize) +
+            Math.round(x + xStep * j)
         ] === 255
       ) {
         points++;
@@ -534,10 +598,10 @@ function getPointsOnTrapezoid(
 }
 
 function computeTrapezoid(
-  vertices: Vertex[],
+  vertices: Vertex[]
   // ctx?: CanvasRenderingContext2D
 ): Trapezoid | null {
-  if(vertices.length !== 4) return null
+  if (vertices.length < 4) return null;
   //  the shortest edge is the bottom edge
   const pairs = [
     [vertices[0], vertices[1]],
@@ -572,12 +636,12 @@ function computeTrapezoid(
   let topLeft = vertices.find(
     (v) => v !== bottomLeft && v !== bottomRight && v !== topRight
   ) as Vertex;
-  if(topRight.x < topLeft.x) {
+  if (topRight.x < topLeft.x) {
     const temp = topRight;
     topRight = topLeft;
     topLeft = temp;
   }
-  if(topLeft.y > bottomLeft.y) {
+  if (topLeft.y > bottomLeft.y) {
     let temp = topLeft;
     topLeft = bottomLeft;
     bottomLeft = temp;

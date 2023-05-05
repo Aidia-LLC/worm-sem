@@ -11,7 +11,7 @@ export function trapezoidIsValid(
 ) {
   const { squareSize } = options;
   const area = calculateArea(trapezoid);
-  const areaThreshold = squareSize ** 2 * 0.2;
+  const areaThreshold = squareSize ** 2 * 0.3;
   const areaValid = area > areaThreshold;
   console.log({ area, areaValid, fit });
   const fitValid = fit && Math.abs(fit) > options.firstFit;
@@ -49,8 +49,7 @@ export function trapezoidIsValid(
       2,
   };
   const centerPointValid =
-    Math.abs(centerPoint.x - x) < 30 && Math.abs(centerPoint.y - y) < 30;
+    Math.abs(centerPoint.x - x) < 80 && Math.abs(centerPoint.y - y) < 80;
   const valid = areaValid && fitValid && sideValid && centerPointValid;
-  // console.log({ area, areaValid, fitValid, sideValid, valid })
   return valid;
 }

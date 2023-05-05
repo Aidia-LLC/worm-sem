@@ -1,8 +1,8 @@
-import { Trapezoid, TrapezoidSet } from "@dto/canvas";
+import { Trapezoid, RibbonData } from "@dto/canvas";
 
 export function filterTrapezoids(
   trapezoids: Trapezoid[],
-  sets: TrapezoidSet[]
+  sets: RibbonData[]
 ): Trapezoid[] {
   const centerPoints = trapezoids.map((t, i) => ({
     x: ((t.top.x1 + t.top.x2) / 2 + (t.bottom.x1 + t.bottom.x2) / 2) / 2,
