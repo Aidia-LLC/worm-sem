@@ -63,8 +63,8 @@ export const getConnectedSlices = (
     ((trapezoid.top.y1 - trapezoid.top.y2) / length) * height
   );
 
-  const topTrapezoid = translateTrapezoid(trapezoid, yShift, xShift);
-  const bottomTrapezoid = translateTrapezoid(trapezoid, -yShift, -xShift);
+  const topTrapezoid = translateTrapezoid(trapezoid, xShift, yShift);
+  const bottomTrapezoid = translateTrapezoid(trapezoid, -xShift, -yShift);
   const ribbon = ribbons().find((ribbon: any) => ribbon.id === id);
   setRibbons((prev: any) => prev.filter((ribbon: any) => ribbon.id !== id));
   setRibbons((prev: RibbonData[]) => {
