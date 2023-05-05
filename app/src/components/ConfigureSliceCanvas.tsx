@@ -121,6 +121,13 @@ export const ConfigureSliceCanvas = (props: {
           reduction: -1,
           temporary: true,
         });
+
+        window.semClient.send({
+          id: getNextCommandId(),
+          type: "setParam",
+          param: "DP_FROZEN",
+          doubleValue: 0,
+        });
       }, PREVIEW_INTERVAL);
     }, INITIAL_WAIT_INTERVAL);
   });
