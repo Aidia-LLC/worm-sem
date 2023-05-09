@@ -91,11 +91,9 @@ export const Canvas = () => {
   const [cursorPosition, setCursorPosition] = createSignal<[number, number]>([
     0, 0,
   ]);
-  const [clickedPoints, setClickedPoints] = createSignal<[number, number][]>([
-    [1179, 472],
-    [574, 176],
-    [2425, 968],
-  ]);
+  const [clickedPoints, setClickedPoints] = createSignal<[number, number][]>(
+    []
+  );
   const [detectionLoading, setDetectionLoading] = createSignal(false);
   const [masks, setMasks] = createSignal<ImageData[]>([]);
   const [options, setOptions, resetOptions] = createOptionsStore();

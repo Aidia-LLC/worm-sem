@@ -1,27 +1,12 @@
+import { ProcessingOptions } from "@dto/ProcessingOptions";
 import { permuteTrapezoid } from "@logic/canvas";
-
-type Options = {
-  squareSize: number;
-  gaussianKernel: [number, number, number];
-  hysteresisHigh: number;
-  hysteresisLow: number;
-  minNeighborsForNoiseReduction: number;
-  houghVoteThreshold: number;
-  mergeThetaThreshold: number;
-  pixelThreshold: number;
-  maxLines: number;
-  noiseReductionIterations: number;
-  densityThreshold: number;
-  densityStep: number;
-  densitySize: number;
-};
 
 export function detectTrapezoid(
   x: number,
   y: number,
   imageData: ImageData,
   ctx: CanvasRenderingContext2D,
-  options: Options
+  options: ProcessingOptions
 ) {
   const square = getSquare(imageData, x, y, options.squareSize);
 
@@ -136,7 +121,7 @@ type Vertex = {
 
 function hough(
   data: Uint8ClampedArray,
-  options: Options,
+  options: ProcessingOptions,
   thetaStep = Math.PI / 180
 ): LineSegment[] {
   // Calculate the maximum possible distance in the image
@@ -225,7 +210,7 @@ function CartesionLines(
   lines: IHoughLine[],
   width: number,
   height: number,
-  options: Options
+  options: ProcessingOptions
 ): LineSegment[] {
   const cartesionLines: LineSegment[] = [];
   for (let i = 0; i < lines.length; i++) {
@@ -263,7 +248,10 @@ function CartesionLines(
   return Merge(cartesionLines, options);
 }
 
-function Merge(lines: LineSegment[], options: Options): LineSegment[] {
+function Merge(
+  lines: LineSegment[],
+  options: ProcessingOptions
+): LineSegment[] {
   // add weighted average of lines with similar theta
   const mergedLines: (LineSegment & { count: number })[] = [];
   for (let i = 0; i < lines.length; i++) {
@@ -306,7 +294,7 @@ function Merge(lines: LineSegment[], options: Options): LineSegment[] {
 function pixelsPerLine(
   lines: LineSegment[],
   data: Uint8ClampedArray,
-  options: Options
+  options: ProcessingOptions
 ) {
   let goodLines = [];
   // Find the actual number of edge pixels in each line
@@ -364,7 +352,7 @@ function pixelsPerLine(
   // return goodLines.filter(line => line.pixels > maxPixels * options.pixelThreshold).sort((a,b) => a.pixels - b.pixels).slice(0, options.maxLines);
 }
 
-function computeVertices(lines: LineSegment[], options: Options) {
+function computeVertices(lines: LineSegment[], options: ProcessingOptions) {
   let vertices: Vertex[] = [];
   for (let i = 0; i < lines.length; i++) {
     for (let j = i + 1; j < lines.length; j++) {
@@ -466,7 +454,7 @@ function DirectSearchOptimization(
   ft: (
     data: Uint8ClampedArray,
     trapezoid: Trapezoid,
-    options: Options,
+    options: ProcessingOptions,
     x: number,
     y: number,
     // ctx: CanvasRenderingContext2D,
@@ -474,7 +462,7 @@ function DirectSearchOptimization(
   ) => number,
   trapezoid: Trapezoid,
   data: Uint8ClampedArray,
-  options: Options,
+  options: ProcessingOptions,
   // ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
@@ -538,7 +526,7 @@ function DirectSearchOptimization(
 function getPointsOnTrapezoid(
   data: Uint8ClampedArray,
   trapezoid: Trapezoid,
-  options: Options,
+  options: ProcessingOptions,
   xx: number,
   yy: number,
   // ctx: CanvasRenderingContext2D,
