@@ -1,4 +1,3 @@
-
 type Options = {
   squareSize: number;
   gaussianKernel: [number, number, number];
@@ -15,55 +14,62 @@ type Options = {
   densitySize: number;
 };
 
-export function edgeFilter(canvas: HTMLCanvasElement, options: any, imageData: ImageData, ctx: CanvasRenderingContext2D) {
-    const grayImageData = grayscale(imageData, ctx);
+export function edgeFilter(
+  canvas: HTMLCanvasElement,
+  options: Options,
+  imageData: ImageData,
+  ctx: CanvasRenderingContext2D
+) {
+  // const grayImageData = grayscale(imageData, ctx);
 
-      //Apply a gausian blur
-      const blurImageData1 = gaussianBlur(grayImageData, ctx, options);
-      const blurImageData = gaussianBlur(blurImageData1, ctx, options);
+  //Apply a gausian blur
+  // const blurImageData1 = gaussianBlur(grayImageData, ctx, options);
+  // const blurImageData = gaussianBlur(blurImageData1, ctx, options);
 
-      ctx.putImageData(blurImageData, 0, 0);
+  ctx.putImageData(imageData, 0, 0);
 
-      const Noisy = canny(blurImageData, options);
-      const Weak = RemoveNoise(
-        Noisy,
-        blurImageData.width,
-        blurImageData.height,
-        options
-      );
-      const edgeData = ConnectStrongEdges(
-        Weak,
-        blurImageData.width,
-        blurImageData.height
-      );
-      //convert edgeData from uint8clampedarray to imageData
-      const newImageData = ctx.createImageData(canvas.width, canvas.height);
-      const pixels = new Uint8ClampedArray(canvas.width * canvas.height * 4);
-      for (let i = 0; i < edgeData.length; i += 1) {
-        pixels[i * 4] = edgeData[i] > 1 ? 255 : 0;
-        pixels[i * 4 + 1] = edgeData[i] > 1 ? 255 : 0;
-        pixels[i * 4 + 2] = edgeData[i] > 1 ? 255 : 0;
-        pixels[i * 4 + 3] = 255;
-      }
-      newImageData.data.set(pixels);
-      ctx.putImageData(newImageData, 0, 0);
-      // This uses edge pixel density to remove the spots in the middle of the trapezoids
-      colorPixelsByDensity(ctx, canvas, options);
-      const data = ctx
-        .getImageData(0, 0, canvas.width, canvas.height)
-        .data.filter((_, i) => i % 4 === 0);
-      const betterData = ConnectStrongEdges2(data, canvas.width, canvas.height);
-      const betterStuff = new Uint8ClampedArray(
-        canvas.width * canvas.height * 4
-      );
-      for (let i = 0; i < betterData.length; i += 1) {
-        betterStuff[i * 4] = betterData[i] > 1 ? 255 : 0;
-        betterStuff[i * 4 + 1] = betterData[i] > 1 ? 255 : 0;
-        betterStuff[i * 4 + 2] = betterData[i] > 1 ? 255 : 0;
-        betterStuff[i * 4 + 3] = 255;
-      }
+  const Noisy = canny(imageData, options);
+  // const Weak = RemoveNoise(
+  //   Noisy,
+  //   imageData.width,
+  //   imageData.height,
+  //   options
+  // );
+  const edgeData = ConnectStrongEdges(Noisy, imageData.width, imageData.height);
+  console.log({
+    Noisy,
+    edgeData,
+  });
+  //convert edgeData from uint8clampedarray to imageData
+  const newImageData = ctx.createImageData(canvas.width, canvas.height);
+  const pixels = new Uint8ClampedArray(canvas.width * canvas.height * 4);
+  for (let i = 0; i < edgeData.length; i += 1) {
+    pixels[i * 4] = edgeData[i] > 1 ? 255 : 0;
+    pixels[i * 4 + 1] = edgeData[i] > 1 ? 255 : 0;
+    pixels[i * 4 + 2] = edgeData[i] > 1 ? 255 : 0;
+    pixels[i * 4 + 3] = 255;
+  }
+  newImageData.data.set(pixels);
+  ctx.putImageData(newImageData, 0, 0);
+  // This uses edge pixel density to remove the spots in the middle of the trapezoids
+  // colorPixelsByDensity(ctx, canvas, options);
+  const data = ctx
+    .getImageData(0, 0, canvas.width, canvas.height)
+    .data.filter((_, i) => i % 4 === 0);
+  const betterData = ConnectStrongEdges2(data, canvas.width, canvas.height);
+  const betterStuff = new Uint8ClampedArray(canvas.width * canvas.height * 4);
+  for (let i = 0; i < betterData.length; i += 1) {
+    betterStuff[i * 4] = betterData[i] > 1 ? 255 : 0;
+    betterStuff[i * 4 + 1] = betterData[i] > 1 ? 255 : 0;
+    betterStuff[i * 4 + 2] = betterData[i] > 1 ? 255 : 0;
+    betterStuff[i * 4 + 3] = 255;
+  }
   newImageData.data.set(betterStuff);
-  return betterStuff
+  console.log({
+    newImageData,
+    betterStuff,
+  });
+  return newImageData;
 }
 
 function colorPixelsByDensity(
@@ -258,7 +264,8 @@ function canny(grayImageData: ImageData, options: Options) {
   const lowThresholdValue = Math.round(options.hysteresisLow * 255);
   for (let i = 0; i < width * height; i++) {
     const value = Math.round(suppressedData[i]);
-    if (value <= highThresholdValue && value >= lowThresholdValue) {
+    if (value > 0) {
+    // if (value <= highThresholdValue && value >= lowThresholdValue) {
       edgeData[i] = 255;
     } else {
       edgeData[i] = 0;
@@ -384,6 +391,3 @@ function ConnectStrongEdges2(
   }
   return edgeData;
 }
-
-
-

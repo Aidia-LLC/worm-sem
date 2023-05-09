@@ -1,4 +1,4 @@
-import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
+import { createSignal, onCleanup, onMount, Show } from "solid-js";
 import { sleep } from "src/data/handleFinalImaging";
 import {
   FASTEST_SCAN_SPEED,
@@ -10,9 +10,10 @@ import { Button } from "./Button";
 
 const REDUCTION = -1;
 
-export const GrabForm = (props: { onGrabbed: (fast: string) => void }) => {
+export const GrabForm = (props: {
+  onGrabbed: (src: string, filename: string) => void;
+}) => {
   const [fastGrabId, setFastGrabId] = createSignal<number | null>(null);
-  const [fastGrab, setFastGrab] = createSignal<string | null>(null);
   const [loading, setLoading] = createSignal(false);
 
   let unsubscribe!: VoidFunction;
@@ -21,16 +22,10 @@ export const GrabForm = (props: { onGrabbed: (fast: string) => void }) => {
     unsubscribe = window.semClient.subscribe((message) => {
       if (message.type !== "success") return;
       if (message.id === fastGrabId() && message.code === 200) {
-        setFastGrab(message.payload!);
+        props.onGrabbed(message.payload!, message.filename!);
+        setLoading(false);
       }
     });
-  });
-
-  createEffect(() => {
-    if (fastGrab()) {
-      setLoading(false);
-      props.onGrabbed(fastGrab()!);
-    }
   });
 
   onCleanup(() => {
@@ -81,7 +76,7 @@ export const GrabForm = (props: { onGrabbed: (fast: string) => void }) => {
               temporary: true,
             },
             {
-              minSleepMs: 15000,
+              minSleepMs: 1000,// 15000
               pollIntervalMs: 2000,
             }
           );

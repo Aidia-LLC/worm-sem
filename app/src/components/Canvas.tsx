@@ -8,12 +8,18 @@ import type {
 } from "@dto/canvas";
 import {
   convertZoomedCoordinatesToFullImage,
+  DirectSearchOptimization,
   DrawTrapezoid,
+  getPointsOnTrapezoid,
+  getSquare,
   lerp,
+  RANSAC,
   setupCanvas,
   translateTrapezoid,
 } from "@logic/canvas";
+import { edgeFilter } from "@logic/edgeFilter";
 import { base64ToImageSrc } from "@logic/image";
+import { segmentImage } from "@logic/segmentation";
 import {
   computeStageCoordinates,
   StageConfiguration,
@@ -22,6 +28,7 @@ import { getIndicesOfSlicesToConfigure } from "@logic/sliceConfiguration";
 import { getConnectedSlices } from "@logic/trapezoids/connected";
 import { detectTrapezoid } from "@logic/trapezoids/detection";
 import { findNearestPoint, isPointInTrapezoid } from "@logic/trapezoids/points";
+import { trapezoidIsValid } from "@logic/trapezoids/valid";
 import { findNearestVertex, moveVertex } from "@logic/trapezoids/vertices";
 import {
   createEffect,
@@ -51,16 +58,20 @@ const DEFAULT_ZOOM_SCALE = 10;
 
 export const Canvas = () => {
   const [imageSrc, setImageSrc] = createSignal<string | null>(null);
+  const [imageSrcFilename, setImageSrcFilename] = createSignal<string | null>(
+    null
+  );
 
   let canvasRef!: HTMLCanvasElement;
   let overlayCanvasRef!: HTMLCanvasElement;
+  let edgeDataCanvasRef!: HTMLCanvasElement;
+
   const [hidden, setHidden] = createSignal(true);
   const [refresh, setRefresh] = createSignal(0);
   const [nextId, setNextId] = createSignal(1);
   const [optionsSequence, setOptionsSequence] = createSignal(0);
   const [detection, setDetection] = createSignal(true);
 
-  const [points, setPoints] = createSignal<[number, number][]>([]);
   const [edgeData, setEdgeData] = createSignal<ImageData>();
   const [clickedPoint, setClickedPoint] = createSignal<Vertex>();
   const [showOriginalImage, setShowOriginalImage] = createSignal(true);
@@ -83,6 +94,11 @@ export const Canvas = () => {
   const [cursorPosition, setCursorPosition] = createSignal<[number, number]>([
     0, 0,
   ]);
+  const [clickedPoints, setClickedPoints] = createSignal<[number, number][]>(
+    []
+  );
+  const [detectionLoading, setDetectionLoading] = createSignal(false);
+  const [masks, setMasks] = createSignal<ImageData[]>([]);
 
   const handleKeyPress = (e: KeyboardEvent) => {
     if (e.key.toLowerCase() === "z") handleZoomButtonPressed();
@@ -92,6 +108,14 @@ export const Canvas = () => {
     if (zoomState()) setZoomState(null);
     else setZoomState("pickingCenter");
   };
+
+  createEffect(() => {
+    const [mask] = masks();
+    if (!mask) return;
+    const ctx = edgeDataCanvasRef.getContext("2d");
+    if (!ctx) return;
+    ctx.putImageData(mask, 0, 0);
+  });
 
   createEffect(() => {
     // re-draw the overlay canvas when the ribbons or zoom change
@@ -104,7 +128,7 @@ export const Canvas = () => {
 
   createEffect(() => {
     // re-draw the image canvas when it's toggled or zoom changes
-    showOriginalImage();
+    // showOriginalImage();
     zoomState();
     draw();
   });
@@ -120,29 +144,8 @@ export const Canvas = () => {
     setVertexDist(options.options.squareSize / 5);
   });
 
-  // const rotateImage = async () => {
-  //   setRotated((prev) => !prev);
-  //   const ctx = canvasRef.getContext("2d")!;
-  //   const ctx2 = overlayCanvasRef.getContext("2d")!;
-  //   if (rotated()) {
-  //     ctx.translate(canvasRef.width / 2, canvasRef.height / 2);
-  //     ctx.rotate((90 * Math.PI) / 180);
-  //     ctx.translate(-canvasRef.width / 2, -canvasRef.height / 2);
-  //     ctx2.translate(overlayCanvasRef.width / 2, overlayCanvasRef.height / 2);
-  //     ctx2.rotate((90 * Math.PI) / 180);
-  //     ctx2.translate(-overlayCanvasRef.width / 2, -overlayCanvasRef.height / 2);
-  //   }
-  // };
-
-  const handleClick = (e: MouseEvent) => {
+  const handleClick = async (e: MouseEvent) => {
     if (!detection()) return;
-    let toggleOriginalImage = false;
-    if (showOriginalImage()) {
-      toggleOriginalImage = true;
-      // setShowOriginalImage(false);
-    }
-    const ctx = canvasRef.getContext("2d")!;
-    const imageData = ctx.getImageData(0, 0, canvasRef.width, canvasRef.height);
     const rect = canvasRef.getBoundingClientRect();
     const rectWidth = rect.right - rect.left;
     const rectHeight = rect.bottom - rect.top;
@@ -150,104 +153,10 @@ export const Canvas = () => {
     const y = e.clientY - rect.top;
     const imgX = Math.round((x / rectWidth) * canvasRef.width);
     const imgY = Math.round((y / rectHeight) * canvasRef.height);
-    setPoints([...points(), [imgX, imgY]]);
-    // let { trapezoid, fit } = detectTrapezoid(imgX, imgY, ctx, options.options);
-    // const valid =
-    //   trapezoid &&
-    //   trapezoidIsValid(trapezoid, imgX, imgY, options.options, fit);
-    // console.log("valid", valid);
-    // if (!valid) {
-    //   const square = getSquare(
-    //     imageData,
-    //     imgX,
-    //     imgY,
-    //     options.options.squareSize
-    //   );
-    //   trapezoid = RANSAC(
-    //     square,
-    //     0,
-    //     options.options,
-    //     imgX - options.options.squareSize / 2,
-    //     imgY - options.options.squareSize / 2
-    //   )!;
-    //   console.log("trapezoid ransac", trapezoid);
-    //   if (!trapezoid) return;
-    //   trapezoid = translateTrapezoid(
-    //     trapezoid,
-    //     imgX - options.options.squareSize / 2,
-    //     imgY - options.options.squareSize / 2
-    //   );
-    //   const { trapezoid: newTrapezoid } = DirectSearchOptimization(
-    //     getPointsOnTrapezoid,
-    //     trapezoid,
-    //     square,
-    //     options.options,
-    //     imgX - options.options.squareSize / 2,
-    //     imgY - options.options.squareSize / 2
-    //   );
-    //   trapezoid = newTrapezoid;
-    // }
-    let trapezoid: Trapezoid = {
-      top: {
-        x1: imgX - options.options.squareSize / 2,
-        y1: imgY - options.options.squareSize / 2,
-        x2: imgX + options.options.squareSize / 2,
-        y2: imgY - options.options.squareSize / 2,
-      },
-      bottom: {
-        x1: imgX - options.options.squareSize / 2,
-        y1: imgY + options.options.squareSize / 2,
-        x2: imgX + options.options.squareSize / 2,
-        y2: imgY + options.options.squareSize / 2,
-      },
-      left: {
-        x1: imgX - options.options.squareSize / 2,
-        y1: imgY - options.options.squareSize / 2,
-        x2: imgX - options.options.squareSize / 2,
-        y2: imgY + options.options.squareSize / 2,
-      },
-      right: {
-        x1: imgX + options.options.squareSize / 2,
-        y1: imgY - options.options.squareSize / 2,
-        x2: imgX + options.options.squareSize / 2,
-        y2: imgY + options.options.squareSize / 2,
-      },
-    };
-    let fit;
-    if (!trapezoid) return;
-    const id = nextId();
-    setNextId((prev) => prev + 1);
-    setSearchData({
-      pause: true,
-      fit,
-      trapezoid,
-      imgX,
-      imgY,
-      ctx,
-      imageData,
-      toggleOriginalImage,
-      id,
-    });
-    setDetection(false);
-    // Draw trapezoid
-    DrawTrapezoid(trapezoid, ctx);
-    const colors = new Set(availableColors);
-    ribbons().forEach((set) => colors.delete(set.color));
-    const color = colors.size > 0 ? colors.values().next().value : "red";
-    setRibbons((prev) => [
-      ...prev,
-      {
-        trapezoids: [trapezoid],
-        id,
-        name: `Ribbon ${Math.ceil(id / 2)}`,
-        color,
-        thickness: 5,
-        status: "editing",
-        matchedPoints: [],
-        reversed: false,
-        phase: 1,
-      } as RibbonData,
-    ]);
+
+    setClickedPoints((prev) => [...prev, [imgX, imgY]]);
+
+    // setPoints([...points(), [imgX, imgY]]);
   };
 
   createEffect(() => {
@@ -302,8 +211,8 @@ export const Canvas = () => {
     // setEdgeData(imageData);
     untrack(() => {
       draw();
-      const ctx = canvasRef.getContext("2d")!;
-      for (const [x, y] of points()) detectTrapezoid(x, y, ctx, o);
+      // const ctx = canvasRef.getContext("2d")!;
+      // for (const [x, y] of points()) detectTrapezoid(x, y, ctx, o);
     });
   });
 
@@ -348,19 +257,7 @@ export const Canvas = () => {
       canvas.width = img.width;
       canvas.height = img.height;
       const ctx = canvas.getContext("2d")!;
-      // const ctx2 = overlayCanvasRef.getContext("2d")!;
       ctx.drawImage(img, 0, 0);
-      // if (rotated()) {
-      //   ctx.translate(canvas.width / 2, canvas.height / 2);
-      //   ctx.rotate((90 * Math.PI) / 180);
-      //   ctx.translate(-canvas.width / 2, -canvas.height / 2);
-      //   ctx2.translate(overlayCanvasRef.width / 2, overlayCanvasRef.height / 2);
-      //   ctx2.rotate((90 * Math.PI) / 180);
-      //   ctx2.translate(
-      //     -overlayCanvasRef.width / 2,
-      //     -overlayCanvasRef.height / 2
-      //   );
-      // }
     };
     img.src = base64ToImageSrc(src);
     const o = options.options;
@@ -384,8 +281,8 @@ export const Canvas = () => {
     if (detection()) {
       const [x, y] = cursorPosition();
       if (x && y) {
-        ctx.beginPath();
         const halfSquare = options.options.squareSize / 2;
+        ctx.beginPath();
         ctx.rect(
           x - halfSquare,
           y - halfSquare,
@@ -396,6 +293,14 @@ export const Canvas = () => {
         ctx.lineWidth = 15;
         ctx.closePath();
         ctx.stroke();
+      }
+
+      for (const point of clickedPoints()) {
+        ctx.beginPath();
+        ctx.arc(point[0], point[1], 10, 0, 2 * Math.PI);
+        ctx.fillStyle = "red";
+        ctx.fill();
+        ctx.closePath();
       }
     }
 
@@ -444,6 +349,10 @@ export const Canvas = () => {
       img.onload = () => {
         ctx.canvas.width = img.width;
         ctx.canvas.height = img.height;
+        overlayCanvasRef.width = img.width;
+        overlayCanvasRef.height = img.height;
+        edgeDataCanvasRef.width = img.width;
+        edgeDataCanvasRef.height = img.height;
         const zoom =
           !zoomState() || zoomState() === "pickingCenter"
             ? null
@@ -1010,7 +919,7 @@ export const Canvas = () => {
             <Button
               onClick={() => {
                 setImageSrc(null);
-                setPoints([]);
+                // setPoints([]);
                 setRibbons([]);
                 setRefresh(refresh() + 1);
                 setZoomState(null);
@@ -1018,28 +927,179 @@ export const Canvas = () => {
             >
               Clear Image
             </Button>
-            <Button
-              onClick={() => setDetection(!detection())}
-              disabled={searchData()?.pause}
-            >
-              <Show when={detection()} fallback="Enable">
-                Disable
-              </Show>{" "}
-              Ribbon Detection
-            </Button>
+            <Show when={masks().length === 0}>
+              <Button
+                onClick={() => setDetection(!detection())}
+                disabled={searchData()?.pause || detectionLoading()}
+              >
+                <Show when={detection()} fallback="Enable">
+                  Disable
+                </Show>{" "}
+                Ribbon Detection
+              </Button>
+              <Show when={clickedPoints().length > 1}>
+                <Button
+                  onClick={async () => {
+                    const points = clickedPoints();
+                    setDetection(false);
+                    setDetectionLoading(true);
+                    const segmentedImageData = await segmentImage({
+                      points,
+                      canvasRef,
+                      filename: imageSrcFilename()!,
+                    });
+                    setMasks(segmentedImageData);
+                    setDetectionLoading(false);
+                  }}
+                  disabled={detectionLoading()}
+                >
+                  Detect Ribbon
+                </Button>
+              </Show>
+            </Show>
+            <Show when={masks().length > 1}>
+              <Button
+                onClick={() => {
+                  setMasks((prev) => {
+                    if (prev.length === 0) return prev;
+                    const [mask, ...rest] = prev;
+                    return [...rest, mask];
+                  });
+                }}
+              >
+                Cycle mask
+              </Button>
+              <Button
+                onClick={() => {
+                  const [mask] = masks();
+                  setMasks(([mask]) => [mask]);
+                  const [point] = clickedPoints();
+                  const [imgX, imgY] = point;
+                  setClickedPoints([]);
+
+                  const edgeContext = edgeDataCanvasRef.getContext("2d")!;
+                  edgeContext.clearRect(
+                    0,
+                    0,
+                    edgeDataCanvasRef.width,
+                    edgeDataCanvasRef.height
+                  );
+                  const edgeData = edgeFilter(
+                    edgeDataCanvasRef,
+                    options.options,
+                    mask,
+                    edgeContext
+                  );
+                  edgeContext.putImageData(edgeData, 0, 0);
+                  console.log(edgeData);
+
+                  for (let i = 0; i < mask.data.length; i += 4) {
+                    const r = mask.data[i];
+                    const a = mask.data[i + 3];
+                    if (a === 0 || r === 0) {
+                      continue;
+                    }
+                    mask.data[i] = 255;
+                  }
+                  edgeContext.putImageData(mask, 0, 0);
+
+                  const ctx = canvasRef!.getContext("2d")!;
+
+                  let { trapezoid, fit } = detectTrapezoid(
+                    imgX,
+                    imgY,
+                    edgeData,
+                    options.options
+                  );
+                  const valid =
+                    trapezoid &&
+                    trapezoidIsValid(
+                      trapezoid,
+                      imgX,
+                      imgY,
+                      options.options,
+                      fit
+                    );
+                  console.log("valid", valid);
+                  if (!valid) {
+                    const square = getSquare(
+                      edgeData,
+                      imgX,
+                      imgY,
+                      options.options.squareSize
+                    );
+                    trapezoid = RANSAC(
+                      square,
+                      0,
+                      options.options,
+                      imgX - options.options.squareSize / 2,
+                      imgY - options.options.squareSize / 2
+                    )!;
+                    console.log("trapezoid ransac", trapezoid);
+                    if (!trapezoid) return;
+                    trapezoid = translateTrapezoid(
+                      trapezoid,
+                      imgX - options.options.squareSize / 2,
+                      imgY - options.options.squareSize / 2
+                    );
+                    const { trapezoid: newTrapezoid } =
+                      DirectSearchOptimization(
+                        getPointsOnTrapezoid,
+                        trapezoid,
+                        square,
+                        options.options,
+                        imgX - options.options.squareSize / 2,
+                        imgY - options.options.squareSize / 2
+                      );
+                    trapezoid = newTrapezoid;
+                  }
+                  if (!trapezoid) return;
+                  const id = nextId();
+                  setNextId((prev) => prev + 1);
+                  setSearchData({
+                    pause: true,
+                    fit,
+                    trapezoid,
+                    imgX,
+                    imgY,
+                    ctx,
+                    imageData: edgeData,
+                    toggleOriginalImage: false,
+                    id,
+                  });
+                  setDetection(false);
+                  // Draw trapezoid
+                  DrawTrapezoid(trapezoid, ctx);
+                  const colors = new Set(availableColors);
+                  ribbons().forEach((set) => colors.delete(set.color));
+                  const color =
+                    colors.size > 0 ? colors.values().next().value : "red";
+                  setRibbons((prev) => [
+                    ...prev,
+                    {
+                      trapezoids: [trapezoid],
+                      id,
+                      name: `Ribbon ${Math.ceil(id / 2)}`,
+                      color,
+                      thickness: 5,
+                      status: "editing",
+                      matchedPoints: [],
+                      reversed: false,
+                      phase: 1,
+                    } as RibbonData,
+                  ]);
+                }}
+              >
+                Accept Mask
+              </Button>
+            </Show>
             <div class="w-full flex flex-col">
               <Show when={ribbons().length > 0}>
-                <Button
-                  onClick={() => {
-                    setPoints([]);
-                    setRibbons([]);
-                  }}
-                >
+                <Button onClick={() => setRibbons([])}>
                   Remove All Ribbons
                 </Button>
               </Show>
             </div>
-            {/* <Button onClick={rotateImage}>Rotate Image</Button> */}
             {/* <Button
               onClick={() => {
                 setShowOriginalImage(!showOriginalImage());
@@ -1150,6 +1210,16 @@ export const Canvas = () => {
           }}
         ></canvas>
         <canvas
+          ref={edgeDataCanvasRef}
+          id="canvas"
+          width="1000"
+          height="1000"
+          class="w-[clamp(300px,_100%,_85vh)] mx-auto absolute top-0 left-[50%] translate-x-[-50%] z-10"
+          classList={{
+            hidden: !imageSrc(),
+          }}
+        ></canvas>
+        <canvas
           ref={overlayCanvasRef}
           id="canvas"
           width="1000"
@@ -1163,7 +1233,14 @@ export const Canvas = () => {
         ></canvas>
         <Show
           when={imageSrc()}
-          fallback={<GrabForm onGrabbed={(src) => setImageSrc(src)} />}
+          fallback={
+            <GrabForm
+              onGrabbed={(src, filename) => {
+                setImageSrc(src);
+                setImageSrcFilename(filename);
+              }}
+            />
+          }
         >
           <>
             <h3 class="font-bold text-xl mt-4">Options</h3>

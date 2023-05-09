@@ -114,6 +114,7 @@ const init = (childProcess: ChildProcessWithoutNullStreams) => {
             browserWindow?.webContents.send("SEMClient:Received", {
               ...message,
               payload: Buffer.from(data).toString("base64"),
+              filename: payload,
             } as Message);
           })();
         } else {
@@ -179,7 +180,7 @@ app.whenReady().then(() => {
         console.log("Done building C# program.");
         const childProcess = spawn(
           path.join(".", "bin", "release", "net7.0", "wormsem"),
-          [], // TODO remove dry run flag when ready to connect to SEM
+          ['--dry-run'], // TODO remove dry run flag when ready to connect to SEM
           { cwd }
         );
         init(childProcess);

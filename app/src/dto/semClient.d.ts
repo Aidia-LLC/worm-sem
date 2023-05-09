@@ -4,6 +4,7 @@ export type Message = {
   code?: number;
   message?: string;
   payload?: string;
+  filename?: string;
 };
 
 export type MessageReceived = (message: Message) => void;
