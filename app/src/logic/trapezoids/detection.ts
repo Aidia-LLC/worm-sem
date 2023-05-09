@@ -1,3 +1,5 @@
+import { calculateArea } from "@logic/canvas";
+
 type Options = {
   squareSize: number;
   gaussianKernel: [number, number, number];
@@ -55,8 +57,6 @@ export function detectTrapezoid(
     x: vertex.x + x - options.squareSize / 2,
     y: vertex.y + y - options.squareSize / 2,
   }));
-  // filter out similar vertices
-
   // for (const vertex of vertices) {
   //   ctx.beginPath();
   //   ctx.arc(vertex.x, vertex.y, 15, 0, 2 * Math.PI);
@@ -81,6 +81,42 @@ export function detectTrapezoid(
     x,
     y
   );
+
+  if (!newTrapezoid) 
+    return { trapezoid: null, fit: null };
+
+  const area = calculateArea(newTrapezoid);
+  const swappedTrapezoid: Trapezoid = {
+    top: {
+      x1: newTrapezoid.top.x2,
+      y1: newTrapezoid.top.y2,
+      x2: newTrapezoid.top.x1,
+      y2: newTrapezoid.top.y1,
+    },
+    bottom: {
+      x1: newTrapezoid.bottom.x2,
+      y1: newTrapezoid.bottom.y2,
+      x2: newTrapezoid.bottom.x1,
+      y2: newTrapezoid.bottom.y1,
+    },
+    left: {
+      x1: newTrapezoid.left.x2,
+      y1: newTrapezoid.left.y2,
+      x2: newTrapezoid.left.x1,
+      y2: newTrapezoid.left.y1,
+    },
+    right: {
+      x1: newTrapezoid.right.x2,
+      y1: newTrapezoid.right.y2,
+      x2: newTrapezoid.right.x1,
+      y2: newTrapezoid.right.y1,
+    },
+  };
+  const swappedArea = calculateArea(swappedTrapezoid);
+  if (swappedArea > area) {
+    return { trapezoid: swappedTrapezoid, fit };
+  }
+
   return { trapezoid: newTrapezoid, fit };
 }
 

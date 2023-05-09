@@ -1,10 +1,10 @@
 import { Trapezoid, Vertex, ZoomState } from "@dto/canvas";
 import { ProcessingOptions } from "@dto/ProcessingOptions";
 import { base64ToImageSrc } from "./image";
+import { linesIntersect } from "./intersection";
 
 export const setupCanvas = async (
   canvas: HTMLCanvasElement,
-  options: ProcessingOptions,
   src: string,
   overlayCanvas: HTMLCanvasElement
   // rotated: boolean
@@ -13,7 +13,6 @@ export const setupCanvas = async (
   const ctx = canvas.getContext("2d")!;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const img = new Image();
-  let imageData: ImageData;
 
   return new Promise((resolve) => {
     img.onload = function () {
@@ -22,14 +21,7 @@ export const setupCanvas = async (
       canvas.height = img.height;
       overlayCanvas.width = img.width;
       overlayCanvas.height = img.height;
-      // if (rotated) {
-      //   ctx.translate(canvas.width / 2, canvas.height / 2);
-      //   ctx.rotate((90 * Math.PI) / 180);
-      //   ctx.translate(-canvas.width / 2, -canvas.height / 2);
-      // }
       ctx.drawImage(img, 0, 0);
-      imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      // edgeFilter(canvas, options, imageData, ctx);
       resolve();
     };
     img.onerror = (e) => {
@@ -93,6 +85,28 @@ export function DrawTrapezoid(
   ctx.closePath();
 }
 
+const calculateSemiPerimeter = (trapezoid: Trapezoid): number => {
+  const a = Math.sqrt(
+    (trapezoid.top.x1 - trapezoid.top.x2) ** 2 +
+      (trapezoid.top.y1 - trapezoid.top.y2) ** 2
+  );
+  const b = Math.sqrt(
+    (trapezoid.bottom.x1 - trapezoid.bottom.x2) ** 2 +
+      (trapezoid.bottom.y1 - trapezoid.bottom.y2) ** 2
+  );
+  const c = Math.sqrt(
+    (trapezoid.left.x1 - trapezoid.left.x2) ** 2 +
+      (trapezoid.left.y1 - trapezoid.left.y2) ** 2
+  );
+  const d = Math.sqrt(
+    (trapezoid.right.x1 - trapezoid.right.x2) ** 2 +
+      (trapezoid.right.y1 - trapezoid.right.y2) ** 2
+  );
+  // Calculate the semiperimeter of the quadrilateral
+  const s = (a + b + c + d) / 2;
+  return s;
+};
+
 export function calculateArea(trapezoid: Trapezoid): number {
   const a = Math.sqrt(
     (trapezoid.top.x1 - trapezoid.top.x2) ** 2 +
@@ -112,34 +126,96 @@ export function calculateArea(trapezoid: Trapezoid): number {
   );
   // Calculate the semiperimeter of the quadrilateral
   const s = (a + b + c + d) / 2;
-
   // Calculate the area using Brahmagupta's formula
-  const area1 = Math.sqrt((s - a) * (s - b) * (s - c) * (s - d));
-
-  const a2 = Math.sqrt(
-    (trapezoid.top.x1 - trapezoid.top.x2) ** 2 +
-      (trapezoid.top.y1 - trapezoid.top.y2) ** 2
-  );
-  const b2 = Math.sqrt(
-    (trapezoid.bottom.x1 - trapezoid.bottom.x2) ** 2 +
-      (trapezoid.bottom.y1 - trapezoid.bottom.y2) ** 2
-  );
-  const c2 = Math.sqrt(
-    (trapezoid.left.x1 - trapezoid.left.x2) ** 2 +
-      (trapezoid.left.y1 - trapezoid.left.y2) ** 2
-  );
-  const d2 = Math.sqrt(
-    (trapezoid.right.x1 - trapezoid.right.x2) ** 2 +
-      (trapezoid.right.y1 - trapezoid.right.y2) ** 2
-  );
-  // Calculate the semiperimeter of the quadrilateral
-  const s2 = (a2 + b2 + c2 + d2) / 2;
-
-  // Calculate the area using Brahmagupta's formula
-  const area2 = Math.sqrt((s2 - a2) * (s2 - b2) * (s2 - c2) * (s2 - d2));
-
-  return Math.max(area1, area2);
+  return Math.sqrt((s - a) * (s - b) * (s - c) * (s - d));
 }
+
+const permutator = <T>(input: T[]) => {
+  let permArr: T[][] = [],
+    usedChars: T[] = [];
+  return (function main() {
+    for (let i = 0; i < input.length; i++) {
+      let ch = input.splice(i, 1)[0];
+      usedChars.push(ch);
+      if (input.length == 0) {
+        permArr.push(usedChars.slice());
+      }
+      main();
+      input.splice(i, 0, ch);
+      usedChars.pop();
+    }
+    return permArr;
+  })();
+};
+
+export const permuteTrapezoid = (trapezoid: Trapezoid) => {
+  const points: [number, number][] = [
+    [trapezoid.top.x1, trapezoid.top.y1],
+    [trapezoid.top.x2, trapezoid.top.y2],
+    [trapezoid.bottom.x1, trapezoid.bottom.y1],
+    [trapezoid.bottom.x2, trapezoid.bottom.y2],
+  ];
+  const permutations = permutator(points);
+  const trapezoids: Trapezoid[] = permutations.map((permutation) => {
+    return {
+      top: {
+        x1: permutation[0][0],
+        y1: permutation[0][1],
+        x2: permutation[1][0],
+        y2: permutation[1][1],
+      },
+      bottom: {
+        x1: permutation[2][0],
+        y1: permutation[2][1],
+        x2: permutation[3][0],
+        y2: permutation[3][1],
+      },
+      left: {
+        x1: permutation[0][0],
+        y1: permutation[0][1],
+        x2: permutation[2][0],
+        y2: permutation[2][1],
+      },
+      right: {
+        x1: permutation[1][0],
+        y1: permutation[1][1],
+        x2: permutation[3][0],
+        y2: permutation[3][1],
+      },
+    } as Trapezoid;
+  });
+  const data = trapezoids
+    .map((t) => ({
+      trapezoid: t,
+      area: calculateArea(t),
+      semiPerimeter: calculateSemiPerimeter(t),
+    }))
+    .filter(
+      (t) =>
+        !linesIntersect(
+          [
+            [t.trapezoid.top.x1, t.trapezoid.top.y1],
+            [t.trapezoid.top.x2, t.trapezoid.top.y2],
+          ],
+          [
+            [t.trapezoid.bottom.x1, t.trapezoid.bottom.y1],
+            [t.trapezoid.bottom.x2, t.trapezoid.bottom.y2],
+          ]
+        ) &&
+        !linesIntersect(
+          [
+            [t.trapezoid.left.x1, t.trapezoid.left.y1],
+            [t.trapezoid.left.x2, t.trapezoid.left.y2],
+          ],
+          [
+            [t.trapezoid.right.x1, t.trapezoid.right.y1],
+            [t.trapezoid.right.x2, t.trapezoid.right.y2],
+          ]
+        )
+    );
+  const maxArea = Math.max(...data.map((d) => d.area));
+  return data.find((d) => d.area === maxArea)!.trapezoid;
+};
 
 export function findConnectedTrapezoids(
   trapezoid: Trapezoid,
@@ -199,7 +275,7 @@ export function findConnectedTrapezoids(
     squareSize,
     fit
   );
-  return trapezoids;
+  return trapezoids.map((t) => permuteTrapezoid(t));
 }
 
 function recurseSearchTrapezoid(

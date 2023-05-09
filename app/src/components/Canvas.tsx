@@ -10,9 +10,11 @@ import {
   convertZoomedCoordinatesToFullImage,
   DirectSearchOptimization,
   DrawTrapezoid,
+  findConnectedTrapezoids,
   getPointsOnTrapezoid,
   getSquare,
   lerp,
+  permuteTrapezoid,
   RANSAC,
   setupCanvas,
   translateTrapezoid,
@@ -25,7 +27,7 @@ import {
   StageConfiguration,
 } from "@logic/semCoordinates";
 import { getIndicesOfSlicesToConfigure } from "@logic/sliceConfiguration";
-import { getConnectedSlices } from "@logic/trapezoids/connected";
+import { orderTrapezoids } from "@logic/trapezoids/connected";
 import { detectTrapezoid } from "@logic/trapezoids/detection";
 import { findNearestPoint, isPointInTrapezoid } from "@logic/trapezoids/points";
 import { trapezoidIsValid } from "@logic/trapezoids/valid";
@@ -39,7 +41,6 @@ import {
   onMount,
   Show,
   Switch,
-  untrack,
 } from "solid-js";
 import { createOptionsStore } from "src/data/createOptionsStore";
 import { handleFinalImaging } from "src/data/handleFinalImaging";
@@ -57,22 +58,18 @@ import { SliderPicker } from "./SliderPicker";
 const DEFAULT_ZOOM_SCALE = 10;
 
 export const Canvas = () => {
-  const [imageSrc, setImageSrc] = createSignal<string | null>(null);
-  const [imageSrcFilename, setImageSrcFilename] = createSignal<string | null>(
-    null
-  );
-
   let canvasRef!: HTMLCanvasElement;
   let overlayCanvasRef!: HTMLCanvasElement;
   let edgeDataCanvasRef!: HTMLCanvasElement;
 
-  const [hidden, setHidden] = createSignal(true);
-  const [refresh, setRefresh] = createSignal(0);
+  const [imageSrc, setImageSrc] = createSignal<string | null>(null);
+  const [imageSrcFilename, setImageSrcFilename] = createSignal<string | null>(
+    null
+  );
+  const [paramsHidden, setParamsHidden] = createSignal(true);
   const [nextId, setNextId] = createSignal(1);
   const [optionsSequence, setOptionsSequence] = createSignal(0);
   const [detection, setDetection] = createSignal(true);
-
-  const [edgeData, setEdgeData] = createSignal<ImageData>();
   const [clickedPoint, setClickedPoint] = createSignal<Vertex>();
   const [showOriginalImage, setShowOriginalImage] = createSignal(true);
   const [ribbons, setRibbons] = createSignal<RibbonData[]>([]);
@@ -99,6 +96,10 @@ export const Canvas = () => {
   );
   const [detectionLoading, setDetectionLoading] = createSignal(false);
   const [masks, setMasks] = createSignal<ImageData[]>([]);
+  const [options, setOptions, resetOptions] = createOptionsStore();
+  const [VERTEX_DIST, setVertexDist] = createSignal(
+    options.options.squareSize / 5
+  );
 
   const handleKeyPress = (e: KeyboardEvent) => {
     if (e.key.toLowerCase() === "z") handleZoomButtonPressed();
@@ -118,7 +119,7 @@ export const Canvas = () => {
   });
 
   createEffect(() => {
-    // re-draw the overlay canvas when the ribbons or zoom change
+    // re-draw the overlay canvas when the ribbons, cursor, detection state, or zoom change
     ribbons();
     zoomState();
     cursorPosition();
@@ -127,17 +128,12 @@ export const Canvas = () => {
   });
 
   createEffect(() => {
-    // re-draw the image canvas when it's toggled or zoom changes
-    // showOriginalImage();
+    // re-draw the image canvas when zoom changes
+    const src = imageSrc();
+    if (!src) return;
     zoomState();
     draw();
   });
-
-  const [options, setOptions, resetOptions] = createOptionsStore();
-  const [searchData, setSearchData] = createSignal<any>({ pause: false });
-  const [VERTEX_DIST, setVertexDist] = createSignal(
-    options.options.squareSize / 5
-  );
 
   createEffect(() => {
     optionsSequence();
@@ -155,66 +151,7 @@ export const Canvas = () => {
     const imgY = Math.round((y / rectHeight) * canvasRef.height);
 
     setClickedPoints((prev) => [...prev, [imgX, imgY]]);
-
-    // setPoints([...points(), [imgX, imgY]]);
   };
-
-  createEffect(() => {
-    const { pause, id } = searchData();
-    if (pause || !id) return;
-    getConnectedSlices(
-      id,
-      options,
-      searchData,
-      setRibbons,
-      setSearchData,
-      setShowOriginalImage,
-      ribbons,
-      setNextId,
-      ribbons().find((r) => r.id === id)!.trapezoids[0]!
-    );
-    const w = canvasRef.width;
-    const h = canvasRef.height;
-    console.log({
-      ribbons: ribbons(),
-      w,
-      h,
-    });
-    setRibbons((ribbons) =>
-      ribbons.map((r) => ({
-        ...r,
-        trapezoids: r.trapezoids.filter(
-          (t) =>
-            t.left.x1 > 0 &&
-            t.left.x2 < w &&
-            t.right.x1 > 0 &&
-            t.right.x2 < w &&
-            t.top.y1 > 0 &&
-            t.top.y2 < h &&
-            t.bottom.y1 > 0 &&
-            t.bottom.y2 < h
-        ),
-      }))
-    );
-  });
-
-  createEffect(async () => {
-    refresh();
-    optionsSequence();
-    const src = imageSrc();
-    if (!src) return;
-    const o = options.options;
-    await setupCanvas(canvasRef, o, src, overlayCanvasRef);
-    // const imageData = canvasRef
-    //   .getContext("2d")!
-    //   .getImageData(0, 0, canvasRef.width, canvasRef.height);
-    // setEdgeData(imageData);
-    untrack(() => {
-      draw();
-      // const ctx = canvasRef.getContext("2d")!;
-      // for (const [x, y] of points()) detectTrapezoid(x, y, ctx, o);
-    });
-  });
 
   onMount(async () => {
     overlayCanvasRef.addEventListener("mousedown", handleMouseDown);
@@ -260,8 +197,7 @@ export const Canvas = () => {
       ctx.drawImage(img, 0, 0);
     };
     img.src = base64ToImageSrc(src);
-    const o = options.options;
-    await setupCanvas(canvasRef, o, src, overlayCanvasRef);
+    await setupCanvas(canvasRef, src, overlayCanvasRef);
   }
 
   const drawOverlay = () => {
@@ -280,8 +216,8 @@ export const Canvas = () => {
 
     if (detection()) {
       const [x, y] = cursorPosition();
+      const halfSquare = options.options.squareSize / 2;
       if (x && y) {
-        const halfSquare = options.options.squareSize / 2;
         ctx.beginPath();
         ctx.rect(
           x - halfSquare,
@@ -301,6 +237,18 @@ export const Canvas = () => {
         ctx.fillStyle = "red";
         ctx.fill();
         ctx.closePath();
+
+        ctx.beginPath();
+        ctx.rect(
+          point[0] - halfSquare,
+          point[1] - halfSquare,
+          options.options.squareSize,
+          options.options.squareSize
+        );
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 15;
+        ctx.closePath();
+        ctx.stroke();
       }
     }
 
@@ -336,50 +284,42 @@ export const Canvas = () => {
   function draw() {
     const ctx = canvasRef.getContext("2d")!;
     ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
-    const showEdgeData = !showOriginalImage() && edgeData() && !zoomState();
-
-    if (showEdgeData) {
-      ctx.putImageData(edgeData()!, 0, 0);
-      ctx.restore();
-    } else {
-      // const src = highResImageSrc();
-      const src = imageSrc();
-      if (!src) return;
-      const img = new Image();
-      img.onload = () => {
-        ctx.canvas.width = img.width;
-        ctx.canvas.height = img.height;
-        overlayCanvasRef.width = img.width;
-        overlayCanvasRef.height = img.height;
-        edgeDataCanvasRef.width = img.width;
-        edgeDataCanvasRef.height = img.height;
-        const zoom =
-          !zoomState() || zoomState() === "pickingCenter"
-            ? null
-            : (zoomState() as ZoomState);
-        if (zoom) {
-          const { x, y, scale } = zoom;
-          const viewportWidth = canvasRef.width / scale;
-          const viewportHeight = canvasRef.height / scale;
-          const viewportX = x - viewportWidth / 2;
-          const viewportY = y - viewportHeight / 2;
-          ctx.drawImage(
-            img,
-            viewportX,
-            viewportY,
-            viewportWidth,
-            viewportHeight,
-            0,
-            0,
-            canvasRef.width,
-            canvasRef.height
-          );
-        } else {
-          ctx.drawImage(img, 0, 0);
-        }
-      };
-      img.src = base64ToImageSrc(src);
-    }
+    const src = imageSrc();
+    if (!src) return;
+    const img = new Image();
+    img.onload = () => {
+      ctx.canvas.width = img.width;
+      ctx.canvas.height = img.height;
+      overlayCanvasRef.width = img.width;
+      overlayCanvasRef.height = img.height;
+      edgeDataCanvasRef.width = img.width;
+      edgeDataCanvasRef.height = img.height;
+      const zoom =
+        !zoomState() || zoomState() === "pickingCenter"
+          ? null
+          : (zoomState() as ZoomState);
+      if (zoom) {
+        const { x, y, scale } = zoom;
+        const viewportWidth = canvasRef.width / scale;
+        const viewportHeight = canvasRef.height / scale;
+        const viewportX = x - viewportWidth / 2;
+        const viewportY = y - viewportHeight / 2;
+        ctx.drawImage(
+          img,
+          viewportX,
+          viewportY,
+          viewportWidth,
+          viewportHeight,
+          0,
+          0,
+          canvasRef.width,
+          canvasRef.height
+        );
+      } else {
+        ctx.drawImage(img, 0, 0);
+      }
+    };
+    img.src = base64ToImageSrc(src);
   }
 
   function handleMouseDown(e: MouseEvent) {
@@ -408,16 +348,6 @@ export const Canvas = () => {
       canvasRef.height
     );
 
-    if (!edgeData()) {
-      const ctx = canvasRef.getContext("2d")!;
-      const imageData = ctx.getImageData(
-        0,
-        0,
-        canvasRef.width,
-        canvasRef.height
-      );
-      setEdgeData(imageData);
-    }
     const { inTrapezoid, trapezoid } = isPointInTrapezoid(
       imgX,
       imgY,
@@ -730,7 +660,6 @@ export const Canvas = () => {
       );
       setRibbons(newTrapezoids); //TODO double check
     }
-    refresh();
   }
 
   function handleMouseUp() {
@@ -919,10 +848,10 @@ export const Canvas = () => {
             <Button
               onClick={() => {
                 setImageSrc(null);
-                // setPoints([]);
                 setRibbons([]);
-                setRefresh(refresh() + 1);
                 setZoomState(null);
+                setClickedPoints([]);
+                setMasks([]);
               }}
             >
               Clear Image
@@ -930,14 +859,14 @@ export const Canvas = () => {
             <Show when={masks().length === 0}>
               <Button
                 onClick={() => setDetection(!detection())}
-                disabled={searchData()?.pause || detectionLoading()}
+                disabled={detectionLoading()}
               >
                 <Show when={detection()} fallback="Enable">
                   Disable
                 </Show>{" "}
                 Ribbon Detection
               </Button>
-              <Show when={clickedPoints().length > 1}>
+              <Show when={clickedPoints().length > 2}>
                 <Button
                   onClick={async () => {
                     const points = clickedPoints();
@@ -948,8 +877,9 @@ export const Canvas = () => {
                       canvasRef,
                       filename: imageSrcFilename()!,
                     });
-                    setMasks(segmentedImageData);
+                    setShowOriginalImage(false);
                     setDetectionLoading(false);
+                    setMasks(segmentedImageData);
                   }}
                   disabled={detectionLoading()}
                 >
@@ -967,14 +897,14 @@ export const Canvas = () => {
                   });
                 }}
               >
-                Cycle mask
+                Next mask
               </Button>
               <Button
                 onClick={() => {
                   const [mask] = masks();
-                  setMasks(([mask]) => [mask]);
                   const [point] = clickedPoints();
                   const [imgX, imgY] = point;
+                  setMasks([]);
                   setClickedPoints([]);
 
                   const edgeContext = edgeDataCanvasRef.getContext("2d")!;
@@ -991,19 +921,6 @@ export const Canvas = () => {
                     edgeContext
                   );
                   edgeContext.putImageData(edgeData, 0, 0);
-                  console.log(edgeData);
-
-                  for (let i = 0; i < mask.data.length; i += 4) {
-                    const r = mask.data[i];
-                    const a = mask.data[i + 3];
-                    if (a === 0 || r === 0) {
-                      continue;
-                    }
-                    mask.data[i] = 255;
-                  }
-                  edgeContext.putImageData(mask, 0, 0);
-
-                  const ctx = canvasRef!.getContext("2d")!;
 
                   let { trapezoid, fit } = detectTrapezoid(
                     imgX,
@@ -1011,6 +928,7 @@ export const Canvas = () => {
                     edgeData,
                     options.options
                   );
+                  console.log("trapezoid", trapezoid);
                   const valid =
                     trapezoid &&
                     trapezoidIsValid(
@@ -1054,30 +972,30 @@ export const Canvas = () => {
                     trapezoid = newTrapezoid;
                   }
                   if (!trapezoid) return;
+                  trapezoid = permuteTrapezoid(trapezoid);
                   const id = nextId();
                   setNextId((prev) => prev + 1);
-                  setSearchData({
-                    pause: true,
-                    fit,
-                    trapezoid,
-                    imgX,
-                    imgY,
-                    ctx,
-                    imageData: edgeData,
-                    toggleOriginalImage: false,
-                    id,
-                  });
                   setDetection(false);
-                  // Draw trapezoid
-                  DrawTrapezoid(trapezoid, ctx);
                   const colors = new Set(availableColors);
                   ribbons().forEach((set) => colors.delete(set.color));
                   const color =
                     colors.size > 0 ? colors.values().next().value : "red";
+                  const connectedTrapezoids = findConnectedTrapezoids(
+                    trapezoid,
+                    edgeContext,
+                    imgX,
+                    imgY,
+                    options.options,
+                    options.options.minimumFit
+                  );
+                  const trapezoids = orderTrapezoids([
+                    trapezoid,
+                    ...connectedTrapezoids,
+                  ]);
                   setRibbons((prev) => [
                     ...prev,
                     {
-                      trapezoids: [trapezoid],
+                      trapezoids,
                       id,
                       name: `Ribbon ${Math.ceil(id / 2)}`,
                       color,
@@ -1085,9 +1003,10 @@ export const Canvas = () => {
                       status: "editing",
                       matchedPoints: [],
                       reversed: false,
-                      phase: 1,
+                      phase: 2,
                     } as RibbonData,
                   ]);
+                  setShowOriginalImage(true);
                 }}
               >
                 Accept Mask
@@ -1100,13 +1019,13 @@ export const Canvas = () => {
                 </Button>
               </Show>
             </div>
-            {/* <Button
+            <Button
               onClick={() => {
                 setShowOriginalImage(!showOriginalImage());
               }}
             >
               Show {showOriginalImage() ? "Edge Data" : "Original Image"}
-            </Button> */}
+            </Button>
             <Button onClick={handleZoomButtonPressed}>
               <Switch fallback="Zoom in">
                 <Match when={zoomState() === "pickingCenter"}>
@@ -1144,16 +1063,9 @@ export const Canvas = () => {
                 );
                 setRibbons(newTrapezoidSets);
               }}
-              onDelete={({ id }) => {
-                setRibbons(ribbons().filter((t) => t.id !== id));
-                const search = searchData();
-                if (search && search.id === id) {
-                  setSearchData({
-                    pause: false,
-                  });
-                }
-              }}
-              setSearchData={setSearchData}
+              onDelete={({ id }) =>
+                setRibbons(ribbons().filter((t) => t.id !== id))
+              }
               ctx={canvasRef.getContext("2d")!}
             />
           )}
@@ -1170,7 +1082,27 @@ export const Canvas = () => {
             min={1}
           />
         </Show>
+        <Show when={detection() && imageSrc()}>
+          <span class="text-xl font-bold">
+            <Switch>
+              <Match when={clickedPoints().length === 0}>
+                Click the center point of a slice in the middle of the ribbon
+              </Match>
+              <Match when={clickedPoints().length === 1}>
+                Click the center point of a slice at the start of the ribbon
+              </Match>
+              <Match when={clickedPoints().length === 2}>
+                Click the center point of a slice at the end of the ribbon
+              </Match>
+              <Match when={clickedPoints().length === 3}>
+                Click any other points in the ribbon if desired, or click
+                "Detect Ribbon" to finish
+              </Match>
+            </Switch>
+          </span>
+        </Show>
       </Show>
+
       <div
         class="relative"
         classList={{
@@ -1216,7 +1148,7 @@ export const Canvas = () => {
           height="1000"
           class="w-[clamp(300px,_100%,_85vh)] mx-auto absolute top-0 left-[50%] translate-x-[-50%] z-10"
           classList={{
-            hidden: !imageSrc(),
+            hidden: !imageSrc() || showOriginalImage(),
           }}
         ></canvas>
         <canvas
@@ -1247,8 +1179,8 @@ export const Canvas = () => {
             <div class="grid grid-cols-2 gap-3">
               <div class="flex flex-col gap-3">
                 <p>For fine tuning of all other parameters:</p>
-                <Button onClick={() => setHidden(!hidden())}>
-                  {hidden() ? "Show" : "Hide"} Additional Parameters
+                <Button onClick={() => setParamsHidden(!paramsHidden())}>
+                  {paramsHidden() ? "Show" : "Hide"} Additional Parameters
                 </Button>
               </div>
               <div class="flex-col">
@@ -1297,7 +1229,7 @@ export const Canvas = () => {
                   }}
                 />
               </div>
-              <Show when={!hidden()}>
+              <Show when={!paramsHidden()}>
                 <div class="flex=col">
                   <p>
                     This sets the low-end threshold for determining if a pixel
@@ -1466,7 +1398,7 @@ export const Canvas = () => {
                 </div>
               </Show>
             </div>
-            <Show when={!hidden()}>
+            <Show when={!paramsHidden()}>
               <h2>
                 The Gaussian Kernel is used to perform a 'Gaussian Blur' to the
                 image. This helps reduce noise.

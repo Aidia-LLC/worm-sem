@@ -88,7 +88,7 @@ export const getConnectedSlices = (
   setSearchData({ pause: false, id: null });
 };
 
-const orderTrapezoids = (trapezoids: Trapezoid[]) => {
+export const orderTrapezoids = (trapezoids: Trapezoid[]) => {
   // order with the top trapezoid being 1
   return trapezoids.sort((a, b) => {
     const aTop = Math.min(a.top.y1, a.top.y2);
