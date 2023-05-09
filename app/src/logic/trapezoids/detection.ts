@@ -151,17 +151,14 @@ function hough(
           // Increment neighboring cells of the accumulator cell corresponding to this (theta, r) pair once
           accumulator[Math.floor(theta / thetaStep)][r + maxDistance + 1] += 1;
           accumulator[Math.floor(theta / thetaStep)][r + maxDistance - 1] += 1;
-          Math.floor(theta / thetaStep) < 180
-            ? (accumulator[Math.floor(theta / thetaStep) + 1][
-                r + maxDistance
-              ] += 1)
-            : null;
-          Math.floor(theta / thetaStep) > 0
-            ? (accumulator[Math.floor(theta / thetaStep) - 1][
-                r + maxDistance
-              ] += 1)
-            : null;
-          // maybe add diagnals
+          if (Math.floor(theta / thetaStep) < 180)
+            accumulator[Math.floor(theta / thetaStep) + 1][
+              r + maxDistance
+            ] += 1;
+          if (Math.floor(theta / thetaStep) > 0)
+            accumulator[Math.floor(theta / thetaStep) - 1][
+              r + maxDistance
+            ] += 1;
         }
       }
     }
@@ -173,9 +170,7 @@ function hough(
   for (let theta = 0; theta < 180; theta += thetaStep) {
     for (let r = 0; r < maxDistance * 2; r++) {
       const votes = accumulator[Math.floor(theta / thetaStep)][r];
-      if (votes > maxVotes) {
-        maxVotes = votes;
-      }
+      if (votes > maxVotes) maxVotes = votes;
     }
   }
   const threshold = maxVotes * options.houghVoteThreshold;
@@ -196,9 +191,7 @@ function hough(
             }
           }
         }
-        if (skip) {
-          continue;
-        }
+        if (skip) continue;
         lines.push({ theta, r: r - maxDistance });
       }
     }
