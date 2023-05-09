@@ -185,34 +185,50 @@ export const permuteTrapezoid = (trapezoid: Trapezoid) => {
     } as Trapezoid;
   });
   const data = trapezoids
-    .map((t) => ({
-      trapezoid: t,
-      area: calculateArea(t),
-      semiPerimeter: calculateSemiPerimeter(t),
-    }))
     .filter(
       (t) =>
         !linesIntersect(
           [
-            [t.trapezoid.top.x1, t.trapezoid.top.y1],
-            [t.trapezoid.top.x2, t.trapezoid.top.y2],
+            [t.top.x1, t.top.y1],
+            [t.top.x2, t.top.y2],
           ],
           [
-            [t.trapezoid.bottom.x1, t.trapezoid.bottom.y1],
-            [t.trapezoid.bottom.x2, t.trapezoid.bottom.y2],
+            [t.bottom.x1, t.bottom.y1],
+            [t.bottom.x2, t.bottom.y2],
           ]
         ) &&
         !linesIntersect(
           [
-            [t.trapezoid.left.x1, t.trapezoid.left.y1],
-            [t.trapezoid.left.x2, t.trapezoid.left.y2],
+            [t.left.x1, t.left.y1],
+            [t.left.x2, t.left.y2],
           ],
           [
-            [t.trapezoid.right.x1, t.trapezoid.right.y1],
-            [t.trapezoid.right.x2, t.trapezoid.right.y2],
+            [t.right.x1, t.right.y1],
+            [t.right.x2, t.right.y2],
           ]
         )
-    );
+    )
+    .filter((t) => {
+      const top = Math.sqrt(
+        (t.top.x1 - t.top.x2) ** 2 + (t.top.y1 - t.top.y2) ** 2
+      );
+      const bottom = Math.sqrt(
+        (t.bottom.x1 - t.bottom.x2) ** 2 + (t.bottom.y1 - t.bottom.y2) ** 2
+      );
+      const left = Math.sqrt(
+        (t.left.x1 - t.left.x2) ** 2 + (t.left.y1 - t.left.y2) ** 2
+      );
+      const right = Math.sqrt(
+        (t.right.x1 - t.right.x2) ** 2 + (t.right.y1 - t.right.y2) ** 2
+      );
+      const max = Math.max(top, bottom, left, right);
+      return bottom === max;
+    })
+    .map((t) => ({
+      trapezoid: t,
+      area: calculateArea(t),
+      semiPerimeter: calculateSemiPerimeter(t),
+    }));
   const maxArea = Math.max(...data.map((d) => d.area));
   return data.find((d) => d.area === maxArea)!.trapezoid;
 };
@@ -249,6 +265,14 @@ export function findConnectedTrapezoids(
   const xShift = Math.round(
     ((trapezoid.top.y1 - trapezoid.top.y2) / length) * height
   );
+  console.log({
+    xShift,
+    yShift,
+    length,
+    bottomLength,
+    area,
+    height,
+  });
   recurseSearchTrapezoid(
     x,
     y,

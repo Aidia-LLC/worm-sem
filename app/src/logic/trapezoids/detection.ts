@@ -1,4 +1,4 @@
-import { calculateArea } from "@logic/canvas";
+import { permuteTrapezoid } from "@logic/canvas";
 
 type Options = {
   squareSize: number;
@@ -20,50 +20,53 @@ export function detectTrapezoid(
   x: number,
   y: number,
   imageData: ImageData,
-  // ctx: CanvasRenderingContext2D,
+  ctx: CanvasRenderingContext2D,
   options: Options
 ) {
-  // const imageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
   const square = getSquare(imageData, x, y, options.squareSize);
-  // ctx.beginPath();
-  // ctx.rect(
-  //   x - options.squareSize / 2,
-  //   y - options.squareSize / 2,
-  //   options.squareSize,
-  //   options.squareSize
-  // );
-  // ctx.strokeStyle = "red";
-  // ctx.stroke();
-  // ctx.closePath();
 
   const lines = hough(square, options);
+  for (const line of lines) {
+    ctx.beginPath();
+    ctx.moveTo(
+      line.x1 + x - options.squareSize / 2,
+      line.y1 + y - options.squareSize / 2
+    );
+    ctx.lineTo(
+      line.x2 + x - options.squareSize / 2,
+      line.y2 + y - options.squareSize / 2
+    );
+    ctx.strokeStyle = "green";
+    ctx.stroke();
+    ctx.closePath();
+  }
 
   const goodLines = pixelsPerLine(lines, square, options);
-  // for (const line of goodLines) {
-  //   ctx.beginPath();
-  //   ctx.moveTo(
-  //     line.x1 + x - options.squareSize / 2,
-  //     line.y1 + y - options.squareSize / 2
-  //   );
-  //   ctx.lineTo(
-  //     line.x2 + x - options.squareSize / 2,
-  //     line.y2 + y - options.squareSize / 2
-  //   );
-  //   ctx.strokeStyle = "red";
-  //   ctx.stroke();
-  //   ctx.closePath();
-  // }
+  for (const line of goodLines) {
+    ctx.beginPath();
+    ctx.moveTo(
+      line.x1 + x - options.squareSize / 2,
+      line.y1 + y - options.squareSize / 2
+    );
+    ctx.lineTo(
+      line.x2 + x - options.squareSize / 2,
+      line.y2 + y - options.squareSize / 2
+    );
+    ctx.strokeStyle = "red";
+    ctx.stroke();
+    ctx.closePath();
+  }
   const vertices = computeVertices(goodLines, options).map((vertex) => ({
     x: vertex.x + x - options.squareSize / 2,
     y: vertex.y + y - options.squareSize / 2,
   }));
-  // for (const vertex of vertices) {
-  //   ctx.beginPath();
-  //   ctx.arc(vertex.x, vertex.y, 15, 0, 2 * Math.PI);
-  //   ctx.fillStyle = "red";
-  //   ctx.fill();
-  //   ctx.closePath();
-  // }
+  for (const vertex of vertices) {
+    ctx.beginPath();
+    ctx.arc(vertex.x, vertex.y, 15, 0, 2 * Math.PI);
+    ctx.fillStyle = "red";
+    ctx.fill();
+    ctx.closePath();
+  }
 
   const trapezoid: Trapezoid | null = computeTrapezoid(vertices);
   // console.log("trapezoid", trapezoid);
@@ -82,42 +85,9 @@ export function detectTrapezoid(
     y
   );
 
-  if (!newTrapezoid) 
-    return { trapezoid: null, fit: null };
+  if (!newTrapezoid) return { trapezoid: null, fit: null };
 
-  const area = calculateArea(newTrapezoid);
-  const swappedTrapezoid: Trapezoid = {
-    top: {
-      x1: newTrapezoid.top.x2,
-      y1: newTrapezoid.top.y2,
-      x2: newTrapezoid.top.x1,
-      y2: newTrapezoid.top.y1,
-    },
-    bottom: {
-      x1: newTrapezoid.bottom.x2,
-      y1: newTrapezoid.bottom.y2,
-      x2: newTrapezoid.bottom.x1,
-      y2: newTrapezoid.bottom.y1,
-    },
-    left: {
-      x1: newTrapezoid.left.x2,
-      y1: newTrapezoid.left.y2,
-      x2: newTrapezoid.left.x1,
-      y2: newTrapezoid.left.y1,
-    },
-    right: {
-      x1: newTrapezoid.right.x2,
-      y1: newTrapezoid.right.y2,
-      x2: newTrapezoid.right.x1,
-      y2: newTrapezoid.right.y1,
-    },
-  };
-  const swappedArea = calculateArea(swappedTrapezoid);
-  if (swappedArea > area) {
-    return { trapezoid: swappedTrapezoid, fit };
-  }
-
-  return { trapezoid: newTrapezoid, fit };
+  return { trapezoid: permuteTrapezoid(newTrapezoid), fit };
 }
 
 function getSquare(fullImage: ImageData, x: number, y: number, size: number) {

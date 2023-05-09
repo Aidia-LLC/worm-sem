@@ -91,9 +91,11 @@ export const Canvas = () => {
   const [cursorPosition, setCursorPosition] = createSignal<[number, number]>([
     0, 0,
   ]);
-  const [clickedPoints, setClickedPoints] = createSignal<[number, number][]>(
-    []
-  );
+  const [clickedPoints, setClickedPoints] = createSignal<[number, number][]>([
+    [1179, 472],
+    [574, 176],
+    [2425, 968],
+  ]);
   const [detectionLoading, setDetectionLoading] = createSignal(false);
   const [masks, setMasks] = createSignal<ImageData[]>([]);
   const [options, setOptions, resetOptions] = createOptionsStore();
@@ -151,6 +153,7 @@ export const Canvas = () => {
     const imgY = Math.round((y / rectHeight) * canvasRef.height);
 
     setClickedPoints((prev) => [...prev, [imgX, imgY]]);
+    console.log(clickedPoints());
   };
 
   onMount(async () => {
@@ -858,7 +861,11 @@ export const Canvas = () => {
             </Button>
             <Show when={masks().length === 0}>
               <Button
-                onClick={() => setDetection(!detection())}
+                onClick={() => {
+                  const newState = !detection();
+                  if (!newState) setClickedPoints([]);
+                  setDetection(newState);
+                }}
                 disabled={detectionLoading()}
               >
                 <Show when={detection()} fallback="Enable">
@@ -916,7 +923,6 @@ export const Canvas = () => {
                   );
                   const edgeData = edgeFilter(
                     edgeDataCanvasRef,
-                    options.options,
                     mask,
                     edgeContext
                   );
@@ -926,6 +932,7 @@ export const Canvas = () => {
                     imgX,
                     imgY,
                     edgeData,
+                    canvasRef.getContext("2d")!,
                     options.options
                   );
                   console.log("trapezoid", trapezoid);
@@ -988,10 +995,34 @@ export const Canvas = () => {
                     options.options,
                     options.options.minimumFit
                   );
-                  const trapezoids = orderTrapezoids([
-                    trapezoid,
-                    ...connectedTrapezoids,
-                  ]);
+                  const trapezoids = orderTrapezoids(
+                    [trapezoid, ...connectedTrapezoids].filter((t) => {
+                      const x = [
+                        t.bottom.x1,
+                        t.bottom.x2,
+                        t.left.x1,
+                        t.left.x2,
+                        t.right.x1,
+                        t.right.x2,
+                        t.top.x1,
+                        t.top.x2,
+                      ];
+                      const y = [
+                        t.bottom.y1,
+                        t.bottom.y2,
+                        t.left.y1,
+                        t.left.y2,
+                        t.right.y1,
+                        t.right.y2,
+                        t.top.y1,
+                        t.top.y2,
+                      ];
+                      return (
+                        x.every((x) => x >= 0 && x < edgeData.width) &&
+                        y.every((y) => y >= 0 && y < edgeData.height)
+                      );
+                    })
+                  );
                   setRibbons((prev) => [
                     ...prev,
                     {
@@ -1012,13 +1043,9 @@ export const Canvas = () => {
                 Accept Mask
               </Button>
             </Show>
-            <div class="w-full flex flex-col">
-              <Show when={ribbons().length > 0}>
-                <Button onClick={() => setRibbons([])}>
-                  Remove All Ribbons
-                </Button>
-              </Show>
-            </div>
+            <Show when={ribbons().length > 0}>
+              <Button onClick={() => setRibbons([])}>Remove All Ribbons</Button>
+            </Show>
             <Button
               onClick={() => {
                 setShowOriginalImage(!showOriginalImage());

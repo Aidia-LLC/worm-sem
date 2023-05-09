@@ -7,8 +7,10 @@ import numpy as np
 
 app = Flask(__name__)
 CORS(app)
+cache = False
 
 predictor: SamPredictor = None
+cachedResponse = None
 
 
 @app.route("/")
@@ -39,11 +41,17 @@ def init():
 @app.post("/segment")
 def segment():
     global predictor
+    global cachedResponse
+    global cache
+
     if predictor is None:
         return {
             'success': False,
             'error': 'predictor is not initialized',
         }
+    
+    if cache and cachedResponse is not None:
+        return cachedResponse
 
     filename = request.json['filename']
     image = cv2.imread(filename)
@@ -74,6 +82,9 @@ def segment():
         'scores': scores,
         'success': True,
     }, cls=NumpyEncoder)
+
+    if cache:
+        cachedResponse = data
 
     return data
 

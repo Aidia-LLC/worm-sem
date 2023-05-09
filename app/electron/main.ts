@@ -176,11 +176,12 @@ app.whenReady().then(() => {
     const cwd = path.join(__dirname, "..", "..", "csharp");
     exec("dotnet publish worm-sem.csproj --configuration Release", { cwd }).on(
       "exit",
-      () => {
+      (e) => {
+        if (e !== 0) throw new Error("Failed to build C# program.");
         console.log("Done building C# program.");
         const childProcess = spawn(
           path.join(".", "bin", "release", "net7.0", "wormsem"),
-          ['--dry-run'], // TODO remove dry run flag when ready to connect to SEM
+          ["--dry-run"], // TODO remove dry run flag when ready to connect to SEM
           { cwd }
         );
         init(childProcess);

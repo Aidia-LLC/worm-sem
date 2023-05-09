@@ -16,31 +16,18 @@ type Options = {
 
 export function edgeFilter(
   canvas: HTMLCanvasElement,
-  options: Options,
   imageData: ImageData,
   ctx: CanvasRenderingContext2D
 ) {
-  // const grayImageData = grayscale(imageData, ctx);
-
-  //Apply a gausian blur
-  // const blurImageData1 = gaussianBlur(grayImageData, ctx, options);
-  // const blurImageData = gaussianBlur(blurImageData1, ctx, options);
-
   ctx.putImageData(imageData, 0, 0);
 
-  const Noisy = canny(imageData, options);
-  // const Weak = RemoveNoise(
-  //   Noisy,
-  //   imageData.width,
-  //   imageData.height,
-  //   options
-  // );
-  const edgeData = ConnectStrongEdges(Noisy, imageData.width, imageData.height);
+  const edgePixels = canny(imageData);
+  const edgeData = ConnectStrongEdges(edgePixels, imageData.width, imageData.height);
   console.log({
-    Noisy,
+    Noisy: edgePixels,
     edgeData,
   });
-  //convert edgeData from uint8clampedarray to imageData
+  // convert edgeData from uint8clampedarray to imageData
   const newImageData = ctx.createImageData(canvas.width, canvas.height);
   const pixels = new Uint8ClampedArray(canvas.width * canvas.height * 4);
   for (let i = 0; i < edgeData.length; i += 1) {
@@ -51,8 +38,6 @@ export function edgeFilter(
   }
   newImageData.data.set(pixels);
   ctx.putImageData(newImageData, 0, 0);
-  // This uses edge pixel density to remove the spots in the middle of the trapezoids
-  // colorPixelsByDensity(ctx, canvas, options);
   const data = ctx
     .getImageData(0, 0, canvas.width, canvas.height)
     .data.filter((_, i) => i % 4 === 0);
@@ -72,139 +57,12 @@ export function edgeFilter(
   return newImageData;
 }
 
-function colorPixelsByDensity(
-  ctx: CanvasRenderingContext2D,
-  canvas: HTMLCanvasElement,
-  options: Options
-) {
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  // loop through every 5 pixels, scan a 5x5 square around it
-  for (let x = 0; x < canvas.width; x += options.densityStep) {
-    for (let y = 0; y < canvas.height; y += options.densityStep) {
-      const square = getSquare(
-        imageData,
-        Math.round(x),
-        y,
-        options.densitySize
-      );
-      const edgePixels = square.filter((pixel) => pixel > 1).length;
-      const density = edgePixels / (options.densitySize * options.densitySize);
-      if (density > options.densityThreshold) {
-        // set pixels in the actual image to 0
-        for (let i = 0; i < options.densitySize; i++) {
-          for (let j = 0; j < options.densitySize; j++) {
-            const half = Math.floor(options.densitySize / 2);
-            const index = ((y - half + i) * canvas.width + x - half + j) * 4;
-            imageData.data[index] = 0;
-            imageData.data[index + 1] = 0;
-            imageData.data[index + 2] = 0;
-            imageData.data[index + 3] = 255;
-          }
-        }
-      }
-    }
-  }
-  ctx.putImageData(imageData, 0, 0);
-}
-
-function getSquare(fullImage: ImageData, x: number, y: number, size: number) {
-  const square: number[] = [];
-  const imageData = fullImage.data;
-  const width = fullImage.width;
-  const height = fullImage.height;
-  const startX = Math.max(0, x - size / 2);
-  const startY = Math.max(0, y - size / 2);
-  const endX = Math.min(width, x + size / 2);
-  const endY = Math.min(height, y + size / 2);
-  for (let i = startX; i < endX; i += 1) {
-    for (let j = startY; j < endY; j += 1) {
-      const pixelIndex = (j * width + i) * 4;
-      square.push(imageData[pixelIndex]);
-    }
-  }
-  return square as unknown as Uint8ClampedArray;
-}
-
-function grayscale(imageData: ImageData, ctx?: CanvasRenderingContext2D) {
-  // console.log("grayscale before", imageData);
-  const data = imageData.data;
-  const grayImageData =
-    ctx?.createImageData(imageData.width, imageData.height) ??
-    new ImageData(0, 0);
-  const grayData = grayImageData.data;
-  for (let i = 0; i < data.length; i += 4) {
-    // Because data is one dimensional array of RGBA values in that order
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
-    const gray = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    grayData[i] = gray;
-    grayData[i + 1] = gray;
-    grayData[i + 2] = gray;
-    grayData[i + 3] = 255;
-  }
-  // console.log("grayscale after", grayImageData);
-  return grayImageData;
-}
-
-function gaussianBlur(
-  imageData: ImageData,
-  ctx: CanvasRenderingContext2D,
-  options: Options
-) {
-  const width = imageData.width;
-  const height = imageData.height;
-  const data = imageData.data;
-  const blurImageData =
-    ctx?.createImageData(imageData.width, imageData.height) ??
-    new ImageData(0, 0);
-  const blurData = blurImageData.data;
-  const kernel = [
-    [
-      options.gaussianKernel[0],
-      options.gaussianKernel[1],
-      options.gaussianKernel[0],
-    ],
-    [
-      options.gaussianKernel[1],
-      options.gaussianKernel[2],
-      options.gaussianKernel[1],
-    ],
-    [
-      options.gaussianKernel[0],
-      options.gaussianKernel[1],
-      options.gaussianKernel[0],
-    ],
-  ];
-  for (let y = 1; y < height - 1; y++) {
-    for (let x = 1; x < width - 1; x++) {
-      let r = 0,
-        g = 0,
-        b = 0;
-      for (let ky = -1; ky <= 1; ky++) {
-        for (let kx = -1; kx <= 1; kx++) {
-          const i = (y + ky) * width + (x + kx);
-          r += data[i * 4] * kernel[ky + 1][kx + 1];
-          g += data[i * 4 + 1] * kernel[ky + 1][kx + 1];
-          b += data[i * 4 + 2] * kernel[ky + 1][kx + 1];
-        }
-      }
-      const i = y * width + x;
-      blurData[i * 4] = r;
-      blurData[i * 4 + 1] = g;
-      blurData[i * 4 + 2] = b;
-      blurData[i * 4 + 3] = 255;
-    }
-  }
-  return blurImageData;
-}
-
-function canny(grayImageData: ImageData, options: Options) {
+function canny(grayImageData: ImageData) {
   const width = grayImageData.width;
   const height = grayImageData.height;
   const grayscaleData = grayImageData.data;
 
-  //   // Compute the gradient magnitude and direction
+  // Compute the gradient magnitude and direction
   const gradientData = new Float32Array(width * height);
   const directionData = new Float32Array(width * height);
   for (let y = 1; y < height - 1; y++) {
@@ -260,45 +118,12 @@ function canny(grayImageData: ImageData, options: Options) {
 
   // Perform hysteresis thresholding
   const edgeData = new Uint8ClampedArray(width * height);
-  const highThresholdValue = Math.round(options.hysteresisHigh * 255);
-  const lowThresholdValue = Math.round(options.hysteresisLow * 255);
   for (let i = 0; i < width * height; i++) {
     const value = Math.round(suppressedData[i]);
     if (value > 0) {
-    // if (value <= highThresholdValue && value >= lowThresholdValue) {
       edgeData[i] = 255;
     } else {
       edgeData[i] = 0;
-    }
-  }
-  return edgeData;
-}
-
-function RemoveNoise(
-  edgeData: Uint8ClampedArray,
-  width: number,
-  height: number,
-  options: Options
-): Uint8ClampedArray {
-  const data = edgeData;
-  for (let t = 0; t < options.noiseReductionIterations; t++) {
-    for (let x = 1; x < width - 1; x++) {
-      for (let y = 1; y < height - 1; y++) {
-        const i = y * width + x;
-        if (data[i] === 255) {
-          let count = 0;
-          for (let ky = -2; ky <= 2; ky++) {
-            for (let kx = -2; kx <= 2; kx++) {
-              if (data[(y + ky) * width + x + kx] === 255) {
-                count++;
-              }
-            }
-          }
-          if (count < options.minNeighborsForNoiseReduction) {
-            data[i] = 0;
-          }
-        }
-      }
     }
   }
   return edgeData;
