@@ -142,7 +142,7 @@ export const RibbonConfig = (props: {
                     const newSet = addTrapezoid(
                       props.ribbon.trapezoids,
                       true,
-                      props.ctx
+                      // props.ctx
                     );
                     props.setTrapezoidSet({
                       ...props.ribbon,
@@ -157,7 +157,7 @@ export const RibbonConfig = (props: {
                     const newSet = addTrapezoid(
                       props.ribbon.trapezoids,
                       false,
-                      props.ctx
+                      // props.ctx
                     );
                     props.setTrapezoidSet({
                       ...props.ribbon,
@@ -223,7 +223,7 @@ export const RibbonConfig = (props: {
 const addTrapezoid = (
   trapezoids: RibbonData["trapezoids"],
   top = false,
-  ctx: any
+  // ctx: any
 ) => {
   // insert and identical trapezoid to either the beginning or end of the array
   const newTrapezoidSet = [...trapezoids];

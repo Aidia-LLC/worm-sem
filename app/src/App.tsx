@@ -6,6 +6,8 @@ import { createEffect, createSignal, onMount, Show } from "solid-js";
 import { initializeCommandQueue } from "./data/signals/commandQueue";
 import { CONNECTION_ID, historySignal } from "./data/signals/history";
 
+const DELAY_TO_INITIALIZE_SAM = 3000;
+
 export const App = () => {
   const [history] = historySignal;
   const [acknowledged, setAcknowledged] = createSignal(false);
@@ -14,9 +16,20 @@ export const App = () => {
 
   onMount(() => {
     initializeCommandQueue();
-    fetch(`http://127.0.0.1:3002/init`).then(() => {
-      setSamLoaded(true);
-    });
+    setTimeout(() => {
+      fetch(`http://127.0.0.1:3002/init`)
+        .then((d) => d.json())
+        .then((d) => {
+          if (!d.success) {
+            alert(`Failed to initialize SAM: ${JSON.stringify(d)}`);
+            return;
+          }
+          setSamLoaded(true);
+        })
+        .catch((e) => {
+          alert(`Failed to initialize SAM: ${e}`);
+        });
+    }, DELAY_TO_INITIALIZE_SAM);
   });
 
   createEffect(() => {

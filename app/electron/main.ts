@@ -5,7 +5,14 @@ import {
   exec,
   spawn,
 } from "child_process";
-import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  Notification,
+  shell,
+} from "electron";
 import fs from "fs";
 import path from "path";
 import { temporaryFile } from "tempy";
@@ -25,7 +32,9 @@ const resourcePath =
     ? path.join(path.dirname(appRootDir.get()), "bin")
     : path.join(appRootDir.get(), "resources", getPlatform());
 
-const pythonPath = path.join(appRootDir.get(), "..", "python");
+const pythonPath = isProduction
+  ? path.join(path.dirname(appRootDir.get()), "python")
+  : path.join(appRootDir.get(), "..", "python");
 
 let browserWindow: BrowserWindow | null;
 const devServerUrl = process.env.VITE_DEV_SERVER_URL;
@@ -181,9 +190,17 @@ app.whenReady().then(() => {
   })
     .on("exit", (e) => {
       console.log("Python server exited", e);
+      new Notification({
+        title: "Python server exited",
+        body: `Python server exited with code ${e}`,
+      }).show();
     })
     .on("error", (e) => {
       console.log("Python server error", e);
+      new Notification({
+        title: "Python server error",
+        body: `Python server error: ${e}`,
+      }).show();
     })
     .on("spawn", () => {
       console.log("Python server started.");
@@ -209,4 +226,18 @@ app.whenReady().then(() => {
         });
       }
     });
+
+  python.stdout?.on("data", (data: Buffer) => {
+    new Notification({
+      title: "Python server stdout",
+      body: data.toString("utf8"),
+    }).show();
+  });
+
+  python.stderr?.on("data", (data: Buffer) => {
+    new Notification({
+      title: "Python server stderr",
+      body: data.toString("utf8"),
+    }).show();
+  });
 });
