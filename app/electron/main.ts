@@ -1,5 +1,10 @@
 import appRootDir from "app-root-dir";
-import { ChildProcessWithoutNullStreams, exec, spawn } from "child_process";
+import {
+  ChildProcess,
+  ChildProcessWithoutNullStreams,
+  exec,
+  spawn,
+} from "child_process";
 import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
 import fs from "fs";
 import path from "path";
@@ -19,6 +24,8 @@ const resourcePath =
   isProduction && !isLinux
     ? path.join(path.dirname(appRootDir.get()), "bin")
     : path.join(appRootDir.get(), "resources", getPlatform());
+
+const pythonPath = path.join(appRootDir.get(), "..", "python");
 
 let browserWindow: BrowserWindow | null;
 const devServerUrl = process.env.VITE_DEV_SERVER_URL;
@@ -158,6 +165,7 @@ const init = (childProcess: ChildProcessWithoutNullStreams) => {
 
   app.on("before-quit", () => {
     childProcess.kill();
+    python?.kill();
   });
 
   app.on("activate", function () {
@@ -165,27 +173,40 @@ const init = (childProcess: ChildProcessWithoutNullStreams) => {
   });
 };
 
+let python: ChildProcess | null = null;
+
 app.whenReady().then(() => {
-  if (isProduction || isLinux) {
-    const childProcess = spawn(path.join(resourcePath, "csharp"), [
-      "--dry-run",
-    ]);
-    init(childProcess);
-  } else {
-    console.log("Building C# program...");
-    const cwd = path.join(__dirname, "..", "..", "csharp");
-    exec("dotnet publish worm-sem.csproj --configuration Release", { cwd }).on(
-      "exit",
-      (e) => {
-        if (e !== 0) throw new Error("Failed to build C# program.");
-        console.log("Done building C# program.");
-        const childProcess = spawn(
-          path.join(".", "bin", "release", "net7.0", "wormsem"),
-          ["--dry-run"], // TODO remove dry run flag when ready to connect to SEM
-          { cwd }
-        );
+  python = exec("python3 -m flask run -p 3002", {
+    cwd: pythonPath,
+  })
+    .on("exit", (e) => {
+      console.log("Python server exited", e);
+    })
+    .on("error", (e) => {
+      console.log("Python server error", e);
+    })
+    .on("spawn", () => {
+      console.log("Python server started.");
+      if (isProduction || isLinux) {
+        const childProcess = spawn(path.join(resourcePath, "csharp"), [
+          "--dry-run",
+        ]);
         init(childProcess);
+      } else {
+        console.log("Building C# program...");
+        const cwd = path.join(__dirname, "..", "..", "csharp");
+        exec("dotnet publish worm-sem.csproj --configuration Release", {
+          cwd,
+        }).on("exit", (e) => {
+          if (e !== 0) throw new Error("Failed to build C# program.");
+          console.log("Done building C# program.");
+          const childProcess = spawn(
+            path.join(".", "bin", "release", "net7.0", "wormsem"),
+            ["--dry-run"], // TODO remove dry run flag when ready to connect to SEM
+            { cwd }
+          );
+          init(childProcess);
+        });
       }
-    );
-  }
+    });
 });

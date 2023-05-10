@@ -57,7 +57,7 @@ import { SliderPicker } from "./SliderPicker";
 
 const DEFAULT_ZOOM_SCALE = 10;
 
-export const Canvas = () => {
+export const Canvas = (props: { samLoaded: boolean }) => {
   let canvasRef!: HTMLCanvasElement;
   let overlayCanvasRef!: HTMLCanvasElement;
   let edgeDataCanvasRef!: HTMLCanvasElement;
@@ -886,7 +886,7 @@ export const Canvas = () => {
                     setDetectionLoading(false);
                     setMasks(segmentedImageData);
                   }}
-                  disabled={detectionLoading()}
+                  disabled={detectionLoading() || !props.samLoaded}
                 >
                   Detect Ribbon
                 </Button>

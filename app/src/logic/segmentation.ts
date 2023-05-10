@@ -9,7 +9,6 @@ export const segmentImage = async ({
   points: Array<[number, number]>;
   canvasRef: HTMLCanvasElement;
 }) => {
-  await fetch(`http://127.0.0.1:3002/init`);
   const res = await fetch(`http://127.0.0.1:3002/segment`, {
     method: "POST",
     headers: {

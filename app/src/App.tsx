@@ -10,9 +10,13 @@ export const App = () => {
   const [history] = historySignal;
   const [acknowledged, setAcknowledged] = createSignal(false);
   const [connected, setConnected] = createSignal(false);
+  const [samLoaded, setSamLoaded] = createSignal(false);
 
   onMount(() => {
     initializeCommandQueue();
+    fetch(`http://127.0.0.1:3002/init`).then(() => {
+      setSamLoaded(true);
+    });
   });
 
   createEffect(() => {
@@ -48,7 +52,7 @@ export const App = () => {
           </>
         }
       >
-        <Canvas />
+        <Canvas samLoaded={samLoaded()} />
       </Show>
       <HistoryLog />
     </div>
