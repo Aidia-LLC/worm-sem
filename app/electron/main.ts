@@ -190,17 +190,9 @@ app.whenReady().then(() => {
   })
     .on("exit", (e) => {
       console.log("Python server exited", e);
-      new Notification({
-        title: "Python server exited",
-        body: `Python server exited with code ${e}`,
-      }).show();
     })
     .on("error", (e) => {
       console.log("Python server error", e);
-      new Notification({
-        title: "Python server error",
-        body: `Python server error: ${e}`,
-      }).show();
     })
     .on("spawn", () => {
       console.log("Python server started.");
@@ -226,18 +218,4 @@ app.whenReady().then(() => {
         });
       }
     });
-
-  python.stdout?.on("data", (data: Buffer) => {
-    new Notification({
-      title: "Python server stdout",
-      body: data.toString("utf8"),
-    }).show();
-  });
-
-  python.stderr?.on("data", (data: Buffer) => {
-    new Notification({
-      title: "Python server stderr",
-      body: data.toString("utf8"),
-    }).show();
-  });
 });

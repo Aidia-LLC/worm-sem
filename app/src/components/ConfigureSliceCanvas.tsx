@@ -6,7 +6,11 @@ import {
 import { createSignal, onCleanup, onMount, Show } from "solid-js";
 import { sleep } from "src/data/handleFinalImaging";
 import { MAX_MAG } from "src/data/magnification";
-import { getSEMParam, MEDIUM_SCAN_SPEED } from "src/data/semParams";
+import {
+  DETECTOR_TYPE_STEM_A_ZOOMED_IN,
+  getSEMParam,
+  MEDIUM_SCAN_SPEED,
+} from "src/data/semParams";
 import { getNextCommandId } from "src/data/signals/commandQueue";
 import { Button } from "./Button";
 import { SliderPicker } from "./SliderPicker";
@@ -56,6 +60,14 @@ export const ConfigureSliceCanvas = (props: {
       id: getNextCommandId(),
       param: "AP_STAGE_GOTO_X",
       doubleValue: coordinates.x,
+    });
+    await sleep(200);
+
+    window.semClient.send({
+      id: getNextCommandId(),
+      type: "setParam",
+      param: "DP_DETECTOR_TYPE",
+      doubleValue: DETECTOR_TYPE_STEM_A_ZOOMED_IN,
     });
     await sleep(200);
 

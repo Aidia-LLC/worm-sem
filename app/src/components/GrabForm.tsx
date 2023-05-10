@@ -1,6 +1,7 @@
 import { createSignal, onCleanup, onMount, Show } from "solid-js";
 import { sleep } from "src/data/handleFinalImaging";
 import {
+  DETECTOR_TYPE_STEM_D_ZOOMED_OUT,
   FASTEST_SCAN_SPEED,
   grabSEMImageOnFrameEnd,
   LOWER_IMAGE_QUALITY,
@@ -46,6 +47,12 @@ export const GrabForm = (props: {
             param: "DP_IMAGE_STORE",
             doubleValue: LOWER_IMAGE_QUALITY,
           });
+          window.semClient.send({
+            id: getNextCommandId(),
+            type: "setParam",
+            param: "DP_DETECTOR_TYPE",
+            doubleValue: DETECTOR_TYPE_STEM_D_ZOOMED_OUT,
+          });
           await sleep(1000);
           window.semClient.send({
             id: getNextCommandId(),
@@ -76,7 +83,7 @@ export const GrabForm = (props: {
               temporary: true,
             },
             {
-              minSleepMs: 1000,// 15000
+              minSleepMs: 1000, // 15000
               pollIntervalMs: 2000,
             }
           );

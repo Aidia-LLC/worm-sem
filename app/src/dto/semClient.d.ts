@@ -85,7 +85,8 @@ type Param =
   | "AP_STAGE_HIGH_X"
   | "AP_STAGE_HIGH_Y"
   | "AP_STAGE_LOW_X"
-  | "AP_STAGE_LOW_Y";
+  | "AP_STAGE_LOW_Y"
+  | "DP_DETECTOR_TYPE";
 
 export interface SetParamCommand extends BaseCommand {
   type: "setParam";

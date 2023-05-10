@@ -1,5 +1,6 @@
 import { FinalSliceConfiguration } from "@dto/canvas";
 import {
+  DETECTOR_TYPE_STEM_A_ZOOMED_IN,
   grabSEMImage,
   grabSEMImageOnFrameEnd,
   HIGHEST_IMAGE_QUALITY,
@@ -33,6 +34,13 @@ export const handleFinalImaging = async (
     param: "AP_MAG",
     doubleValue: configurations[0].magnification,
   });
+  window.semClient.send({
+    id: getNextCommandId(),
+    type: "setParam",
+    param: "DP_DETECTOR_TYPE",
+    doubleValue: DETECTOR_TYPE_STEM_A_ZOOMED_IN,
+  });
+  await sleep(500);
   await sleep(500);
   window.semClient.send({
     id: getNextCommandId(),

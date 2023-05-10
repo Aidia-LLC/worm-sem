@@ -73,3 +73,6 @@ export const SLOWEST_SCAN_SPEED = 7;
 export const LOWER_IMAGE_QUALITY = 4;
 export const MEDIUM_IMAGE_QUALITY = 4;
 export const HIGHEST_IMAGE_QUALITY = 7;
+
+export const DETECTOR_TYPE_STEM_A_ZOOMED_IN = 40;
+export const DETECTOR_TYPE_STEM_D_ZOOMED_OUT = 43;
