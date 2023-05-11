@@ -930,7 +930,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
                     imgX,
                     imgY,
                     edgeData,
-                    canvasRef.getContext("2d")!,
+                    // canvasRef.getContext("2d")!,
                     options.options
                   );
                   console.log("trapezoid", trapezoid);

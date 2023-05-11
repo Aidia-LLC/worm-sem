@@ -4,13 +4,19 @@ from flask_cors import CORS
 from segment_anything import sam_model_registry, SamPredictor
 import cv2
 import numpy as np
+import torch
 
 app = Flask(__name__)
 CORS(app)
-cache = False
 
-predictor: SamPredictor = None
+# for speed of development, turn on caching to get the same response back every time
+cache = False
 cachedResponse = None
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+sam_checkpoint = "sam_vit_h_4b8939.pth"
+model_type = "default"
+predictor: SamPredictor = None
 
 
 @app.route("/")
@@ -26,9 +32,6 @@ def init():
             'success': True,
             'alreadyInitialized': True,
         }
-    sam_checkpoint = "sam_vit_h_4b8939.pth"
-    model_type = "default"
-    device = "cpu"
     sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
     sam.to(device=device)
     predictor = SamPredictor(sam)
@@ -49,7 +52,7 @@ def segment():
             'success': False,
             'error': 'predictor is not initialized',
         }
-    
+
     if cache and cachedResponse is not None:
         return cachedResponse
 
@@ -64,18 +67,6 @@ def segment():
         point_labels=input_label,
         multimask_output=True,
     )
-
-    # high_score = 0
-    # high_score_index = 0
-    # for i in range(len(scores)):
-    #     if scores[i] > high_score:
-    #         high_score = scores[i]
-    #         high_score_index = i
-
-    # data = json.dumps({
-    #     'mask': masks[high_score_index],
-    #     'success': True,
-    # }, cls=NumpyEncoder)
 
     data = json.dumps({
         'masks': masks,
