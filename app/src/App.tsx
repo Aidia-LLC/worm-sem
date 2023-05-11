@@ -3,7 +3,7 @@ import { Canvas } from "@components/Canvas";
 import { HistoryLog } from "@components/HistoryLog";
 import { Instructions } from "@components/Instructions";
 import { createEffect, createSignal, onMount, Show } from "solid-js";
-import { initializeCommandQueue } from "./data/signals/commandQueue";
+import { PYTHON_PORT } from "./data/ports";
 import { CONNECTION_ID, historySignal } from "./data/signals/history";
 
 const DELAY_TO_INITIALIZE_SAM = 3000;
@@ -15,9 +15,8 @@ export const App = () => {
   const [samLoaded, setSamLoaded] = createSignal(false);
 
   onMount(() => {
-    initializeCommandQueue();
     setTimeout(() => {
-      fetch(`http://127.0.0.1:3002/init`)
+      fetch(`http://127.0.0.1:${PYTHON_PORT}/init`)
         .then((d) => d.json())
         .then((d) => {
           if (!d.success) {

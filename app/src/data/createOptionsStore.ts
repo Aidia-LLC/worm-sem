@@ -1,20 +1,12 @@
-import { ProcessingOptions } from "src/types/ProcessingOptions";
 import { createStore, SetStoreFunction } from "solid-js/store";
+import { ProcessingOptions } from "src/types/ProcessingOptions";
 
-const defaultOptions: ProcessingOptions = {
+export const defaultOptions = {
   squareSize: 420,
-  gaussianKernel: [0.06242931069425457, 0.1247976249479739, 0.2524974040020353],
-  hysteresisHigh: 0.045,
-  hysteresisLow: 0.005,
-  minNeighborsForNoiseReduction: 6,
   houghVoteThreshold: 0.5,
-  mergeThetaThreshold: 12,
+  mergeLineThreshold: 12,
   pixelThreshold: 0.35,
   maxLines: 6,
-  noiseReductionIterations: 15,
-  densityThreshold: 0.6,
-  densityStep: 6,
-  densitySize: 35,
   minimumFit: 0.5,
   firstFit: 25,
 };

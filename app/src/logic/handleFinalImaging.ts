@@ -5,8 +5,8 @@ import {
   grabSEMImageOnFrameEnd,
   HIGHEST_IMAGE_QUALITY,
   SLOWEST_SCAN_SPEED,
-} from "./semParams";
-import { getNextCommandId } from "./signals/commandQueue";
+} from "../data/semParams";
+import { getNextCommandId } from "../data/signals/commandQueue";
 
 export const sleep = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));

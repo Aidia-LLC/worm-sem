@@ -1,5 +1,5 @@
 import { createSignal, onCleanup, onMount, Show } from "solid-js";
-import { sleep } from "src/data/handleFinalImaging";
+import { sleep } from "@logic/handleFinalImaging";
 import {
   DETECTOR_TYPE_STEM_D_ZOOMED_OUT,
   FASTEST_SCAN_SPEED,

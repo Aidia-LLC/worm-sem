@@ -1,5 +1,5 @@
 import { GetParamCommand, GrabFullFrameCommand, Param } from "src/types/semClient";
-import { sleep } from "./handleFinalImaging";
+import { sleep } from "../logic/handleFinalImaging";
 import { getNextCommandId } from "./signals/commandQueue";
 
 export const getSEMParam = (param: Param): Promise<string> => {

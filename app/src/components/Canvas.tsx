@@ -1,11 +1,3 @@
-import type {
-  FinalSliceConfiguration,
-  RibbonData,
-  SliceConfiguration,
-  Trapezoid,
-  Vertex,
-  ZoomState,
-} from "src/types/canvas";
 import {
   convertZoomedCoordinatesToFullImage,
   DirectSearchOptimization,
@@ -20,6 +12,7 @@ import {
   translateTrapezoid,
 } from "@logic/canvas";
 import { edgeFilter } from "@logic/edgeFilter";
+import { handleFinalImaging } from "@logic/handleFinalImaging";
 import { base64ToImageSrc } from "@logic/image";
 import { segmentImage } from "@logic/segmentation";
 import {
@@ -43,14 +36,20 @@ import {
   Switch,
 } from "solid-js";
 import { createOptionsStore } from "src/data/createOptionsStore";
-import { handleFinalImaging } from "src/data/handleFinalImaging";
 import { DEFAULT_MAG } from "src/data/magnification";
 import { getSEMParam } from "src/data/semParams";
 import { getNextCommandId } from "src/data/signals/commandQueue";
+import type {
+  FinalSliceConfiguration,
+  RibbonData,
+  SliceConfiguration,
+  Trapezoid,
+  Vertex,
+  ZoomState,
+} from "src/types/canvas";
 import { Button } from "./Button";
 import { ConfigureSliceCanvas } from "./ConfigureSliceCanvas";
 import { GrabForm } from "./GrabForm";
-import { KernelParam } from "./KernelParam";
 import { Param } from "./Param";
 import { availableColors, RibbonConfig } from "./RibbonConfig";
 import { SliderPicker } from "./SliderPicker";
@@ -1255,58 +1254,6 @@ export const Canvas = (props: { samLoaded: boolean }) => {
                 />
               </div>
               <Show when={!paramsHidden()}>
-                <div class="flex=col">
-                  <p>
-                    This sets the low-end threshold for determining if a pixel
-                    is an 'edge pixel'. If the pictures contrast is lower than
-                    usual, this may need to be lowered.
-                  </p>
-                  <Param
-                    label="Hysteresis Low"
-                    value={options.options.hysteresisLow}
-                    onChange={(value) => {
-                      setOptions("options", "hysteresisLow", value);
-                      setOptionsSequence(optionsSequence() + 1);
-                    }}
-                  />
-                </div>
-                <div class="flex-col">
-                  <p>
-                    This sets the high-end threshold for determining if a pixel
-                    is on an edge. If the pictures contrast is higher than
-                    usual, this may need to be raised. Pixels above this
-                    threshold are discarded, as these trapezoids tend to have
-                    soft edges, while the 'noisy' pixels tend to be stronger.
-                  </p>
-                  <Param
-                    label="Hysteresis High"
-                    value={options.options.hysteresisHigh}
-                    onChange={(value) => {
-                      setOptions("options", "hysteresisHigh", value);
-                      setOptionsSequence(optionsSequence() + 1);
-                    }}
-                  />
-                </div>
-                <div class="flex-col">
-                  <p>
-                    Edge pixels with fewer than this number of neighbors are
-                    discarded. Decreasing this will increase the number of edge
-                    pixels on the trapezoids, but may also increase the number
-                    of 'noisy' pixels.
-                  </p>
-                  <Param
-                    label="Min Neighbors for Noise Reduction"
-                    value={options.options.minNeighborsForNoiseReduction}
-                    onChange={(value) => {
-                      setOptions(
-                        "options",
-                        "minNeighborsForNoiseReduction",
-                        value
-                      );
-                      setOptionsSequence(optionsSequence() + 1);
-                    }}
-                  />
-                </div>
                 <div class="flex-col">
                   <p>
                     This sets how strictly the algorithm will consider a
@@ -1325,14 +1272,14 @@ export const Canvas = (props: { samLoaded: boolean }) => {
                 </div>
                 <div class="flex-col">
                   <p>
-                    This merges all lines that are within this angle of each
+                    This merges all lines that are within this distance of each
                     other.
                   </p>
                   <Param
-                    label="Merge Theta Threshold"
-                    value={options.options.mergeThetaThreshold}
+                    label="Merge Line Threshold"
+                    value={options.options.mergeLineThreshold}
                     onChange={(value) => {
-                      setOptions("options", "mergeThetaThreshold", value);
+                      setOptions("options", "mergeLineThreshold", value);
                       setOptionsSequence(optionsSequence() + 1);
                     }}
                   />
@@ -1365,82 +1312,9 @@ export const Canvas = (props: { samLoaded: boolean }) => {
                     }}
                   />
                 </div>
-                <div class="flex-col">
-                  <p>
-                    This sets the number of iterations the algorithm tries to
-                    reduce noise.
-                  </p>
-                  <Param
-                    label="Noise Reduction Iterations"
-                    value={options.options.noiseReductionIterations}
-                    onChange={(value) => {
-                      setOptions("options", "noiseReductionIterations", value);
-                      setOptionsSequence(optionsSequence() + 1);
-                    }}
-                  />
-                </div>
-                <div class="flex-col">
-                  <p>
-                    Areas of the image with a density greater than this
-                    threshold are deleted. This is used to remove the 'noise'
-                    from the center of the trapezoids, which typically have a
-                    higher density than the edges of the trapezoids.
-                  </p>
-                  <Param
-                    label="Density Threshold"
-                    value={options.options.densityThreshold}
-                    onChange={(value) => {
-                      setOptions("options", "densityThreshold", value);
-                      setOptionsSequence(optionsSequence() + 1);
-                    }}
-                  />
-                </div>
-                <div class="flex-col">
-                  <p>
-                    This sets how often the algorithm runs the density check.
-                  </p>
-                  <Param
-                    label="Density Step"
-                    value={options.options.densityStep}
-                    onChange={(value) => {
-                      setOptions("options", "densityStep", value);
-                      setOptionsSequence(optionsSequence() + 1);
-                    }}
-                  />
-                </div>
-                <div class="flex-col">
-                  <p>
-                    This sets the size of the area the density check looks at.
-                  </p>
-                  <Param
-                    label="Density Size"
-                    value={options.options.densitySize}
-                    onChange={(value) => {
-                      setOptions("options", "densitySize", value);
-                      setOptionsSequence(optionsSequence() + 1);
-                    }}
-                  />
-                </div>
+                <Button onClick={resetOptions}>Reset Parameters</Button>
               </Show>
             </div>
-            <Show when={!paramsHidden()}>
-              <h2>
-                The Gaussian Kernel is used to perform a 'Gaussian Blur' to the
-                image. This helps reduce noise.
-              </h2>
-              <KernelParam
-                values={options.options.gaussianKernel}
-                onChange={(value) => {
-                  setOptions(
-                    "options",
-                    "gaussianKernel",
-                    value as [number, number, number]
-                  );
-                  setOptionsSequence(optionsSequence() + 1);
-                }}
-              />
-              <Button onClick={resetOptions}>Reset Parameters</Button>
-            </Show>
           </>
         </Show>
       </div>

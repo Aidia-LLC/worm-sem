@@ -8,6 +8,7 @@ import {
 import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
 import fs from "fs";
 import path from "path";
+import { PYTHON_PORT } from "../src/data/ports";
 import { temporaryFile } from "tempy";
 import { Command, GrabFullFrameCommand, Message } from "../src/types/semClient";
 import { getPlatform } from "./platform";
@@ -178,7 +179,7 @@ const init = (childProcess: ChildProcessWithoutNullStreams) => {
 let python: ChildProcess | null = null;
 
 app.whenReady().then(() => {
-  python = exec("python3 -m flask run -p 3002", {
+  python = exec(`python3 -m flask run -p ${PYTHON_PORT}`, {
     cwd: pythonPath,
   })
     .on("exit", (e) => {

@@ -4,7 +4,7 @@ import {
   StageConfiguration,
 } from "@logic/semCoordinates";
 import { createSignal, onCleanup, onMount, Show } from "solid-js";
-import { sleep } from "src/data/handleFinalImaging";
+import { sleep } from "@logic/handleFinalImaging";
 import { MAX_MAG } from "src/data/magnification";
 import {
   DETECTOR_TYPE_STEM_A_ZOOMED_IN,

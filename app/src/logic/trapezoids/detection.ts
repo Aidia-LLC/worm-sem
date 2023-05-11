@@ -255,10 +255,10 @@ function Merge(
       if (
         Math.sqrt(
           (line.x1 - mergedLine.x1) ** 2 + (line.y1 - mergedLine.y1) ** 2
-        ) < options.mergeThetaThreshold &&
+        ) < options.mergeLineThreshold &&
         Math.sqrt(
           (line.x2 - mergedLine.x2) ** 2 + (line.y2 - mergedLine.y2) ** 2
-        ) < options.mergeThetaThreshold
+        ) < options.mergeLineThreshold
       ) {
         const count = mergedLine.count || 1;
         mergedLine.x1 = Math.round(

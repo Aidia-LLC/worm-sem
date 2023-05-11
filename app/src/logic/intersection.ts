@@ -76,27 +76,4 @@ export const linesIntersect = (a: [[number, number], [number, number]], b: [[num
   return doIntersect(p1, q1, p2, q2);
 }
 
-// // Driver code
-// let p1 = new Point(1, 1);
-// let q1 = new Point(10, 1);
-// let p2 = new Point(1, 2);
-// let q2 = new Point(10, 2);
-
-// if (doIntersect(p1, q1, p2, q2)) document.write("Yes<br>");
-// else document.write("No<br>");
-
-// p1 = new Point(10, 1);
-// q1 = new Point(0, 10);
-// p2 = new Point(0, 0);
-// q2 = new Point(10, 10);
-// if (doIntersect(p1, q1, p2, q2)) document.write("Yes<br>");
-// else document.write("No<br>");
-
-// p1 = new Point(-5, -5);
-// q1 = new Point(0, 0);
-// p2 = new Point(1, 1);
-// q2 = new Point(10, 10);
-// if (doIntersect(p1, q1, p2, q2)) document.write("Yes<br>");
-// else document.write("No<br>");
-
 // This code is contributed by avanitrachhadiya2155

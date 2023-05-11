@@ -1,3 +1,4 @@
+import { PYTHON_PORT } from "src/data/ports";
 import { Mask } from "src/types/mask";
 
 export const segmentImage = async ({
@@ -9,7 +10,7 @@ export const segmentImage = async ({
   points: Array<[number, number]>;
   canvasRef: HTMLCanvasElement;
 }) => {
-  const res = await fetch(`http://127.0.0.1:3002/segment`, {
+  const res = await fetch(`http://127.0.0.1:${PYTHON_PORT}/segment`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
