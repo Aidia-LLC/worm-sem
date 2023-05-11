@@ -1104,6 +1104,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
             unit="x"
             max={15}
             min={1}
+            step={1}
           />
         </Show>
         <Show when={detection() && imageSrc()}>

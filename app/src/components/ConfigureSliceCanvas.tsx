@@ -1,10 +1,9 @@
-import { RibbonData, SliceConfiguration } from "src/types/canvas";
+import { sleep } from "@logic/handleFinalImaging";
 import {
   computeStageCoordinates,
   StageConfiguration,
 } from "@logic/semCoordinates";
-import { createSignal, onCleanup, onMount, Show } from "solid-js";
-import { sleep } from "@logic/handleFinalImaging";
+import { createSignal, onMount, Show } from "solid-js";
 import { MAX_MAG } from "src/data/magnification";
 import {
   DETECTOR_TYPE_STEM_A_ZOOMED_IN,
@@ -12,11 +11,9 @@ import {
   MEDIUM_SCAN_SPEED,
 } from "src/data/semParams";
 import { getNextCommandId } from "src/data/signals/commandQueue";
+import { RibbonData, SliceConfiguration } from "src/types/canvas";
 import { Button } from "./Button";
 import { SliderPicker } from "./SliderPicker";
-
-// const PREVIEW_INTERVAL = 3000;
-// const INITIAL_WAIT_INTERVAL = 5000;
 
 export const ConfigureSliceCanvas = (props: {
   ribbon: RibbonData;
@@ -32,9 +29,6 @@ export const ConfigureSliceCanvas = (props: {
   const [brightness, setBrightness] = createSignal<number | null>(null);
   const [contrast, setContrast] = createSignal<number | null>(null);
   const [focus, setFocus] = createSignal<number | null>(null);
-
-  let timerRef!: number;
-  let unsubscribe!: VoidFunction;
 
   onMount(async () => {
     if (!props.configuration) return;
@@ -100,43 +94,6 @@ export const ConfigureSliceCanvas = (props: {
       param: "DP_FROZEN",
       doubleValue: 0,
     });
-    await sleep(500);
-    // window.semClient.send({
-    //   id: getNextCommandId(),
-    //   type: "setParam",
-    //   param: "DP_FREEZE_ON",
-    //   doubleValue: 2, // command
-    // });
-
-    // window.semClient.send({
-    //   id: getNextCommandId(),
-    //   type: "execute",
-    //   command: "CMD_UNFREEZE_ALL",
-    // });
-
-    // timerRef = window.setTimeout(() => {
-    //   timerRef = window.setInterval(() => {
-    //     window.semClient.send({
-    //       type: "grabFullFrame",
-    //       id: getNextCommandId(),
-    //       name: "preview",
-    //       reduction: -1,
-    //       temporary: true,
-    //     });
-
-    //     window.semClient.send({
-    //       id: getNextCommandId(),
-    //       type: "setParam",
-    //       param: "DP_FROZEN",
-    //       doubleValue: 0,
-    //     });
-    //   }, PREVIEW_INTERVAL);
-    // }, INITIAL_WAIT_INTERVAL);
-  });
-
-  onCleanup(() => {
-    unsubscribe?.();
-    if (timerRef) clearInterval(timerRef);
   });
 
   return (
@@ -167,8 +124,9 @@ export const ConfigureSliceCanvas = (props: {
       <SliderPicker
         label="Magnification (applies to all slices)"
         value={props.magnification || 1}
-        min={1}
+        min={40}
         max={MAX_MAG}
+        step={1}
         setValue={(value) => {
           props.setMagnification(value);
           window.semClient.send({
@@ -189,6 +147,7 @@ export const ConfigureSliceCanvas = (props: {
           value={brightness() || 0}
           min={0}
           max={100}
+          step={0.01}
           setValue={(value) => {
             setBrightness(value);
             props.setConfiguration({ brightness: value });
@@ -200,6 +159,7 @@ export const ConfigureSliceCanvas = (props: {
           value={contrast() || 0}
           min={0}
           max={100}
+          step={0.01}
           setValue={(value) => {
             setContrast(value);
             props.setConfiguration({ contrast: value });
@@ -211,6 +171,7 @@ export const ConfigureSliceCanvas = (props: {
           value={focus() || 0}
           min={1}
           max={100}
+          step={0.01}
           setValue={(value) => {
             setFocus(value);
             props.setConfiguration({ focus: value });

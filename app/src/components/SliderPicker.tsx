@@ -5,6 +5,7 @@ export const SliderPicker = (props: {
   min: number;
   max: number;
   unit: string;
+  step: number;
 }) => {
   return (
     <div class="flex flex-col gap-2">
@@ -15,6 +16,7 @@ export const SliderPicker = (props: {
           min={props.min}
           max={props.max}
           value={props.value}
+          step={props.step}
           onChange={(e) => props.setValue(parseFloat(e.currentTarget.value))}
         />
         <div class="flex flex-row items-center gap-2">
@@ -22,6 +24,7 @@ export const SliderPicker = (props: {
             type="number"
             min={props.min}
             max={props.max}
+            step={props.step}
             class="w-full"
             value={props.value}
             onChange={(e) => props.setValue(parseFloat(e.currentTarget.value))}

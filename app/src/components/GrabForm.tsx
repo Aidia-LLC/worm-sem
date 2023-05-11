@@ -1,5 +1,5 @@
-import { createSignal, onCleanup, onMount, Show } from "solid-js";
 import { sleep } from "@logic/handleFinalImaging";
+import { createSignal, onCleanup, onMount, Show } from "solid-js";
 import {
   DETECTOR_TYPE_STEM_D_ZOOMED_OUT,
   FASTEST_SCAN_SPEED,
@@ -60,20 +60,6 @@ export const GrabForm = (props: {
             command: `CMD_SCANRATE${FASTEST_SCAN_SPEED}`,
           });
           await sleep(1000);
-          // window.semClient.send({
-          //   id: getNextCommandId(),
-          //   type: "setParam",
-          //   param: "DP_FROZEN",
-          //   doubleValue: 0,
-          // });
-          // await sleep(2000);
-          // window.semClient.send({
-          //   id: getNextCommandId(),
-          //   type: "setParam",
-          //   param: "DP_FREEZE_ON",
-          //   doubleValue: 0, // end frame
-          // });
-          // await sleep(50000);
           await grabSEMImageOnFrameEnd(
             {
               id: ids[0],
@@ -83,7 +69,7 @@ export const GrabForm = (props: {
               temporary: true,
             },
             {
-              minSleepMs: 1000, // 15000
+              minSleepMs: 7500,
               pollIntervalMs: 2000,
             }
           );
