@@ -84,7 +84,7 @@ export const handleFinalImaging = async (
       },
       {
         minSleepMs: 60_000,
-        pollIntervalMs: 20_000,
+        pollIntervalMs: 5_000,
       }
     );
   }

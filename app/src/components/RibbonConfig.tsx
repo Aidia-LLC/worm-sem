@@ -1,5 +1,5 @@
-import { Trapezoid, RibbonData } from "src/types/canvas";
 import { Show } from "solid-js";
+import { RibbonData, Trapezoid } from "src/types/canvas";
 import { Button } from "./Button";
 
 export const availableColors = [
@@ -62,25 +62,7 @@ export const RibbonConfig = (props: {
           </button>
         </Show>
       </div>
-      <Show
-        when={!props.grabbing && props.ribbon.phase === 2}
-        fallback={
-          <>
-            <h2>Confirm Initial Trapezoid is good</h2>
-            <button
-              class="text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-green-500 hover:bg-green-700 active:bg-green-800"
-              onClick={() => {
-                props.setTrapezoidSet({
-                  ...props.ribbon,
-                  phase: 2,
-                });
-              }}
-            >
-              Confirm
-            </button>
-          </>
-        }
-      >
+      <Show when={!props.grabbing && props.ribbon.phase === 2}>
         <div class="flex flex-col gap-1 col-span-2 my-auto">
           <label class="font-bold">Color</label>
           <select
@@ -141,7 +123,7 @@ export const RibbonConfig = (props: {
                   onClick={() => {
                     const newSet = addTrapezoid(
                       props.ribbon.trapezoids,
-                      true,
+                      true
                       // props.ctx
                     );
                     props.setTrapezoidSet({
@@ -156,7 +138,7 @@ export const RibbonConfig = (props: {
                   onClick={() => {
                     const newSet = addTrapezoid(
                       props.ribbon.trapezoids,
-                      false,
+                      false
                       // props.ctx
                     );
                     props.setTrapezoidSet({
@@ -222,7 +204,7 @@ export const RibbonConfig = (props: {
 
 const addTrapezoid = (
   trapezoids: RibbonData["trapezoids"],
-  top = false,
+  top = false
   // ctx: any
 ) => {
   // insert and identical trapezoid to either the beginning or end of the array
