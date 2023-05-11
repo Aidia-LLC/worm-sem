@@ -15,9 +15,9 @@ export const handleFinalImaging = async (
   configurations: FinalSliceConfiguration[],
   onProgressUpdate: (percentDone: number) => void
 ) => {
-  onProgressUpdate(0);
   if (configurations.length === 0)
     return alert("No configurations received. Please try again.");
+  onProgressUpdate(0);
   await grabSEMImage({
     id: getNextCommandId(),
     type: "grabFullFrame",
@@ -34,13 +34,13 @@ export const handleFinalImaging = async (
     param: "AP_MAG",
     doubleValue: configurations[0].magnification,
   });
+  await sleep(500);
   window.semClient.send({
     id: getNextCommandId(),
     type: "setParam",
     param: "DP_DETECTOR_TYPE",
     doubleValue: DETECTOR_TYPE_STEM_A_ZOOMED_IN,
   });
-  await sleep(500);
   await sleep(500);
   window.semClient.send({
     id: getNextCommandId(),

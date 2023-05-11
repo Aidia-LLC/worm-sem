@@ -5,14 +5,7 @@ import {
   exec,
   spawn,
 } from "child_process";
-import {
-  app,
-  BrowserWindow,
-  dialog,
-  ipcMain,
-  Notification,
-  shell,
-} from "electron";
+import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
 import fs from "fs";
 import path from "path";
 import { temporaryFile } from "tempy";
