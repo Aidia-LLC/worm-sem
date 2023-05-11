@@ -2,6 +2,7 @@ import { Button } from "@components/Button";
 import { Canvas } from "@components/Canvas";
 import { HistoryLog } from "@components/HistoryLog";
 import { Instructions } from "@components/Instructions";
+import { StagePositionTester } from "@components/StagePositionTester";
 import { createEffect, createSignal, onMount, Show } from "solid-js";
 import { PYTHON_PORT } from "./data/ports";
 import { CONNECTION_ID, historySignal } from "./data/signals/history";
@@ -65,6 +66,7 @@ export const App = () => {
         }
       >
         <Canvas samLoaded={samLoaded()} />
+        <StagePositionTester />
       </Show>
       <HistoryLog />
     </div>
