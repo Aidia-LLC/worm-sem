@@ -1,4 +1,4 @@
-export type LineSegment = {
+type LineSegment = {
   r: number;
   theta: number;
   x1: number;
@@ -12,7 +12,7 @@ export type Vertex = {
   y: number;
 };
 
-export type Status = "editing" | "matching" | "saved";
+type Status = "editing" | "matching" | "saved";
 
 export type RibbonData = {
   id: number;

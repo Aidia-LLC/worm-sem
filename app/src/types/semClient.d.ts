@@ -7,41 +7,21 @@ export type Message = {
   filename?: string;
 };
 
-export type MessageReceived = (message: Message) => void;
-
 export type SEMClient = {
   send: (comand: Command) => void;
   subscribe: (callback: (message: Message) => void) => () => void;
 };
 
 export type Command =
-  | GrabCommand
   | GrabFullFrameCommand
   | ConnectCommand
   | SetParamCommand
   | GetParamCommand
   | ExecuteCommand;
 
-export interface BaseCommand {
+interface BaseCommand {
   id: number;
   type: string;
-}
-
-export interface EchoCommand extends BaseCommand {
-  type: "echo";
-  message: string;
-}
-
-export interface GrabCommand extends BaseCommand {
-  type: "grab";
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  name: string;
-  filename?: string;
-  reduction: number;
-  setId: number;
 }
 
 export interface GrabFullFrameCommand extends BaseCommand {
@@ -54,16 +34,16 @@ export interface GrabFullFrameCommand extends BaseCommand {
   ribbonName?: string;
 }
 
-export interface ConnectCommand extends BaseCommand {
+interface ConnectCommand extends BaseCommand {
   type: "connect";
 }
 
-export interface ExecuteCommand extends BaseCommand {
+interface ExecuteCommand extends BaseCommand {
   type: "execute";
   command: CommandString;
 }
 
-export type CommandString = `CMD_SCANRATE${number}` | "CMD_UNFREEZE_ALL";
+type CommandString = `CMD_SCANRATE${number}` | "CMD_UNFREEZE_ALL";
 
 type Param =
   | "DP_IMAGE_STORE"
@@ -88,7 +68,7 @@ type Param =
   | "AP_STAGE_LOW_Y"
   | "DP_DETECTOR_TYPE";
 
-export interface SetParamCommand extends BaseCommand {
+interface SetParamCommand extends BaseCommand {
   type: "setParam";
   param: Param;
   intValue?: number;

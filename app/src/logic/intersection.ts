@@ -29,7 +29,7 @@ function onSegment(p: Point, q: Point, r: Point) {
 // 0 --> p, q and r are collinear
 // 1 --> Clockwise
 // 2 --> Counterclockwise
-export function orientation(p: Point, q: Point, r: Point) {
+function orientation(p: Point, q: Point, r: Point) {
   // See https://www.geeksforgeeks.org/orientation-3-ordered-points/
   // for details of below formula.
   let val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
