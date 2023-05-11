@@ -23,6 +23,7 @@ export type RibbonData = {
   status: Status;
   matchedPoints: Vertex[];
   phase: 1 | 2;
+  clickedPoints: [number, number][];
 };
 
 export type Trapezoid = {

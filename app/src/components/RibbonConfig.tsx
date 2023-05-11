@@ -21,6 +21,7 @@ export const RibbonConfig = (props: {
   onGrab: (id: RibbonData["id"] | null) => void;
   grabbing: boolean;
   ctx: any;
+  onDetectAgain: () => void;
 }) => {
   const radioName = () => `status-${props.ribbon.id}`;
 
@@ -148,6 +149,9 @@ export const RibbonConfig = (props: {
                   }}
                 >
                   Add slice to bottom of ribbon
+                </Button>
+                <Button onClick={props.onDetectAgain}>
+                  Detect slices again
                 </Button>
               </Show>
             </div>

@@ -238,6 +238,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
         ctx.fill();
         ctx.closePath();
 
+        ctx.globalAlpha = 0.5;
         ctx.beginPath();
         ctx.rect(
           point[0] - halfSquare,
@@ -249,6 +250,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
         ctx.lineWidth = 15;
         ctx.closePath();
         ctx.stroke();
+        ctx.globalAlpha = 1;
       }
     }
 
@@ -756,6 +758,122 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     });
   };
 
+  const handleRibbonDetection = ([[imgX, imgY], ...points]: [
+    number,
+    number
+  ][]) => {
+    const edgeContext = edgeDataCanvasRef.getContext("2d")!;
+    const edgeData = edgeContext.getImageData(
+      0,
+      0,
+      edgeDataCanvasRef.width,
+      edgeDataCanvasRef.height
+    );
+    let { trapezoid, fit } = detectTrapezoid(
+      imgX,
+      imgY,
+      edgeData,
+      // canvasRef.getContext("2d")!,
+      options.options
+    );
+    console.log("trapezoid", trapezoid);
+    const valid =
+      trapezoid &&
+      trapezoidIsValid(trapezoid, imgX, imgY, options.options, fit);
+    console.log("valid", valid);
+    if (!valid) {
+      const square = getSquare(
+        edgeData,
+        imgX,
+        imgY,
+        options.options.squareSize
+      );
+      trapezoid = RANSAC(
+        square,
+        0,
+        options.options,
+        imgX - options.options.squareSize / 2,
+        imgY - options.options.squareSize / 2
+      )!;
+      console.log("trapezoid ransac", trapezoid);
+      if (!trapezoid) return;
+      trapezoid = translateTrapezoid(
+        trapezoid,
+        imgX - options.options.squareSize / 2,
+        imgY - options.options.squareSize / 2
+      );
+      const { trapezoid: newTrapezoid } = DirectSearchOptimization(
+        getPointsOnTrapezoid,
+        trapezoid,
+        square,
+        options.options,
+        imgX - options.options.squareSize / 2,
+        imgY - options.options.squareSize / 2
+      );
+      trapezoid = newTrapezoid;
+    }
+    if (!trapezoid) return;
+    trapezoid = permuteTrapezoid(trapezoid);
+    const id = nextId();
+    setNextId((prev) => prev + 1);
+    setDetection(false);
+    const colors = new Set(availableColors);
+    ribbons().forEach((set) => colors.delete(set.color));
+    const color = colors.size > 0 ? colors.values().next().value : "red";
+    const connectedTrapezoids = findConnectedTrapezoids(
+      trapezoid,
+      edgeContext,
+      imgX,
+      imgY,
+      options.options,
+      options.options.minimumFit
+    );
+    const trapezoids = orderTrapezoids(
+      [trapezoid, ...connectedTrapezoids].filter((t) => {
+        const x = [
+          t.bottom.x1,
+          t.bottom.x2,
+          t.left.x1,
+          t.left.x2,
+          t.right.x1,
+          t.right.x2,
+          t.top.x1,
+          t.top.x2,
+        ];
+        const y = [
+          t.bottom.y1,
+          t.bottom.y2,
+          t.left.y1,
+          t.left.y2,
+          t.right.y1,
+          t.right.y2,
+          t.top.y1,
+          t.top.y2,
+        ];
+        return (
+          x.every((x) => x >= 0 && x < edgeData.width) &&
+          y.every((y) => y >= 0 && y < edgeData.height)
+        );
+      })
+    );
+    setRibbons((prev) => [
+      ...prev,
+      {
+        trapezoids,
+        id,
+        name: `Ribbon ${Math.ceil(id / 2)}`,
+        color,
+        thickness: 5,
+        status: "editing",
+        matchedPoints: [],
+        reversed: false,
+        phase: 2,
+        clickedPoints: [[imgX, imgY], ...points],
+      } as RibbonData,
+    ]);
+    setShowOriginalImage(true);
+  };
+
   return (
     <div class="flex flex-col gap-3 text-xs">
       <Show
@@ -906,11 +1024,9 @@ export const Canvas = (props: { samLoaded: boolean }) => {
               <Button
                 onClick={() => {
                   const [mask] = masks();
-                  const [point] = clickedPoints();
-                  const [imgX, imgY] = point;
+                  const points = clickedPoints();
                   setMasks([]);
                   setClickedPoints([]);
-
                   const edgeContext = edgeDataCanvasRef.getContext("2d")!;
                   edgeContext.clearRect(
                     0,
@@ -924,117 +1040,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
                     edgeContext
                   );
                   edgeContext.putImageData(edgeData, 0, 0);
-
-                  let { trapezoid, fit } = detectTrapezoid(
-                    imgX,
-                    imgY,
-                    edgeData,
-                    // canvasRef.getContext("2d")!,
-                    options.options
-                  );
-                  console.log("trapezoid", trapezoid);
-                  const valid =
-                    trapezoid &&
-                    trapezoidIsValid(
-                      trapezoid,
-                      imgX,
-                      imgY,
-                      options.options,
-                      fit
-                    );
-                  console.log("valid", valid);
-                  if (!valid) {
-                    const square = getSquare(
-                      edgeData,
-                      imgX,
-                      imgY,
-                      options.options.squareSize
-                    );
-                    trapezoid = RANSAC(
-                      square,
-                      0,
-                      options.options,
-                      imgX - options.options.squareSize / 2,
-                      imgY - options.options.squareSize / 2
-                    )!;
-                    console.log("trapezoid ransac", trapezoid);
-                    if (!trapezoid) return;
-                    trapezoid = translateTrapezoid(
-                      trapezoid,
-                      imgX - options.options.squareSize / 2,
-                      imgY - options.options.squareSize / 2
-                    );
-                    const { trapezoid: newTrapezoid } =
-                      DirectSearchOptimization(
-                        getPointsOnTrapezoid,
-                        trapezoid,
-                        square,
-                        options.options,
-                        imgX - options.options.squareSize / 2,
-                        imgY - options.options.squareSize / 2
-                      );
-                    trapezoid = newTrapezoid;
-                  }
-                  if (!trapezoid) return;
-                  trapezoid = permuteTrapezoid(trapezoid);
-                  const id = nextId();
-                  setNextId((prev) => prev + 1);
-                  setDetection(false);
-                  const colors = new Set(availableColors);
-                  ribbons().forEach((set) => colors.delete(set.color));
-                  const color =
-                    colors.size > 0 ? colors.values().next().value : "red";
-                  const connectedTrapezoids = findConnectedTrapezoids(
-                    trapezoid,
-                    edgeContext,
-                    imgX,
-                    imgY,
-                    options.options,
-                    options.options.minimumFit
-                  );
-                  const trapezoids = orderTrapezoids(
-                    [trapezoid, ...connectedTrapezoids].filter((t) => {
-                      const x = [
-                        t.bottom.x1,
-                        t.bottom.x2,
-                        t.left.x1,
-                        t.left.x2,
-                        t.right.x1,
-                        t.right.x2,
-                        t.top.x1,
-                        t.top.x2,
-                      ];
-                      const y = [
-                        t.bottom.y1,
-                        t.bottom.y2,
-                        t.left.y1,
-                        t.left.y2,
-                        t.right.y1,
-                        t.right.y2,
-                        t.top.y1,
-                        t.top.y2,
-                      ];
-                      return (
-                        x.every((x) => x >= 0 && x < edgeData.width) &&
-                        y.every((y) => y >= 0 && y < edgeData.height)
-                      );
-                    })
-                  );
-                  setRibbons((prev) => [
-                    ...prev,
-                    {
-                      trapezoids,
-                      id,
-                      name: `Ribbon ${Math.ceil(id / 2)}`,
-                      color,
-                      thickness: 5,
-                      status: "editing",
-                      matchedPoints: [],
-                      reversed: false,
-                      phase: 2,
-                    } as RibbonData,
-                  ]);
-                  setShowOriginalImage(true);
+                  handleRibbonDetection(points);
                 }}
               >
                 Accept Mask
@@ -1091,6 +1097,15 @@ export const Canvas = (props: { samLoaded: boolean }) => {
                 setRibbons(ribbons().filter((t) => t.id !== id))
               }
               ctx={canvasRef.getContext("2d")!}
+              onDetectAgain={() => {
+                setRibbons((prev) =>
+                  prev.filter((s) => s.id !== trapezoidSet.id)
+                );
+                const points = [...trapezoidSet.clickedPoints];
+                // move the first point to the end of the array
+                points.push(points.shift()!);
+                handleRibbonDetection(points);
+              }}
             />
           )}
         </For>
