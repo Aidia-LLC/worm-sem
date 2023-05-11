@@ -5,7 +5,7 @@ import type {
   Trapezoid,
   Vertex,
   ZoomState,
-} from "@dto/canvas";
+} from "src/types/canvas";
 import {
   convertZoomedCoordinatesToFullImage,
   DirectSearchOptimization,

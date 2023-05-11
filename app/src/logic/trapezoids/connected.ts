@@ -1,4 +1,4 @@
-import { Trapezoid } from "@dto/canvas";
+import { Trapezoid } from "src/types/canvas";
 
 export const orderTrapezoids = (trapezoids: Trapezoid[]) => {
   // order with the top trapezoid being 1

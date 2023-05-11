@@ -1,4 +1,4 @@
-import { Message } from "@dto/semClient";
+import { Message } from "src/types/semClient";
 import { createSignal, onMount } from "solid-js";
 
 export const CONNECTION_ID = 1;

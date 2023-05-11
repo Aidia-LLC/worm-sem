@@ -18,7 +18,7 @@ Any information passed through IPC must be JSON-serializable. This means that an
 
 ## Bridge
 
-The API that the Electron frontend can use to communicate with the Electron backend is exposed on the `window` object. The types for this API are in `src/dto/semClient.d.ts`.
+The API that the Electron frontend can use to communicate with the Electron backend is exposed on the `window` object. The types for this API are in `src/types/semClient.d.ts`.
 
 Because this runs in the browser, the data sent need not be JSON-serializable. This allows us to set up callback functions.
 

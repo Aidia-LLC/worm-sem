@@ -1,5 +1,5 @@
-import { Trapezoid, Vertex, ZoomState } from "@dto/canvas";
-import { ProcessingOptions } from "@dto/ProcessingOptions";
+import { Trapezoid, Vertex, ZoomState } from "src/types/canvas";
+import { ProcessingOptions } from "src/types/ProcessingOptions";
 import { base64ToImageSrc } from "./image";
 import { linesIntersect } from "./intersection";
 

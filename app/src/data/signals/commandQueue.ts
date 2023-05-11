@@ -1,4 +1,4 @@
-import { Command, Param } from "@dto/semClient";
+import { Command, Param } from "src/types/semClient";
 import { createSignal } from "solid-js";
 import { semParamsSignal } from "./semParams";
 

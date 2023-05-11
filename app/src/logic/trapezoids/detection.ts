@@ -1,4 +1,4 @@
-import { ProcessingOptions } from "@dto/ProcessingOptions";
+import { ProcessingOptions } from "src/types/ProcessingOptions";
 import { permuteTrapezoid } from "@logic/canvas";
 
 export function detectTrapezoid(

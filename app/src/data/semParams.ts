@@ -1,4 +1,4 @@
-import { GetParamCommand, GrabFullFrameCommand, Param } from "@dto/semClient";
+import { GetParamCommand, GrabFullFrameCommand, Param } from "src/types/semClient";
 import { sleep } from "./handleFinalImaging";
 import { getNextCommandId } from "./signals/commandQueue";
 

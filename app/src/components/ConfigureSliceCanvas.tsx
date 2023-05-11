@@ -1,4 +1,4 @@
-import { RibbonData, SliceConfiguration } from "@dto/canvas";
+import { RibbonData, SliceConfiguration } from "src/types/canvas";
 import {
   computeStageCoordinates,
   StageConfiguration,

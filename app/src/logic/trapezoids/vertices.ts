@@ -1,4 +1,4 @@
-import { Trapezoid, Vertex } from "@dto/canvas";
+import { Trapezoid, Vertex } from "src/types/canvas";
 
 export function findNearestVertex(
   x: number,

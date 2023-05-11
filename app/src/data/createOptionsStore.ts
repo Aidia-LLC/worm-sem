@@ -1,4 +1,4 @@
-import { ProcessingOptions } from "@dto/ProcessingOptions";
+import { ProcessingOptions } from "src/types/ProcessingOptions";
 import { createStore, SetStoreFunction } from "solid-js/store";
 
 const defaultOptions: ProcessingOptions = {

@@ -9,7 +9,7 @@ import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
 import fs from "fs";
 import path from "path";
 import { temporaryFile } from "tempy";
-import { Command, GrabFullFrameCommand, Message } from "../src/dto/semClient";
+import { Command, GrabFullFrameCommand, Message } from "../src/types/semClient";
 import { getPlatform } from "./platform";
 
 const isProduction = app.isPackaged;

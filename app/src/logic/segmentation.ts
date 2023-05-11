@@ -1,4 +1,4 @@
-import { Mask } from "@dto/mask";
+import { Mask } from "src/types/mask";
 
 export const segmentImage = async ({
   filename,

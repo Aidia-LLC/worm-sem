@@ -1,4 +1,4 @@
-import { Trapezoid, RibbonData } from "@dto/canvas";
+import { Trapezoid, RibbonData } from "src/types/canvas";
 import { Show } from "solid-js";
 import { Button } from "./Button";
 

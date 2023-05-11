@@ -1,4 +1,4 @@
-import { FinalSliceConfiguration } from "@dto/canvas";
+import { FinalSliceConfiguration } from "src/types/canvas";
 import {
   DETECTOR_TYPE_STEM_A_ZOOMED_IN,
   grabSEMImage,

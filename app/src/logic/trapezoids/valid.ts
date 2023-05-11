@@ -1,5 +1,5 @@
-import { Trapezoid } from "@dto/canvas";
-import { ProcessingOptions } from "@dto/ProcessingOptions";
+import { Trapezoid } from "src/types/canvas";
+import { ProcessingOptions } from "src/types/ProcessingOptions";
 import { calculateArea } from "@logic/canvas";
 
 export function trapezoidIsValid(

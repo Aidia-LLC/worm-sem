@@ -7,7 +7,7 @@
  */
 
 import { contextBridge, ipcRenderer } from "electron";
-import { Message, SEMClient } from "../src/dto/semClient";
+import { Message, SEMClient } from "../src/types/semClient";
 
 const subscribers: ((message: Message) => void)[] = [];
 

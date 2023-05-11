@@ -1,4 +1,4 @@
-import { Trapezoid, RibbonData } from "@dto/canvas";
+import { Trapezoid, RibbonData } from "src/types/canvas";
 
 export function filterTrapezoids(
   trapezoids: Trapezoid[],

@@ -1,4 +1,4 @@
-import { Trapezoid, Vertex } from "@dto/canvas";
+import { Trapezoid, Vertex } from "src/types/canvas";
 import { calculateArea } from "@logic/canvas";
 
 export function isPointInTrapezoid(
