@@ -8,8 +8,8 @@ import {
 import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
 import fs from "fs";
 import path from "path";
-import { PYTHON_PORT } from "../src/data/ports";
 import { temporaryFile } from "tempy";
+import { PYTHON_PORT } from "../src/data/ports";
 import { Command, GrabFullFrameCommand, Message } from "../src/types/semClient";
 import { getPlatform } from "./platform";
 
@@ -155,8 +155,6 @@ const init = (childProcess: ChildProcessWithoutNullStreams) => {
           console.log("Sending message to C#:", grabCommand);
           childProcess.stdin.write(JSON.stringify(grabCommand) + "\n");
         });
-      } else if (command.type === "grab") {
-        throw new Error("Received 'grab' command");
       } else {
         console.log("Sending message to C#:", command);
         childProcess.stdin.write(JSON.stringify(command) + "\n");
@@ -212,4 +210,12 @@ app.whenReady().then(() => {
         });
       }
     });
+
+  python.stderr?.on("data", (data: Buffer) => {
+    console.error(data.toString("utf8"));
+  });
+
+  python.stdout?.on("data", (data: Buffer) => {
+    console.log(data.toString("utf8"));
+  });
 });

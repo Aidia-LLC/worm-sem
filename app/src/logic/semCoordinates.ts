@@ -9,6 +9,7 @@ export type StageConfiguration = {
   };
 };
 
+/// Convert device coordinates to SEM coordinates
 export const computeStageCoordinates = ({
   point,
   canvasConfiguration,
@@ -21,16 +22,19 @@ export const computeStageCoordinates = ({
   };
   stageConfiguration: StageConfiguration;
 }) => {
-  const percentX = point.x / canvasConfiguration.width;
-  const percentY = point.y / canvasConfiguration.height;
-  const newX =
-    stageConfiguration.x +
-    percentY * stageConfiguration.width -
-    stageConfiguration.width / 2;
-  const newY =
-    stageConfiguration.y +
-    percentX * stageConfiguration.height -
-    stageConfiguration.height / 2;
+  const scaleX = stageConfiguration.width / canvasConfiguration.width;
+  const scaleY = stageConfiguration.height / canvasConfiguration.height;
+
+  const translatedX = (point.x - canvasConfiguration.width / 2) * scaleX;
+  const translatedY = (point.y - canvasConfiguration.height / 2) * scaleY;
+
+  const z = Math.cos(Math.PI / 4); // may end up being pi/6 or some other variable value
+  const zx = z * translatedX;
+  const zy = z * translatedY;
+
+  const newX = zx - zy + stageConfiguration.x;
+  const newY = zx + zy + stageConfiguration.y;
+
   const limitedX = Math.max(
     stageConfiguration.limits.x[0],
     Math.min(stageConfiguration.limits.x[1], newX)

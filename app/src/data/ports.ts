@@ -1,1 +1,1 @@
-export const PYTHON_PORT = 8081;
+export const PYTHON_PORT = 8082;

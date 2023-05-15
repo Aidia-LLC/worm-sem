@@ -7,7 +7,7 @@ import { createEffect, createSignal, onMount, Show } from "solid-js";
 import { PYTHON_PORT } from "./data/ports";
 import { CONNECTION_ID, historySignal } from "./data/signals/history";
 
-const DELAY_TO_INITIALIZE_SAM = 3000;
+const DELAY_TO_INITIALIZE_SAM = 10000;
 
 export const App = () => {
   const [history] = historySignal;

@@ -8,6 +8,9 @@ export const StagePositionTester = () => {
   const [currentPosition, setCurrentPosition] = createSignal<
     [number, number] | null
   >(null);
+  const [targetPosition, setTargetPosition] = createSignal<
+    [number, number] | null
+  >(null);
 
   let timer: any;
 
@@ -23,9 +26,11 @@ export const StagePositionTester = () => {
     const x = parseInt(await getSEMParam("AP_STAGE_AT_X"));
     const y = parseInt(await getSEMParam("AP_STAGE_AT_Y"));
     setCurrentPosition([x, y]);
+    if (targetPosition() === null) setTargetPosition([x, y]);
   };
 
   const updateXPosition = (x: number) => {
+    setTargetPosition([x, targetPosition()?.[1] ?? 0]);
     window.semClient.send({
       id: getNextCommandId(),
       type: "setParam",
@@ -35,6 +40,7 @@ export const StagePositionTester = () => {
   };
 
   const updateYPosition = (y: number) => {
+    setTargetPosition([targetPosition()?.[0] ?? 0, y]);
     window.semClient.send({
       id: getNextCommandId(),
       type: "setParam",
@@ -47,13 +53,15 @@ export const StagePositionTester = () => {
     <div>
       <input
         type="number"
-        value={currentPosition()?.[0]}
-        onInput={(e) => updateXPosition(parseInt(e.currentTarget.value))}
+        value={targetPosition()?.[0]}
+        step={0.01}
+        onInput={(e) => updateXPosition(parseFloat(e.currentTarget.value))}
       />
       <input
         type="number"
-        value={currentPosition()?.[1]}
-        onInput={(e) => updateYPosition(parseInt(e.currentTarget.value))}
+        value={targetPosition()?.[1]}
+        step={0.01}
+        onInput={(e) => updateYPosition(parseFloat(e.currentTarget.value))}
       />
       <Show when={currentPosition()} fallback="Getting position...">
         <span>
