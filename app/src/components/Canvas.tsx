@@ -157,28 +157,6 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     overlayCanvasRef.addEventListener("mousedown", handleMouseDown);
     window.addEventListener("keydown", handleKeyPress);
     setOriginalImage();
-
-    const stageX = await getSEMParam("AP_STAGE_AT_X");
-    const stageY = await getSEMParam("AP_STAGE_AT_Y");
-    const stageLowLimitX = await getSEMParam("AP_STAGE_LOW_X");
-    const stageLowLimitY = await getSEMParam("AP_STAGE_LOW_Y");
-    const stageHighLimitX = await getSEMParam("AP_STAGE_HIGH_X");
-    const stageHighLimitY = await getSEMParam("AP_STAGE_HIGH_Y");
-    const fieldOfViewWidth = await getSEMParam("AP_WIDTH");
-    const fieldOfViewHeight = await getSEMParam("AP_HEIGHT");
-    const currentMag = await getSEMParam("AP_MAG");
-    setMagnification(parseFloat(currentMag));
-    setInitialStage({
-      x: parseFloat(stageX),
-      y: parseFloat(stageY),
-      width: parseFloat(fieldOfViewWidth),
-      height: parseFloat(fieldOfViewHeight),
-      limits: {
-        x: [parseFloat(stageLowLimitX), parseFloat(stageHighLimitX)],
-        y: [parseFloat(stageLowLimitY), parseFloat(stageHighLimitY)],
-      },
-    });
-    console.log(initialStage());
   });
 
   onCleanup(() => {
@@ -760,10 +738,32 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     });
   };
 
-  const handleRibbonDetection = ([[imgX, imgY], ...points]: [
+  const handleRibbonDetection = async ([[imgX, imgY], ...points]: [
     number,
     number
   ][]) => {
+    const stageX = await getSEMParam("AP_STAGE_AT_X");
+    const stageY = await getSEMParam("AP_STAGE_AT_Y");
+    const stageLowLimitX = await getSEMParam("AP_STAGE_LOW_X");
+    const stageLowLimitY = await getSEMParam("AP_STAGE_LOW_Y");
+    const stageHighLimitX = await getSEMParam("AP_STAGE_HIGH_X");
+    const stageHighLimitY = await getSEMParam("AP_STAGE_HIGH_Y");
+    const fieldOfViewWidth = await getSEMParam("AP_WIDTH");
+    const fieldOfViewHeight = await getSEMParam("AP_HEIGHT");
+    const currentMag = await getSEMParam("AP_MAG");
+    setMagnification(parseFloat(currentMag));
+    setInitialStage({
+      x: parseFloat(stageX),
+      y: parseFloat(stageY),
+      width: parseFloat(fieldOfViewWidth),
+      height: parseFloat(fieldOfViewHeight),
+      limits: {
+        x: [parseFloat(stageLowLimitX), parseFloat(stageHighLimitX)],
+        y: [parseFloat(stageLowLimitY), parseFloat(stageHighLimitY)],
+      },
+    });
+    console.log(initialStage());
+
     const edgeContext = edgeDataCanvasRef.getContext("2d")!;
     const edgeData = edgeContext.getImageData(
       0,
