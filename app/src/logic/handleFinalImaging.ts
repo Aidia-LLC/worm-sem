@@ -12,7 +12,8 @@ export const sleep = (ms: number) =>
 
 export const handleFinalImaging = async (
   configurations: FinalSliceConfiguration[],
-  onProgressUpdate: (percentDone: number) => void
+  onProgressUpdate: (percentDone: number) => void,
+  scanSpeed: number
 ) => {
   if (configurations.length === 0)
     return alert("No configurations received. Please try again.");
@@ -44,7 +45,7 @@ export const handleFinalImaging = async (
   window.semClient.send({
     id: getNextCommandId(),
     type: "execute",
-    command: `CMD_SCANRATE3`, // TODO change back
+    command: `CMD_SCANRATE${scanSpeed}`,
     // command: `CMD_SCANRATE${SLOWEST_SCAN_SPEED}`,
   });
   await sleep(500);
