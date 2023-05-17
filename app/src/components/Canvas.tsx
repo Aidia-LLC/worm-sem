@@ -889,6 +889,8 @@ export const Canvas = (props: { samLoaded: boolean }) => {
               stage={initialStage()!}
               magnification={magnification()}
               setMagnification={setMagnification}
+              scanSpeed={scanSpeed()}
+              setScanSpeed={(value) => setScanSpeed(value)}
               canvas={canvasRef}
               configuration={
                 sliceConfiguration().find(

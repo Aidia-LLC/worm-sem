@@ -19,6 +19,8 @@ export const ConfigureSliceCanvas = (props: {
   ribbon: RibbonData;
   magnification: number;
   setMagnification: (magnification: number) => void;
+  scanSpeed: number;
+  setScanSpeed: (value: number) => void;
   configuration: SliceConfiguration;
   setConfiguration: (config: Partial<SliceConfiguration>) => void;
   onNext: () => void;
@@ -139,6 +141,15 @@ export const ConfigureSliceCanvas = (props: {
           });
         }}
         unit="x"
+      />
+      <SliderPicker
+        label="Scan Speed"
+        value={props.scanSpeed}
+        min={1}
+        max={10}
+        setValue={(value) => props.setScanSpeed(value)}
+        step={1}
+        unit=""
       />
       <div class="flex flex-col my-2 ml-6">
         <span class="-ml-4 mb-4 font-bold text-lg">
