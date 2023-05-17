@@ -28,7 +28,7 @@ export const computeStageCoordinates = ({
   const translatedX =
     (point.x - canvasConfiguration.width / 2) * scaleX + stageConfiguration.x;
   const translatedY =
-    -(point.y - canvasConfiguration.height / 2) * scaleY + stageConfiguration.y;
+    (point.y - canvasConfiguration.height / 2) * scaleY + stageConfiguration.y;
 
   const limitedX = Math.max(
     stageConfiguration.limits.x[0],
