@@ -61,6 +61,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
   let overlayCanvasRef!: HTMLCanvasElement;
   let edgeDataCanvasRef!: HTMLCanvasElement;
 
+  const [scanSpeed, setScanSpeed] = createSignal<number>(7);
   const [imageSrc, setImageSrc] = createSignal<string | null>(null);
   const [imageSrcFilename, setImageSrcFilename] = createSignal<string | null>(
     null
@@ -706,7 +707,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     console.log("final config");
     console.log(finalConfigurations);
     try {
-      await handleFinalImaging(finalConfigurations, setPercentComplete);
+      await handleFinalImaging(finalConfigurations, setPercentComplete, scanSpeed());
       alert(`Done imaging for ${ribbon.name}!`);
     } catch (err) {
       console.error(err);
@@ -1083,12 +1084,22 @@ export const Canvas = (props: { samLoaded: boolean }) => {
                 const indicesToConfigure = getIndicesOfSlicesToConfigure(
                   trapezoids.length
                 );
-                const brightness = parseFloat(await getSEMParam('AP_BRIGHTNESS'));
-                const contrast = parseFloat(await getSEMParam('AP_CONTRAST'));
-                const focus = parseFloat(await getSEMParam('AP_WD'));
+                const brightness = parseFloat(
+                  await getSEMParam("AP_BRIGHTNESS")
+                );
+                const contrast = parseFloat(await getSEMParam("AP_CONTRAST"));
+                const focus = parseFloat(await getSEMParam("AP_WD"));
                 setSliceConfiguration(
                   trapezoids
-                    .map((_, index) => ({ index, brightness, contrast, focus } as SliceConfiguration))
+                    .map(
+                      (_, index) =>
+                        ({
+                          index,
+                          brightness,
+                          contrast,
+                          focus,
+                        } as SliceConfiguration)
+                    )
                     .filter((_, index) => indicesToConfigure.includes(index))
                 );
                 setFocusedSlice(indicesToConfigure[0]);
@@ -1244,6 +1255,15 @@ export const Canvas = (props: { samLoaded: boolean }) => {
                   onChange={(value) => {
                     setOptions("options", "squareSize", value);
                     setOptionsSequence(optionsSequence() + 1);
+                  }}
+                />
+              </div>
+              <div class="flex-col">
+                <Param
+                  label="Scan Speed (final imaging)"
+                  value={scanSpeed()}
+                  onChange={(value) => {
+                    setScanSpeed(value);
                   }}
                 />
               </div>
