@@ -177,7 +177,7 @@ const init = (childProcess: ChildProcessWithoutNullStreams) => {
 let python: ChildProcess | null = null;
 
 app.whenReady().then(() => {
-  python = exec(`python3 -m flask run -p ${PYTHON_PORT}`, {
+  python = exec(`python -m flask run -p ${PYTHON_PORT}`, {
     cwd: pythonPath,
   })
     .on("exit", (e) => {
