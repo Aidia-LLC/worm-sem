@@ -26,7 +26,7 @@ export const computeStageCoordinates = ({
   const scaleY = stageConfiguration.height / canvasConfiguration.height;
 
   const translatedX =
-    (point.x - canvasConfiguration.width / 2) * scaleX + stageConfiguration.x;
+    -(point.x - canvasConfiguration.width / 2) * scaleX + stageConfiguration.x;
   const translatedY =
     (point.y - canvasConfiguration.height / 2) * scaleY + stageConfiguration.y;
 
@@ -49,6 +49,6 @@ export const computeStageCoordinates = ({
     translatedY,
     limitedX,
     limitedY,
-  })
+  });
   return { x: limitedX, y: limitedY };
 };
