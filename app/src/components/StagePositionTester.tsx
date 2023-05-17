@@ -23,8 +23,8 @@ export const StagePositionTester = () => {
   });
 
   const fetchPosition = async () => {
-    const x = parseInt(await getSEMParam("AP_STAGE_AT_X"));
-    const y = parseInt(await getSEMParam("AP_STAGE_AT_Y"));
+    const x = parseFloat(await getSEMParam("AP_STAGE_AT_X"));
+    const y = parseFloat(await getSEMParam("AP_STAGE_AT_Y"));
     setCurrentPosition([x, y]);
     if (targetPosition() === null) setTargetPosition([x, y]);
   };
