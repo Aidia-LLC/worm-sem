@@ -149,7 +149,7 @@ export const ConfigureSliceCanvas = (props: {
           value={brightness() || 0}
           min={0}
           max={100}
-          step={0.01}
+          step={0.0001}
           setValue={(value) => {
             setBrightness(value);
             props.setConfiguration({ brightness: value });
@@ -161,7 +161,7 @@ export const ConfigureSliceCanvas = (props: {
           value={contrast() || 0}
           min={0}
           max={100}
-          step={0.01}
+          step={0.0001}
           setValue={(value) => {
             setContrast(value);
             props.setConfiguration({ contrast: value });
@@ -173,7 +173,7 @@ export const ConfigureSliceCanvas = (props: {
           value={focus() || 0}
           min={0}
           max={0.003}
-          step={0.0001}
+          step={0.000001}
           setValue={(value) => {
             setFocus(value);
             props.setConfiguration({ focus: value });

@@ -57,6 +57,13 @@ export const grabSEMImageOnFrameEnd = async (
     param: "DP_FREEZE_ON",
     doubleValue: 0, // freeze on end frame
   });
+  await sleep(2000);
+  window.semClient.send({
+    id: getNextCommandId(),
+    type: "setParam",
+    param: "DP_FROZEN",
+    doubleValue: 1, // not frozen
+  });
   await sleep(options?.minSleepMs || 10000);
   while (true) {
     const isFrozen = await getSEMParam("DP_FROZEN");

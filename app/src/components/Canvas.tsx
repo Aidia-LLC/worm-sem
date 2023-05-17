@@ -12,7 +12,7 @@ import {
   translateTrapezoid,
 } from "@logic/canvas";
 import { edgeFilter } from "@logic/edgeFilter";
-import { handleFinalImaging } from "@logic/handleFinalImaging";
+import { handleFinalImaging, sleep } from "@logic/handleFinalImaging";
 import { base64ToImageSrc } from "@logic/image";
 import { segmentImage } from "@logic/segmentation";
 import {
@@ -703,7 +703,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           ribbonName,
         };
       });
-    console.log('final config');
+    console.log("final config");
     console.log(finalConfigurations);
     try {
       await handleFinalImaging(finalConfigurations, setPercentComplete);
@@ -716,7 +716,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     setFocusedRibbon(-1);
   };
 
-  const handleMoveStageToSlice = () => {
+  const handleMoveStageToSlice = async () => {
     const ribbon = ribbons().find((ribbon) => ribbon.id === focusedRibbon())!;
     const point = ribbon.matchedPoints[focusedSlice()];
     const coordinates = computeStageCoordinates({
@@ -724,12 +724,14 @@ export const Canvas = (props: { samLoaded: boolean }) => {
       canvasConfiguration: canvasRef,
       stageConfiguration: initialStage()!,
     });
+    await sleep(200);
     window.semClient.send({
       type: "setParam",
       id: getNextCommandId(),
       param: "AP_STAGE_GOTO_X",
       doubleValue: coordinates.x,
     });
+    await sleep(200);
     window.semClient.send({
       type: "setParam",
       id: getNextCommandId(),
@@ -924,6 +926,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
                       : c
                   )
                 );
+                console.log("newConfiguration", sliceConfiguration());
               }}
               onNext={() => {
                 const currentConfigIndex = sliceConfiguration().findIndex(
@@ -1072,7 +1075,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           {(trapezoidSet) => (
             <RibbonConfig
               grabbing={focusedRibbon() === trapezoidSet.id}
-              onGrab={(id) => {
+              onGrab={async (id) => {
                 setFocusedRibbon(id);
                 const trapezoids = ribbons().find(
                   (t) => t.id === id
@@ -1080,12 +1083,16 @@ export const Canvas = (props: { samLoaded: boolean }) => {
                 const indicesToConfigure = getIndicesOfSlicesToConfigure(
                   trapezoids.length
                 );
+                const brightness = parseFloat(await getSEMParam('AP_BRIGHTNESS'));
+                const contrast = parseFloat(await getSEMParam('AP_CONTRAST'));
+                const focus = parseFloat(await getSEMParam('AP_WD'));
                 setSliceConfiguration(
                   trapezoids
-                    .map((_, index) => ({ index } as SliceConfiguration))
+                    .map((_, index) => ({ index, brightness, contrast, focus } as SliceConfiguration))
                     .filter((_, index) => indicesToConfigure.includes(index))
                 );
                 setFocusedSlice(indicesToConfigure[0]);
+                handleMoveStageToSlice();
               }}
               canvasSize={canvasRef}
               ribbon={trapezoidSet}

@@ -4,7 +4,6 @@ import {
   grabSEMImage,
   grabSEMImageOnFrameEnd,
   HIGHEST_IMAGE_QUALITY,
-  SLOWEST_SCAN_SPEED,
 } from "../data/semParams";
 import { getNextCommandId } from "../data/signals/commandQueue";
 
@@ -45,7 +44,8 @@ export const handleFinalImaging = async (
   window.semClient.send({
     id: getNextCommandId(),
     type: "execute",
-    command: `CMD_SCANRATE${SLOWEST_SCAN_SPEED}`,
+    command: `CMD_SCANRATE3`, // TODO change back
+    // command: `CMD_SCANRATE${SLOWEST_SCAN_SPEED}`,
   });
   await sleep(500);
   window.semClient.send({
@@ -70,6 +70,27 @@ export const handleFinalImaging = async (
       type: "setParam",
       param: "AP_STAGE_GOTO_Y",
       doubleValue: config.point.y,
+    });
+    await sleep(500);
+    window.semClient.send({
+      id: getNextCommandId(),
+      type: "setParam",
+      param: "AP_BRIGHTNESS",
+      doubleValue: config.brightness,
+    });
+    await sleep(500);
+    window.semClient.send({
+      id: getNextCommandId(),
+      type: "setParam",
+      param: "AP_CONTRAST",
+      doubleValue: config.contrast,
+    });
+    await sleep(500);
+    window.semClient.send({
+      id: getNextCommandId(),
+      type: "setParam",
+      param: "AP_WD",
+      doubleValue: config.focus,
     });
     await sleep(5000);
     await grabSEMImageOnFrameEnd(

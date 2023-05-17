@@ -79,7 +79,7 @@ const getFilename = async (grabCommand: GrabFullFrameCommand) => {
   }
   if (filePaths.has(ribbonId))
     return Promise.resolve(
-      `${filePaths.get(ribbonId)}-${grabCommand.name}.png`
+      `${filePaths.get(ribbonId)}-${grabCommand.name}.tiff`
     );
   const result = await dialog.showOpenDialog(browserWindow!, {
     properties: ["createDirectory", "openDirectory"],
@@ -88,7 +88,7 @@ const getFilename = async (grabCommand: GrabFullFrameCommand) => {
   const [folderPath] = result.filePaths;
   const filePath = `${folderPath}/${grabCommand.ribbonName}`;
   filePaths.set(ribbonId, filePath);
-  return Promise.resolve(`${filePath}-${grabCommand.name}.png`);
+  return Promise.resolve(`${filePath}-${grabCommand.name}.tiff`);
 };
 
 const init = (childProcess: ChildProcessWithoutNullStreams) => {
