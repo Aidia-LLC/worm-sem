@@ -38,7 +38,6 @@ export const App = () => {
 
   return (
     <div class="flex flex-col gap-3 m-4">
-      <span class='text-2xl'>TEST</span>
       <Instructions />
       <Show
         when={connected()}
