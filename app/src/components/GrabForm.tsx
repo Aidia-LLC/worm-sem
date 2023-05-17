@@ -59,7 +59,7 @@ export const GrabForm = (props: {
             type: "execute",
             command: `CMD_SCANRATE${FASTEST_SCAN_SPEED}`,
           });
-          await sleep(1000);
+          await sleep(2000);
           await grabSEMImageOnFrameEnd(
             {
               id: ids[0],
@@ -69,8 +69,8 @@ export const GrabForm = (props: {
               temporary: true,
             },
             {
-              minSleepMs: 7500,
-              pollIntervalMs: 2000,
+              minSleepMs: 15000,
+              pollIntervalMs: 5000,
             }
           );
         }}
