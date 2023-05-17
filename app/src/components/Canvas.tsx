@@ -725,6 +725,8 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           ribbonName,
         };
       });
+    console.log('final config');
+    console.log(finalConfigurations);
     try {
       await handleFinalImaging(finalConfigurations, setPercentComplete);
       alert(`Done imaging for ${ribbon.name}!`);
