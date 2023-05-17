@@ -33,7 +33,7 @@ export const computeStageCoordinates = ({
   const zy = z * translatedY;
 
   const newX = zx - zy + stageConfiguration.x;
-  const newY = zx + zy + stageConfiguration.y;
+  const newY = -zx - zy + stageConfiguration.y;
 
   const limitedX = Math.max(
     stageConfiguration.limits.x[0],
