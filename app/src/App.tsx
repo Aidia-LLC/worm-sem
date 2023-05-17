@@ -66,7 +66,7 @@ export const App = () => {
         }
       >
         <Canvas samLoaded={samLoaded()} />
-        {/* <StagePositionTester /> */}
+        <StagePositionTester />
       </Show>
       <HistoryLog />
     </div>
