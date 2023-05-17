@@ -111,7 +111,7 @@ const init = (childProcess: ChildProcessWithoutNullStreams) => {
           (async () => {
             const payload = message.payload;
             if (!payload) return;
-            if (payload.endsWith("setup.png")) {
+            if (payload.endsWith("setup.tiff")) {
               // this is a temporary file just used to make the user choose a folder before waiting for the first image to be taken
               await fs.promises.rm(payload);
               browserWindow?.webContents.send("SEMClient:Received", {
