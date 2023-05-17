@@ -49,13 +49,7 @@ export const ConfigureSliceCanvas = (props: {
       stageConfiguration: props.stage,
     });
 
-    window.semClient.send({
-      type: "setParam",
-      id: getNextCommandId(),
-      param: "AP_STAGE_GOTO_X",
-      doubleValue: coordinates.x,
-    });
-    await sleep(200);
+    await sleep(1000);
 
     window.semClient.send({
       id: getNextCommandId(),
@@ -63,7 +57,15 @@ export const ConfigureSliceCanvas = (props: {
       param: "DP_DETECTOR_TYPE",
       doubleValue: DETECTOR_TYPE_STEM_A_ZOOMED_IN,
     });
-    await sleep(200);
+    await sleep(1000);
+
+    window.semClient.send({
+      type: "setParam",
+      id: getNextCommandId(),
+      param: "AP_STAGE_GOTO_X",
+      doubleValue: coordinates.x,
+    });
+    await sleep(500);
 
     window.semClient.send({
       type: "setParam",
@@ -71,7 +73,7 @@ export const ConfigureSliceCanvas = (props: {
       param: "AP_STAGE_GOTO_Y",
       doubleValue: coordinates.y,
     });
-    await sleep(200);
+    await sleep(500);
 
     window.semClient.send({
       type: "setParam",
@@ -79,14 +81,14 @@ export const ConfigureSliceCanvas = (props: {
       param: "AP_MAG",
       doubleValue: props.magnification,
     });
-    await sleep(200);
+    await sleep(500);
 
     window.semClient.send({
       type: "execute",
       id: getNextCommandId(),
       command: `CMD_SCANRATE${MEDIUM_SCAN_SPEED}`,
     });
-    await sleep(200);
+    await sleep(500);
 
     window.semClient.send({
       id: getNextCommandId(),
@@ -169,14 +171,14 @@ export const ConfigureSliceCanvas = (props: {
         <SliderPicker
           label="Working Distance"
           value={focus() || 0}
-          min={1}
-          max={100}
-          step={0.01}
+          min={0}
+          max={0.003}
+          step={0.0001}
           setValue={(value) => {
             setFocus(value);
             props.setConfiguration({ focus: value });
           }}
-          unit="mm"
+          unit="m"
         />
       </div>
     </div>
