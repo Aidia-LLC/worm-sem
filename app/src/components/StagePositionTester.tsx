@@ -54,13 +54,13 @@ export const StagePositionTester = () => {
       <input
         type="number"
         value={targetPosition()?.[0]}
-        step={0.01}
+        step={0.0001}
         onInput={(e) => updateXPosition(parseFloat(e.currentTarget.value))}
       />
       <input
         type="number"
         value={targetPosition()?.[1]}
-        step={0.01}
+        step={0.0001}
         onInput={(e) => updateYPosition(parseFloat(e.currentTarget.value))}
       />
       <Show when={currentPosition()} fallback="Getting position...">
