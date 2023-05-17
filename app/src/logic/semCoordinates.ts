@@ -28,12 +28,12 @@ export const computeStageCoordinates = ({
   const translatedX = (point.x - canvasConfiguration.width / 2) * scaleX;
   const translatedY = (point.y - canvasConfiguration.height / 2) * scaleY;
 
-  const z = Math.cos(Math.PI / 4); // may end up being pi/6 or some other variable value
-  const zx = z * translatedX;
-  const zy = z * translatedY;
+  const angle = -Math.PI / 4; // may end up being pi/6 or some other variable value
+  const zx = Math.cos(angle) * translatedX;
+  const zy = Math.sin(angle) * translatedY;
 
   const newX = zx - zy + stageConfiguration.x;
-  const newY = -zx - zy + stageConfiguration.y;
+  const newY = zx + zy + stageConfiguration.y;
 
   const limitedX = Math.max(
     stageConfiguration.limits.x[0],
