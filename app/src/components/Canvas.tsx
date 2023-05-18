@@ -707,7 +707,11 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     console.log("final config");
     console.log(finalConfigurations);
     try {
-      await handleFinalImaging(finalConfigurations, setPercentComplete, scanSpeed());
+      await handleFinalImaging(
+        finalConfigurations,
+        setPercentComplete,
+        scanSpeed()
+      );
       alert(`Done imaging for ${ribbon.name}!`);
     } catch (err) {
       console.error(err);
@@ -745,28 +749,6 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     number,
     number
   ][]) => {
-    const stageX = await getSEMParam("AP_STAGE_AT_X");
-    const stageY = await getSEMParam("AP_STAGE_AT_Y");
-    const stageLowLimitX = await getSEMParam("AP_STAGE_LOW_X");
-    const stageLowLimitY = await getSEMParam("AP_STAGE_LOW_Y");
-    const stageHighLimitX = await getSEMParam("AP_STAGE_HIGH_X");
-    const stageHighLimitY = await getSEMParam("AP_STAGE_HIGH_Y");
-    const fieldOfViewWidth = await getSEMParam("AP_WIDTH");
-    const fieldOfViewHeight = await getSEMParam("AP_HEIGHT");
-    const currentMag = await getSEMParam("AP_MAG");
-    setMagnification(parseFloat(currentMag));
-    setInitialStage({
-      x: parseFloat(stageX),
-      y: parseFloat(stageY),
-      width: parseFloat(fieldOfViewWidth),
-      height: parseFloat(fieldOfViewHeight),
-      limits: {
-        x: [parseFloat(stageLowLimitX), parseFloat(stageHighLimitX)],
-        y: [parseFloat(stageLowLimitY), parseFloat(stageHighLimitY)],
-      },
-    });
-    console.log(initialStage());
-
     const edgeContext = edgeDataCanvasRef.getContext("2d")!;
     const edgeData = edgeContext.getImageData(
       0,
@@ -1091,6 +1073,12 @@ export const Canvas = (props: { samLoaded: boolean }) => {
                 );
                 const contrast = parseFloat(await getSEMParam("AP_CONTRAST"));
                 const focus = parseFloat(await getSEMParam("AP_WD"));
+                window.semClient.send({
+                  id: getNextCommandId(),
+                  type: "setParam",
+                  param: "AP_MAG",
+                  doubleValue: magnification(),
+                });
                 setSliceConfiguration(
                   trapezoids
                     .map(
@@ -1229,9 +1217,35 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           when={imageSrc()}
           fallback={
             <GrabForm
-              onGrabbed={(src, filename) => {
+              onGrabbed={async (src, filename) => {
                 setImageSrc(src);
                 setImageSrcFilename(filename);
+
+                const stageX = await getSEMParam("AP_STAGE_AT_X");
+                const stageY = await getSEMParam("AP_STAGE_AT_Y");
+                const stageLowLimitX = await getSEMParam("AP_STAGE_LOW_X");
+                const stageLowLimitY = await getSEMParam("AP_STAGE_LOW_Y");
+                const stageHighLimitX = await getSEMParam("AP_STAGE_HIGH_X");
+                const stageHighLimitY = await getSEMParam("AP_STAGE_HIGH_Y");
+                const fieldOfViewWidth = await getSEMParam("AP_WIDTH");
+                const fieldOfViewHeight = await getSEMParam("AP_HEIGHT");
+                setInitialStage({
+                  x: parseFloat(stageX),
+                  y: parseFloat(stageY),
+                  width: parseFloat(fieldOfViewWidth),
+                  height: parseFloat(fieldOfViewHeight),
+                  limits: {
+                    x: [
+                      parseFloat(stageLowLimitX),
+                      parseFloat(stageHighLimitX),
+                    ],
+                    y: [
+                      parseFloat(stageLowLimitY),
+                      parseFloat(stageHighLimitY),
+                    ],
+                  },
+                });
+                console.log(initialStage());
               }}
             />
           }
