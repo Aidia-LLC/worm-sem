@@ -84,6 +84,7 @@
     }
   },
   "dependencies": {
+    "@solid-primitives/reducer": "^0.0.101",
     "date-fns": "^2.29.3",
     "tempy": "^3.0.0",
     "zod": "^3.21.4"
