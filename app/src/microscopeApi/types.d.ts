@@ -3,7 +3,7 @@ export type Message = {
   id: number;
   code?: number;
   message?: string;
-  payload?: string;
+  payload?: any;
   filename?: string;
 };
 
@@ -25,7 +25,7 @@ interface BaseCommand {
 }
 
 export interface GrabFullFrameCommand extends BaseCommand {
-  type: "grabFullFrame";
+  type: "GRAB_FULL_FRAME";
   name: string;
   filename?: string;
   reduction: number;
@@ -45,39 +45,29 @@ interface ExecuteCommand extends BaseCommand {
 
 type CommandString = `CMD_SCANRATE${number}` | "CMD_UNFREEZE_ALL";
 
-type Param =
-  | "DP_IMAGE_STORE"
-  | "DP_FREEZE_ON"
-  | "DP_FROZEN"
-  | "AP_WIDTH"
-  | "AP_HEIGHT"
-  | "AP_MAG"
-  | "AP_WD"
-  | "AP_LINE_POSN_X"
-  | "AP_LINE_POSN_Y"
-  | "AP_PIXEL_SIZE"
-  | "AP_BRIGHTNESS"
-  | "AP_CONTRAST"
-  | "AP_STAGE_AT_X"
-  | "AP_STAGE_AT_Y"
-  | "AP_STAGE_GOTO_X"
-  | "AP_STAGE_GOTO_Y"
-  | "AP_STAGE_HIGH_X"
-  | "AP_STAGE_HIGH_Y"
-  | "AP_STAGE_LOW_X"
-  | "AP_STAGE_LOW_Y"
-  | "DP_DETECTOR_TYPE";
+type ParamName =
+  | "SCAN_SPEED"
+  | "IMAGE_QUALITY"
+  | "FREEZE_ON"
+  | "FROZEN"
+  | "MAGNIFICATION"
+  | "WORKING_DISTANCE"
+  | "BRIGHTNESS"
+  | "CONTRAST"
+  | "STAGE_POSITION"
+  | "STAGE_BOUNDS"
+  | "FIELD_OF_VIEW"
+  | "DETECTOR_TYPE";
 
 interface SetParamCommand extends BaseCommand {
-  type: "setParam";
-  param: Param;
-  intValue?: number;
-  doubleValue?: number;
+  type: "SET_PARAM";
+  param: ParamName;
+  value?: any;
 }
 
 export interface GetParamCommand extends BaseCommand {
-  type: "getParam";
-  param: Param;
+  type: "GET_PARAM";
+  param: ParamName;
 }
 
 declare global {

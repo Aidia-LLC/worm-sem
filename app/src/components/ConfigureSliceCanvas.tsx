@@ -4,7 +4,6 @@ import {
   StageConfiguration,
 } from "@logic/semCoordinates";
 import { createSignal, onMount, Show } from "solid-js";
-import { MAX_MAG } from "src/data/magnification";
 import {
   DETECTOR_TYPE_STEM_A_ZOOMED_IN,
   getSEMParam,
@@ -14,6 +13,7 @@ import { getNextCommandId } from "src/data/signals/commandQueue";
 import { RibbonData, SliceConfiguration } from "src/types/canvas";
 import { Button } from "./Button";
 import { SliderPicker } from "./SliderPicker";
+import { MAX_MAG } from "src/data/signals/options";
 
 export const ConfigureSliceCanvas = (props: {
   ribbon: RibbonData;

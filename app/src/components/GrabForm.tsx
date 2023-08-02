@@ -63,8 +63,8 @@ export const GrabForm = (props: {
           await grabSEMImageOnFrameEnd(
             {
               id: ids[0],
-              type: "grabFullFrame",
-              name: "grabFullFrame",
+              type: "GRAB_FULL_FRAME",
+              name: "GRAB_FULL_FRAME",
               reduction: REDUCTION,
               temporary: true,
             },

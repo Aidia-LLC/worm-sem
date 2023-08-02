@@ -20,7 +20,7 @@ export const handleFinalImaging = async (
   onProgressUpdate(0);
   await grabSEMImage({
     id: getNextCommandId(),
-    type: "grabFullFrame",
+    type: "GRAB_FULL_FRAME",
     name: "setup",
     reduction: -1,
     temporary: false,
@@ -97,7 +97,7 @@ export const handleFinalImaging = async (
     await grabSEMImageOnFrameEnd(
       {
         id: getNextCommandId(),
-        type: "grabFullFrame",
+        type: "GRAB_FULL_FRAME",
         name: config.label,
         reduction: -1,
         temporary: false,

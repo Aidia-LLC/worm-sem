@@ -1,8 +1,12 @@
-import { GetParamCommand, GrabFullFrameCommand, Param } from "src/types/semClient";
+import {
+  GetParamCommand,
+  GrabFullFrameCommand,
+  ZeissParam,
+} from "src/microscopeApi/types";
 import { sleep } from "../logic/handleFinalImaging";
 import { getNextCommandId } from "./signals/commandQueue";
 
-export const getSEMParam = (param: Param): Promise<string> => {
+export const getSEMParam = (param: ZeissParam): Promise<string> => {
   return new Promise((resolve, reject) => {
     const command: GetParamCommand = {
       id: getNextCommandId(),
@@ -80,5 +84,4 @@ export const SLOWEST_SCAN_SPEED = 7;
 export const LOWER_IMAGE_QUALITY = 4;
 export const HIGHEST_IMAGE_QUALITY = 7;
 
-export const DETECTOR_TYPE_STEM_A_ZOOMED_IN = 40;
-export const DETECTOR_TYPE_STEM_D_ZOOMED_OUT = 43;
+
