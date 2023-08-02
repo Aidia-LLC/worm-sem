@@ -8,6 +8,7 @@ import {
 import { edgeFilter } from "@logic/edgeFilter";
 import { handleFinalImaging, sleep } from "@logic/handleFinalImaging";
 import { base64ToImageSrc } from "@logic/image";
+import pointMatching from "@logic/pointMatching";
 import { segmentImage } from "@logic/segmentation";
 import {
   computeStageCoordinates,
@@ -29,6 +30,12 @@ import {
 } from "solid-js";
 import { createOptionsStore } from "src/data/createOptionsStore";
 import { DEFAULT_MAG } from "src/data/magnification";
+import {
+  actions,
+  ribbonDispatcher,
+  ribbonReducerInitialState,
+  RibbonReducerState,
+} from "src/data/ribbonReducer";
 import { getSEMParam } from "src/data/semParams";
 import { getNextCommandId } from "src/data/signals/commandQueue";
 import type {
@@ -36,7 +43,6 @@ import type {
   RibbonData,
   SliceConfiguration,
   Trapezoid,
-  Vertex,
   ZoomState,
 } from "src/types/canvas";
 import { Button } from "./Button";
@@ -328,7 +334,16 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     if (inTrapezoid && trapezoid) {
       const { trapezoidSet } = findTrapezoidSet(trapezoid);
       if (trapezoidSet && trapezoidSet.status === "matching") {
-        pointMatching(imgX, imgY, trapezoidSet);
+        pointMatching(
+          imgX,
+          imgY,
+          trapezoidSet,
+          ribbonDispatch,
+          ribbonReducer,
+          overlayCanvasRef,
+          handleMouseMove,
+          handleMouseUp
+        );
         return;
       }
     }
@@ -352,122 +367,6 @@ export const Canvas = (props: { samLoaded: boolean }) => {
       if (trapezoidSet.trapezoids.includes(trapezoid)) return { trapezoidSet };
     }
     return { trapezoidSet: undefined };
-  }
-
-  function pointMatching(x: number, y: number, trapezoidSet: RibbonData) {
-    const { trapezoids } = trapezoidSet;
-    if (trapezoidSet.matchedPoints.length !== 0) {
-      // find closest matched point
-      const { nearestDistance, nearestPoint } = findNearestPoint(
-        x,
-        y,
-        trapezoidSet.matchedPoints
-      );
-      if (nearestDistance < 10) {
-        // click and drag
-        overlayCanvasRef.addEventListener("mousemove", handleMouseMove);
-        overlayCanvasRef.addEventListener("mouseup", handleMouseUp);
-        ribbonDispatch(actions.setClickedPoint, nearestPoint);
-        return;
-      } else {
-        ribbonDispatch(
-          actions.setRibbons,
-          ribbonReducer.ribbons.map((t) => {
-            if (t.trapezoids === trapezoids) {
-              return {
-                ...t,
-                matchedPoints: [],
-              };
-            }
-            return t;
-          })
-        );
-      }
-    }
-    const { trapezoid, inTrapezoid } = isPointInTrapezoid(x, y, trapezoids);
-    if (!inTrapezoid || !trapezoid) return;
-    const center = {
-      x:
-        (trapezoid.top.x1 +
-          trapezoid.top.x2 +
-          trapezoid.bottom.x1 +
-          trapezoid.bottom.x2) /
-        4,
-      y:
-        (trapezoid.top.y1 +
-          trapezoid.top.y2 +
-          trapezoid.bottom.y1 +
-          trapezoid.bottom.y2) /
-        4,
-    };
-    let angle1 = 0;
-    // angle1 of the top line
-    if (trapezoid.top.x1 === trapezoid.top.x2) {
-      angle1 = Math.PI / 2;
-    } else {
-      angle1 = Math.atan(
-        (trapezoid.top.y2 - trapezoid.top.y1) /
-          (trapezoid.top.x2 - trapezoid.top.x1)
-      );
-    }
-
-    const dx = x - center.x;
-    const dy = y - center.y;
-
-    const points: Vertex[] = [];
-    points.push({
-      x,
-      y,
-    });
-    for (const otherTrapezoid of trapezoids) {
-      if (otherTrapezoid === trapezoid) continue;
-      let angle2 = 0;
-      // angle2 of the top line
-      if (otherTrapezoid.top.x1 === otherTrapezoid.top.x2) {
-        angle2 = Math.PI / 2;
-      } else {
-        angle2 = Math.atan(
-          (otherTrapezoid.top.y2 - otherTrapezoid.top.y1) /
-            (otherTrapezoid.top.x2 - otherTrapezoid.top.x1)
-        );
-      }
-      const angle = angle2 - angle1;
-
-      const otherCenter = {
-        x:
-          (otherTrapezoid.top.x1 +
-            otherTrapezoid.top.x2 +
-            otherTrapezoid.bottom.x1 +
-            otherTrapezoid.bottom.x2) /
-          4,
-        y:
-          (otherTrapezoid.top.y1 +
-            otherTrapezoid.top.y2 +
-            otherTrapezoid.bottom.y1 +
-            otherTrapezoid.bottom.y2) /
-          4,
-      };
-      const otherDx = dx * Math.cos(angle) - dy * Math.sin(angle);
-      const otherDy = dx * Math.sin(angle) + dy * Math.cos(angle);
-      const otherX = otherCenter.x + otherDx;
-      const otherY = otherCenter.y + otherDy;
-      points.push({
-        x: otherX,
-        y: otherY,
-      });
-    }
-    ribbonDispatch(
-      actions.setRibbons,
-      ribbonReducer.ribbons.map((t) => {
-        if (t.trapezoids === trapezoids) {
-          return {
-            ...t,
-            matchedPoints: points,
-          };
-        }
-        return t;
-      })
-    );
   }
 
   function handleMouseMove(e: MouseEvent) {
@@ -1178,58 +1077,4 @@ export const Canvas = (props: { samLoaded: boolean }) => {
       </div>
     </div>
   );
-};
-
-const ribbonReducerInitialState = {
-  ribbons: [] as RibbonData[],
-  focusedRibbon: null as RibbonData["id"] | null,
-  grabbing: false,
-  clickedPoints: [] as [number, number][],
-  clickedPoint: null as Vertex | null,
-  detection: true,
-  detectionLoading: false,
-  masks: [] as ImageData[],
-};
-
-const actions = {
-  setRibbons: "setRibbons",
-  setFocusedRibbon: "setFocusedRibbon",
-  setGrabbing: "setGrabbing",
-  setClickedPoints: "setClickedPoints",
-  setClickedPoint: "setClickedPoint",
-  setDetection: "setDetection",
-  setDetectionLoading: "setDetectionLoading",
-  setMasks: "setMasks",
-  resetImage: "resetImage",
-};
-
-type RibbonReducerState = typeof ribbonReducerInitialState;
-
-const ribbonDispatcher = (
-  state: typeof ribbonReducerInitialState,
-  action: keyof typeof actions,
-  payload: any
-) => {
-  switch (action) {
-    case actions.setRibbons:
-      return { ...state, ribbons: payload };
-    case actions.setFocusedRibbon:
-      return { ...state, focusedRibbon: payload };
-    case actions.setGrabbing:
-      return { ...state, grabbing: payload };
-    case actions.setClickedPoints:
-      return { ...state, clickedPoints: payload };
-    case actions.setClickedPoint:
-      return { ...state, clickedPoint: payload };
-    case actions.setDetection:
-      return { ...state, detection: payload };
-    case actions.setDetectionLoading:
-      return { ...state, detectionLoading: payload };
-    case actions.setMasks:
-      return { ...state, masks: payload };
-    case actions.resetImage:
-      return { ...state, ribbons: [], masks: [], clickedPoints: [] };
-    default:
-      return state;
-  }
 };
