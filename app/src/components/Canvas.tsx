@@ -1,13 +1,7 @@
 import {
   convertZoomedCoordinatesToFullImage,
-  DirectSearchOptimization,
   DrawTrapezoid,
-  findConnectedTrapezoids,
-  getPointsOnTrapezoid,
-  getSquare,
   lerp,
-  permuteTrapezoid,
-  RANSAC,
   setupCanvas,
   translateTrapezoid,
 } from "@logic/canvas";
@@ -20,10 +14,7 @@ import {
   StageConfiguration,
 } from "@logic/semCoordinates";
 import { getIndicesOfSlicesToConfigure } from "@logic/sliceConfiguration";
-import { orderTrapezoids } from "@logic/trapezoids/connected";
-import { detectTrapezoid } from "@logic/trapezoids/detection";
 import { findNearestPoint, isPointInTrapezoid } from "@logic/trapezoids/points";
-import { trapezoidIsValid } from "@logic/trapezoids/valid";
 import { findNearestVertex, moveVertex } from "@logic/trapezoids/vertices";
 import {
   createEffect,
@@ -52,6 +43,7 @@ import { ConfigureSliceCanvas } from "./ConfigureSliceCanvas";
 import { GrabForm } from "./GrabForm";
 import { Param } from "./Param";
 import { availableColors, RibbonConfig } from "./RibbonConfig";
+import { RibbonDetector } from "./RibbonDetector";
 import { SliderPicker } from "./SliderPicker";
 
 const DEFAULT_ZOOM_SCALE = 10;
@@ -749,100 +741,18 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     number,
     number
   ][]) => {
-    const edgeContext = edgeDataCanvasRef.getContext("2d")!;
-    const edgeData = edgeContext.getImageData(
-      0,
-      0,
-      edgeDataCanvasRef.width,
-      edgeDataCanvasRef.height
-    );
-    let { trapezoid, fit } = detectTrapezoid(
-      imgX,
-      imgY,
-      edgeData,
-      // canvasRef.getContext("2d")!,
-      options.options
-    );
-    console.log("trapezoid", trapezoid);
-    const valid =
-      trapezoid &&
-      trapezoidIsValid(trapezoid, imgX, imgY, options.options, fit);
-    console.log("valid", valid);
-    if (!valid) {
-      const square = getSquare(
-        edgeData,
-        imgX,
-        imgY,
-        options.options.squareSize
-      );
-      trapezoid = RANSAC(
-        square,
-        0,
-        options.options,
-        imgX - options.options.squareSize / 2,
-        imgY - options.options.squareSize / 2
-      )!;
-      console.log("trapezoid ransac", trapezoid);
-      if (!trapezoid) return;
-      trapezoid = translateTrapezoid(
-        trapezoid,
-        imgX - options.options.squareSize / 2,
-        imgY - options.options.squareSize / 2
-      );
-      const { trapezoid: newTrapezoid } = DirectSearchOptimization(
-        getPointsOnTrapezoid,
-        trapezoid,
-        square,
-        options.options,
-        imgX - options.options.squareSize / 2,
-        imgY - options.options.squareSize / 2
-      );
-      trapezoid = newTrapezoid;
-    }
-    if (!trapezoid) return;
-    trapezoid = permuteTrapezoid(trapezoid);
+    const trapezoids = await RibbonDetector({
+      point: [imgX, imgY],
+      edgeDataCanvasRef,
+      options: options.options,
+    });
     const id = nextId();
     setNextId((prev) => prev + 1);
-    setDetection(false);
+    setDetection(false); //may need to be called earlier?
+    setShowOriginalImage(true);
     const colors = new Set(availableColors);
     ribbons().forEach((set) => colors.delete(set.color));
     const color = colors.size > 0 ? colors.values().next().value : "red";
-    const connectedTrapezoids = findConnectedTrapezoids(
-      trapezoid,
-      edgeContext,
-      imgX,
-      imgY,
-      options.options,
-      options.options.minimumFit
-    );
-    const trapezoids = orderTrapezoids(
-      [trapezoid, ...connectedTrapezoids].filter((t) => {
-        const x = [
-          t.bottom.x1,
-          t.bottom.x2,
-          t.left.x1,
-          t.left.x2,
-          t.right.x1,
-          t.right.x2,
-          t.top.x1,
-          t.top.x2,
-        ];
-        const y = [
-          t.bottom.y1,
-          t.bottom.y2,
-          t.left.y1,
-          t.left.y2,
-          t.right.y1,
-          t.right.y2,
-          t.top.y1,
-          t.top.y2,
-        ];
-        return (
-          x.every((x) => x >= 0 && x < edgeData.width) &&
-          y.every((y) => y >= 0 && y < edgeData.height)
-        );
-      })
-    );
     setRibbons((prev) => [
       ...prev,
       {
@@ -858,7 +768,6 @@ export const Canvas = (props: { samLoaded: boolean }) => {
         clickedPoints: [[imgX, imgY], ...points],
       } as RibbonData,
     ]);
-    setShowOriginalImage(true);
   };
 
   return (
