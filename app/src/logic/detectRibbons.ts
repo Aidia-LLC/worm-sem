@@ -15,10 +15,12 @@ import { ProcessingOptions } from "src/types/ProcessingOptions";
 export const detectRibbons = async ({
   point: [imgX, imgY],
   edgeDataCanvasRef,
+  overlayCanvasRef,
   options,
 }: {
   point: [number, number];
   edgeDataCanvasRef: HTMLCanvasElement;
+  overlayCanvasRef: HTMLCanvasElement;
   options: ProcessingOptions;
 }) => {
   console.log("findTrapezoid");
@@ -33,7 +35,7 @@ export const detectRibbons = async ({
     imgX,
     imgY,
     edgeData,
-    edgeDataCanvasRef.getContext("2d")!,
+    overlayCanvasRef.getContext("2d")!,
     options
   );
   console.log("trapezoid", trapezoid);
