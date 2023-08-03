@@ -4,7 +4,7 @@ import { ribbonState } from "src/data/signals/globals";
 import { Button } from "../Button";
 
 export const MaskSelector = (props: {
-  edgeDataCanvasRef: HTMLCanvasElement;
+  edgeDataCanvasRef: () => HTMLCanvasElement;
   handleRibbonDetection: (points: [number, number][]) => void;
 }) => {
   const [ribbonReducer, ribbonDispatch] = ribbonState;
@@ -48,15 +48,15 @@ export const MaskSelector = (props: {
             action: "setClickedPoints",
             payload: [],
           });
-          const edgeContext = props.edgeDataCanvasRef.getContext("2d")!;
+          const edgeContext = props.edgeDataCanvasRef().getContext("2d")!;
           edgeContext.clearRect(
             0,
             0,
-            props.edgeDataCanvasRef.width,
-            props.edgeDataCanvasRef.height
+            props.edgeDataCanvasRef().width,
+            props.edgeDataCanvasRef().height
           );
           const edgeData = edgeFilter(
-            props.edgeDataCanvasRef,
+            props.edgeDataCanvasRef(),
             mask,
             edgeContext
           );

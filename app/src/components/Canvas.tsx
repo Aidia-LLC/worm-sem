@@ -780,7 +780,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
               </Show>
             </Show>
             <MaskSelector
-              edgeDataCanvasRef={edgeDataCanvasRef}
+              edgeDataCanvasRef={() => edgeDataCanvasRef}
               handleRibbonDetection={handleRibbonDetection}
             />
             <Show when={ribbonReducer().ribbons.length > 0}>
