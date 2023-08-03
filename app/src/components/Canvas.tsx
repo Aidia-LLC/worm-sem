@@ -76,7 +76,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
   const [options] = optionsStore;
 
   createEffect(() => {
-    const [mask] = ribbonReducer.masks;
+    const [mask] = ribbonReducer().masks;
     if (!mask) return;
     const ctx = edgeDataCanvasRef.getContext("2d");
     if (!ctx) return;
@@ -149,7 +149,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
       ctx.translate(-x, -y);
     }
 
-    if (ribbonReducer.detection) {
+    if (ribbonReducer().detection) {
       const [x, y] = cursorPosition();
       const halfSquare = options.options.squareSize / 2;
       if (x && y) {
@@ -166,7 +166,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
         ctx.stroke();
       }
 
-      for (const point of ribbonReducer.clickedPoints) {
+      for (const point of ribbonReducer().clickedPoints) {
         ctx.beginPath();
         ctx.arc(point[0], point[1], 10, 0, 2 * Math.PI);
         ctx.fillStyle = "red";
@@ -189,7 +189,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
       }
     }
 
-    for (const trapezoidSet of ribbonReducer.ribbons) {
+    for (const trapezoidSet of ribbonReducer().ribbons) {
       const { trapezoids, color, thickness } = trapezoidSet;
       for (let i = 0; i < trapezoids.length; i++) {
         // render the first trapezoid distinctly
@@ -288,7 +288,9 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     const { inTrapezoid, trapezoid } = isPointInTrapezoid(
       imgX,
       imgY,
-      ribbonReducer.ribbons.map((t) => t.trapezoids).flat()
+      ribbonReducer()
+        .ribbons.map((t) => t.trapezoids)
+        .flat()
     );
     if (inTrapezoid && trapezoid) {
       const { trapezoidSet } = findTrapezoidSet(trapezoid);
@@ -298,7 +300,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           imgY,
           trapezoidSet,
           ribbonDispatch,
-          ribbonReducer,
+          ribbonReducer(),
           overlayCanvasRef,
           handleMouseMove,
           handleMouseUp
@@ -309,7 +311,9 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     const { nearestDistance } = findNearestVertex(
       imgX,
       imgY,
-      ribbonReducer.ribbons.map((t) => t.trapezoids).flat()
+      ribbonReducer()
+        .ribbons.map((t) => t.trapezoids)
+        .flat()
     );
     if (nearestDistance < vertexDist || inTrapezoid) {
       ribbonDispatch(actions.setClickedPoint, { x: imgX, y: imgY });
@@ -322,7 +326,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
   }
 
   function findTrapezoidSet(trapezoid: Trapezoid) {
-    for (const trapezoidSet of ribbonReducer.ribbons) {
+    for (const trapezoidSet of ribbonReducer().ribbons) {
       if (trapezoidSet.trapezoids.includes(trapezoid)) return { trapezoidSet };
     }
     return { trapezoidSet: undefined };
@@ -352,12 +356,16 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     const { inTrapezoid, trapezoid } = isPointInTrapezoid(
       imgX,
       imgY,
-      ribbonReducer.ribbons.map((t) => t.trapezoids).flat()
+      ribbonReducer()
+        .ribbons.map((t) => t.trapezoids)
+        .flat()
     );
     const { nearestVertex, nearestDistance } = findNearestVertex(
       imgX,
       imgY,
-      ribbonReducer.ribbons.map((t) => t.trapezoids).flat()
+      ribbonReducer()
+        .ribbons.map((t) => t.trapezoids)
+        .flat()
     );
     if (inTrapezoid && trapezoid) {
       const { trapezoidSet } = findTrapezoidSet(trapezoid);
@@ -374,7 +382,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           });
           ribbonDispatch(
             actions.setRibbons,
-            ribbonReducer.ribbons.map((t) => {
+            ribbonReducer().ribbons.map((t) => {
               if (t.trapezoids === trapezoidSet.trapezoids) {
                 return {
                   ...t,
@@ -389,8 +397,8 @@ export const Canvas = (props: { samLoaded: boolean }) => {
       }
       // Dragging a trapezoid
       else if (nearestVertex && nearestDistance > vertexDist && trapezoidSet) {
-        const dy = imgY - ribbonReducer.clickedPoint!.y ?? 0;
-        const dx = imgX - ribbonReducer.clickedPoint!.x ?? 0;
+        const dy = imgY - ribbonReducer().clickedPoint!.y ?? 0;
+        const dx = imgX - ribbonReducer().clickedPoint!.x ?? 0;
         ribbonDispatch(actions.setClickedPoint, { x: imgX, y: imgY });
         const newTrapezoid = translateTrapezoid(trapezoid, dx, dy);
         // if new trapezoid is touching the edge of the image, delete it
@@ -417,7 +425,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           );
           ribbonDispatch(
             actions.setRibbons,
-            ribbonReducer.ribbons.map((t) =>
+            ribbonReducer().ribbons.map((t) =>
               t.trapezoids === trapezoidSet.trapezoids
                 ? { ...t, trapezoids: newTrapezoids, matchedPoints: [] }
                 : t
@@ -438,7 +446,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
         );
         ribbonDispatch(
           actions.setRibbons,
-          ribbonReducer.ribbons.map((t) =>
+          ribbonReducer().ribbons.map((t) =>
             t.trapezoids === trapezoidSet.trapezoids
               ? { ...t, trapezoids: newTrapezoids, matchedPoints: [] }
               : t
@@ -450,8 +458,8 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     // Dragging a vertex
     if (nearestDistance < 3) return;
     if (nearestVertex && nearestDistance < 15) {
-      const trapezoid = ribbonReducer.ribbons
-        .map((t) => t.trapezoids)
+      const trapezoid = ribbonReducer()
+        .ribbons.map((t) => t.trapezoids)
         .flat()
         .find(
           (t) =>
@@ -474,7 +482,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           : t
       );
       if (!newSet) return;
-      const newTrapezoids = ribbonReducer.ribbons.map((t) =>
+      const newTrapezoids = ribbonReducer().ribbons.map((t) =>
         t.trapezoids === trapezoidSet?.trapezoids
           ? { ...t, trapezoids: newSet, matchedPoints: [] }
           : t
@@ -494,8 +502,8 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     setFocusedSlice(-1);
     ribbonDispatch(actions.setGrabbing, true);
     const userConfigurations = sliceConfiguration();
-    const ribbon = ribbonReducer.ribbons.find(
-      (r) => r.id === ribbonReducer.focusedRibbon
+    const ribbon = ribbonReducer().ribbons.find(
+      (r) => r.id === ribbonReducer().focusedRibbon
     );
     const stage = initialStage();
     if (!ribbon || !stage) return;
@@ -564,8 +572,8 @@ export const Canvas = (props: { samLoaded: boolean }) => {
   };
 
   const handleMoveStageToSlice = async () => {
-    const ribbon = ribbonReducer.ribbons.find(
-      (ribbon) => ribbon.id === ribbonReducer.focusedRibbon
+    const ribbon = ribbonReducer().ribbons.find(
+      (ribbon) => ribbon.id === ribbonReducer().focusedRibbon
     )!;
     const point = ribbon.matchedPoints[focusedSlice()];
     const coordinates = computeStageCoordinates({
@@ -591,10 +599,10 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     ribbonDispatch(actions.setDetection, false); //may need to be called earlier?
     setShowOriginalImage(true);
     const colors = new Set(availableColors);
-    ribbonReducer.ribbons.forEach((set) => colors.delete(set.color));
+    ribbonReducer().ribbons.forEach((set) => colors.delete(set.color));
     const color = colors.size > 0 ? colors.values().next().value : "red";
     ribbonDispatch(actions.setRibbons, [
-      ...ribbonReducer.ribbons,
+      ...ribbonReducer().ribbons,
       {
         trapezoids,
         id,
@@ -613,7 +621,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
   return (
     <div class="flex flex-col gap-3 text-xs">
       <Show
-        when={ribbonReducer.grabbing}
+        when={ribbonReducer().grabbing}
         fallback={
           <Show when={focusedSlice() !== -1 && initialStage()}>
             <ConfigureSliceCanvas
@@ -671,8 +679,8 @@ export const Canvas = (props: { samLoaded: boolean }) => {
                 }
               }}
               ribbon={
-                ribbonReducer.ribbons.find(
-                  (ribbon) => ribbon.id === ribbonReducer.focusedRibbon
+                ribbonReducer().ribbons.find(
+                  (ribbon) => ribbon.id === ribbonReducer().focusedRibbon
                 )!
               }
             />
@@ -695,21 +703,21 @@ export const Canvas = (props: { samLoaded: boolean }) => {
             >
               Clear Image
             </Button>
-            <Show when={ribbonReducer.masks.length === 0}>
+            <Show when={ribbonReducer().masks.length === 0}>
               <Button
                 onClick={() => {
-                  const newState = !ribbonReducer.detection;
+                  const newState = !ribbonReducer().detection;
                   if (!newState) ribbonDispatch(actions.setClickedPoints, []);
                   ribbonDispatch(actions.setDetection, newState);
                 }}
-                disabled={ribbonReducer.detectionLoading}
+                disabled={ribbonReducer().detectionLoading}
               >
-                <Show when={ribbonReducer.detection} fallback="Enable">
+                <Show when={ribbonReducer().detection} fallback="Enable">
                   Disable
                 </Show>{" "}
                 Ribbon Detection
               </Button>
-              <Show when={ribbonReducer.clickedPoints.length > 2}>
+              <Show when={ribbonReducer().clickedPoints.length > 2}>
                 <Button
                   onClick={async () => {
                     const points = ribbonReducer().clickedPoints;
@@ -724,7 +732,9 @@ export const Canvas = (props: { samLoaded: boolean }) => {
                     ribbonDispatch(actions.setDetectionLoading, false);
                     ribbonDispatch(actions.setMasks, segmentedImageData);
                   }}
-                  disabled={ribbonReducer().detectionLoading || !props.samLoaded}
+                  disabled={
+                    ribbonReducer().detectionLoading || !props.samLoaded
+                  }
                 >
                   Detect Ribbon
                 </Button>
@@ -766,7 +776,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
                 Accept Mask
               </Button>
             </Show>
-            <Show when={ribbonReducer.ribbons.length > 0}>
+            <Show when={ribbonReducer().ribbons.length > 0}>
               <Button onClick={() => ribbonDispatch(actions.setRibbons, [])}>
                 Remove All Ribbons
               </Button>
@@ -781,13 +791,13 @@ export const Canvas = (props: { samLoaded: boolean }) => {
             <ZoomController />
           </div>
         </Show>
-        <For each={ribbonReducer.ribbons}>
+        <For each={ribbonReducer().ribbons}>
           {(trapezoidSet) => (
             <RibbonConfig
-              grabbing={ribbonReducer.focusedRibbon === trapezoidSet.id}
+              grabbing={ribbonReducer().focusedRibbon === trapezoidSet.id}
               onGrab={async (id) => {
                 ribbonDispatch(actions.setFocusedRibbon, id);
-                const trapezoids = ribbonReducer.ribbons.find(
+                const trapezoids = ribbonReducer().ribbons.find(
                   (t) => t.id === id
                 )!.trapezoids;
                 const indicesToConfigure = getIndicesOfSlicesToConfigure(
@@ -817,7 +827,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
               canvasSize={canvasRef}
               ribbon={trapezoidSet}
               setTrapezoidSet={(newTrapezoidSet) => {
-                const newTrapezoidSets = ribbonReducer.ribbons.map((t) =>
+                const newTrapezoidSets = ribbonReducer().ribbons.map((t) =>
                   t.id === newTrapezoidSet.id ? { ...t, ...newTrapezoidSet } : t
                 );
                 ribbonDispatch(actions.setRibbons, newTrapezoidSets);
@@ -825,14 +835,16 @@ export const Canvas = (props: { samLoaded: boolean }) => {
               onDelete={({ id }) =>
                 ribbonDispatch(
                   actions.setRibbons,
-                  ribbonReducer.ribbons.filter((t) => t.id !== id)
+                  ribbonReducer().ribbons.filter((t) => t.id !== id)
                 )
               }
               ctx={canvasRef.getContext("2d")!}
               onDetectAgain={() => {
                 ribbonDispatch(
                   actions.setRibbons,
-                  ribbonReducer.ribbons.filter((s) => s.id !== trapezoidSet.id)
+                  ribbonReducer().ribbons.filter(
+                    (s) => s.id !== trapezoidSet.id
+                  )
                 );
                 const points = [...trapezoidSet.clickedPoints];
                 // move the first point to the end of the array
@@ -857,19 +869,19 @@ export const Canvas = (props: { samLoaded: boolean }) => {
             step={1}
           />
         </Show>
-        <Show when={ribbonReducer.detection}>
+        <Show when={ribbonReducer().detection}>
           <span class="text-xl font-bold">
             <Switch>
-              <Match when={ribbonReducer.clickedPoints.length === 0}>
+              <Match when={ribbonReducer().clickedPoints.length === 0}>
                 Click the center point of a slice in the middle of the ribbon
               </Match>
-              <Match when={ribbonReducer.clickedPoints.length === 1}>
+              <Match when={ribbonReducer().clickedPoints.length === 1}>
                 Click the center point of a slice at the start of the ribbon
               </Match>
-              <Match when={ribbonReducer.clickedPoints.length === 2}>
+              <Match when={ribbonReducer().clickedPoints.length === 2}>
                 Click the center point of a slice at the end of the ribbon
               </Match>
-              <Match when={ribbonReducer.clickedPoints.length === 3}>
+              <Match when={ribbonReducer().clickedPoints.length === 3}>
                 Click any other points in the ribbon if desired, or click
                 "Detect Ribbon" to finish
               </Match>
@@ -881,7 +893,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
       <div
         class="relative"
         classList={{
-          hidden: focusedSlice() !== -1 || ribbonReducer.grabbing,
+          hidden: focusedSlice() !== -1 || ribbonReducer().grabbing,
         }}
         onMouseMove={(e) => {
           const rect = canvasRef.getBoundingClientRect();
@@ -929,7 +941,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
             "cursor-zoom-in": zoomState().status === "picking-center",
             "cursor-crosshair":
               zoomState().status !== "picking-center" &&
-              ribbonReducer.detection,
+              ribbonReducer().detection,
           }}
         ></canvas>
         <ParameterPanel />
