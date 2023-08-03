@@ -16,12 +16,15 @@ import { Trapezoid } from "../types/canvas";
 export const detectRibbons = async ({
   point: [imgX, imgY],
   edgeDataCanvasRef,
+  overlayCanvasRef,
   options,
 }: {
   point: [number, number];
   edgeDataCanvasRef: HTMLCanvasElement;
+  overlayCanvasRef: HTMLCanvasElement;
   options: ProcessingOptions;
 }): Promise<Trapezoid[]> => {
+  console.log("findTrapezoid");
   const edgeContext = edgeDataCanvasRef.getContext("2d")!;
   const edgeData = edgeContext.getImageData(
     0,
@@ -33,7 +36,7 @@ export const detectRibbons = async ({
     imgX,
     imgY,
     edgeData,
-    // canvasRef.getContext("2d")!,
+    overlayCanvasRef.getContext("2d")!,
     options
   );
   console.log("trapezoid", trapezoid);

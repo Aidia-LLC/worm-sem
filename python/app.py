@@ -33,6 +33,7 @@ def init():
     return {
         'success': True,
         'alreadyInitialized': False,
+        'test': True
     }
 
 

@@ -592,9 +592,11 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     number,
     number
   ][]) => {
+    console.log("detecting ribbon");
     const trapezoids = await detectRibbons({
       point: [imgX, imgY],
-      edgeDataCanvasRef: edgeDataCanvasRef,
+      edgeDataCanvasRef,
+      overlayCanvasRef,
       options: options.options,
     });
     const id = nextId();

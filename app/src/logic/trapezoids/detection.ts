@@ -1,30 +1,42 @@
-import { ProcessingOptions } from "src/types/ProcessingOptions";
 import { permuteTrapezoid } from "@logic/canvas";
+import { ProcessingOptions } from "src/types/ProcessingOptions";
 
 export function detectTrapezoid(
   x: number,
   y: number,
   imageData: ImageData,
-  // ctx: CanvasRenderingContext2D,
+  ctx: CanvasRenderingContext2D,
   options: ProcessingOptions
 ) {
   const square = getSquare(imageData, x, y, options.squareSize);
+  console.log("square", square);
+  // draw square
+  ctx.beginPath();
+  ctx.rect(
+    x - options.squareSize / 2,
+    y - options.squareSize / 2,
+    options.squareSize,
+    options.squareSize
+  );
+  ctx.strokeStyle = "blue";
+  ctx.stroke();
+  ctx.closePath();
 
   const lines = hough(square, options);
-  // for (const line of lines) {
-  //   ctx.beginPath();
-  //   ctx.moveTo(
-  //     line.x1 + x - options.squareSize / 2,
-  //     line.y1 + y - options.squareSize / 2
-  //   );
-  //   ctx.lineTo(
-  //     line.x2 + x - options.squareSize / 2,
-  //     line.y2 + y - options.squareSize / 2
-  //   );
-  //   ctx.strokeStyle = "green";
-  //   ctx.stroke();
-  //   ctx.closePath();
-  // }
+  for (const line of lines) {
+    ctx.beginPath();
+    ctx.moveTo(
+      line.x1 + x - options.squareSize / 2,
+      line.y1 + y - options.squareSize / 2
+    );
+    ctx.lineTo(
+      line.x2 + x - options.squareSize / 2,
+      line.y2 + y - options.squareSize / 2
+    );
+    ctx.strokeStyle = "green";
+    ctx.stroke();
+    ctx.closePath();
+  }
 
   const goodLines = pixelsPerLine(lines, square, options);
   // for (const line of goodLines) {
