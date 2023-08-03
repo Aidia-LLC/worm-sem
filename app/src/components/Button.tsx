@@ -8,9 +8,13 @@ export const Button = (props: {
   class?: string;
   disabled?: boolean;
   tooltip?: string;
+  tooltipPosition?: "right" | "bottom";
 }) => {
   return (
-    <Tooltip message={props.tooltip ?? ""}>
+    <Tooltip
+      message={props.tooltip ?? ""}
+      position={props.tooltipPosition || "right"}
+    >
       <button
         class={`text-white w-full h-full font-bold py-2 px-4 rounded transition-colors ${props.class} uppercase text-sm leading-tight`}
         classList={{

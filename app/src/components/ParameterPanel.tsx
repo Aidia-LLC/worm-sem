@@ -18,8 +18,11 @@ export const ParameterPanel = () => {
       <h3 class="font-bold text-xl mt-4">Options</h3>
       <div class="grid grid-cols-2 gap-3">
         <div class="flex flex-col gap-3">
-          <p>For fine tuning of all other parameters:</p>
-          <Button onClick={() => setParamsHidden(!paramsHidden())}>
+          <Button
+            variant="primary-outline"
+            onClick={() => setParamsHidden(!paramsHidden())}
+            tooltip="Allows fine tuning of other parameters."
+          >
             {paramsHidden() ? "Show" : "Hide"} Additional Parameters
           </Button>
         </div>
@@ -39,6 +42,7 @@ export const ParameterPanel = () => {
             setScanSpeed(value);
           }}
           description="kfdsjklf"
+          tooltipPosition="right"
         />
         <Param
           label="Minimum Fit for Recurrence"
@@ -57,6 +61,7 @@ export const ParameterPanel = () => {
             setOptions("options", "firstFit", value);
             setOptionsSequence(optionsSequence() + 1);
           }}
+          tooltipPosition="right"
         />
         <Show when={!paramsHidden()}>
           <Param
@@ -76,6 +81,7 @@ export const ParameterPanel = () => {
               setOptions("options", "mergeLineThreshold", value);
               setOptionsSequence(optionsSequence() + 1);
             }}
+            tooltipPosition="right"
           />
           <Param
             description="Lines that cross less than this number of edge pixels are discarded."
@@ -94,8 +100,13 @@ export const ParameterPanel = () => {
               setOptions("options", "maxLines", value);
               setOptionsSequence(optionsSequence() + 1);
             }}
+            tooltipPosition="right"
           />
-          <Button onClick={resetOptions}>Reset Parameters</Button>
+          <div>
+            <Button variant="primary-outline" onClick={resetOptions}>
+              Reset Parameters
+            </Button>
+          </div>
         </Show>
       </div>
     </>
