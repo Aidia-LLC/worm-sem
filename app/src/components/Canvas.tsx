@@ -369,6 +369,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     return { trapezoidSet: undefined };
   }
 
+  //rewrite this to be smaller and rely less on guesswork
   function handleMouseMove(e: MouseEvent) {
     // calculate the new cursor position:
     const rect = canvasRef.getBoundingClientRect();
