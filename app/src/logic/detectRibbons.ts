@@ -21,6 +21,7 @@ export const detectRibbons = async ({
   edgeDataCanvasRef: HTMLCanvasElement;
   options: ProcessingOptions;
 }) => {
+  console.log("findTrapezoid");
   const edgeContext = edgeDataCanvasRef.getContext("2d")!;
   const edgeData = edgeContext.getImageData(
     0,
@@ -32,7 +33,7 @@ export const detectRibbons = async ({
     imgX,
     imgY,
     edgeData,
-    // canvasRef.getContext("2d")!,
+    edgeDataCanvasRef.getContext("2d")!,
     options
   );
   console.log("trapezoid", trapezoid);

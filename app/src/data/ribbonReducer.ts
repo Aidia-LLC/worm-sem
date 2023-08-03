@@ -70,11 +70,10 @@ export const ribbonDispatcher = (
   state: typeof ribbonReducerInitialState,
   event: RibbonDispatchPayload
 ) => {
-  console.log("ribbonDispatcher", state);
   switch (event.action) {
     case "setRibbons":
       return { ...state, ribbons: event.payload };
-    case 'addRibbon':
+    case "addRibbon":
       return { ...state, ribbons: [...state.ribbons, event.payload] };
     case "setFocusedRibbon":
       return { ...state, focusedRibbon: event.payload };
