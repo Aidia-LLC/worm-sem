@@ -10,7 +10,7 @@ app = Flask(__name__)
 CORS(app)
 
 # for speed of development, turn on caching to get the same response back every time
-cache = False
+cache = True
 cachedResponse = None
 
 device = "cuda" if torch.cuda.is_available() else "cpu"

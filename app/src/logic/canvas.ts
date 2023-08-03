@@ -1,4 +1,4 @@
-import { ZoomState } from "@components/ZoomController";
+import { ZoomState } from "@components/RibbonDetector/ZoomController";
 import { Trapezoid, Vertex } from "src/types/canvas";
 import { ProcessingOptions } from "src/types/ProcessingOptions";
 import { base64ToImageSrc } from "./image";

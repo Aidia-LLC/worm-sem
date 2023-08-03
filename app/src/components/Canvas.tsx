@@ -43,12 +43,12 @@ import type {
   Trapezoid,
 } from "src/types/canvas";
 import { Button } from "./Button";
-import { ConfigureSliceCanvas } from "./ConfigureSliceCanvas";
+import { SliceConfigurationScreen } from "./SliceConfigurationScreen";
 import { ParameterPanel } from "./ParameterPanel";
 import { availableColors, RibbonConfig } from "./RibbonConfig";
 import { MaskSelector } from "./RibbonDetector/MaskSelector";
 import { SliderPicker } from "./SliderPicker";
-import { DEFAULT_ZOOM_SCALE, ZoomController } from "./ZoomController";
+import { DEFAULT_ZOOM_SCALE, ZoomController } from "./RibbonDetector/ZoomController";
 
 export const Canvas = (props: { samLoaded: boolean }) => {
   let canvasRef!: HTMLCanvasElement;
@@ -610,7 +610,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     ribbonDispatch({
       action: "addRibbon",
       payload: {
-        trapezoids: trapezoids!,
+        trapezoids,
         id,
         name: `Ribbon ${Math.ceil(id / 2)}`,
         color,
@@ -644,7 +644,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
         when={ribbonReducer().grabbing}
         fallback={
           <Show when={focusedSlice() !== -1 && initialStage()}>
-            <ConfigureSliceCanvas
+            <SliceConfigurationScreen
               stage={initialStage()!}
               canvas={canvasRef}
               configuration={
@@ -796,6 +796,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
             </Show>
             <Show when={ribbonReducer().masks.length > 0}>
               <Button
+                variant="ghost"
                 onClick={() => {
                   setShowOriginalImage(!showOriginalImage());
                 }}
