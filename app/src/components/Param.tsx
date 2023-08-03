@@ -6,6 +6,7 @@ export const Param = (props: {
   description: string;
   value: number;
   onChange: (value: number) => void;
+  tooltipPosition?: "right" | "bottom";
 }) => {
   const [currentValue, setCurrentValue] = createSignal(props.value);
 
@@ -20,12 +21,12 @@ export const Param = (props: {
 
   return (
     <div class="flex flex-row items-center gap-2">
-      <label class="font-bold">
+      <label class="font-bold flex flex-row">
         {props.label}
-        <Tooltip message={props.description}>
+        <Tooltip message={props.description} position={props.tooltipPosition || 'bottom'}>
           <svg
-            width="36px"
-            height="36px"
+            width="24px"
+            height="24px"
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"

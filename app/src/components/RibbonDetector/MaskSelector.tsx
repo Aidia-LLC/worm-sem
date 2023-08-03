@@ -1,6 +1,5 @@
 import { edgeFilter } from "@logic/edgeFilter";
 import { Show } from "solid-js";
-import { actions } from "src/data/ribbonReducer";
 import { ribbonState } from "src/data/signals/globals";
 import { Button } from "../Button";
 
@@ -16,7 +15,10 @@ export const MaskSelector = (props: {
           const prev = ribbonReducer().masks;
           if (prev.length === 0) return;
           const last = prev[prev.length - 1];
-          ribbonDispatch(actions.setMasks, [last, ...prev.slice(0, -1)]);
+          ribbonDispatch({
+            action: "setMasks",
+            payload: [last, ...prev.slice(0, -1)],
+          });
         }}
       >
         Previous mask
@@ -26,7 +28,10 @@ export const MaskSelector = (props: {
           const prev = ribbonReducer().masks;
           if (prev.length === 0) return;
           const [mask, ...rest] = prev;
-          ribbonDispatch(actions.setMasks, [...rest, mask]);
+          ribbonDispatch({
+            action: "setMasks",
+            payload: [...rest, mask],
+          });
         }}
       >
         Next mask
@@ -35,8 +40,14 @@ export const MaskSelector = (props: {
         onClick={() => {
           const [mask] = ribbonReducer().masks;
           const points = ribbonReducer().clickedPoints;
-          ribbonDispatch(actions.setMasks, []);
-          ribbonDispatch(actions.setClickedPoints, []);
+          ribbonDispatch({
+            action: "setMasks",
+            payload: [],
+          });
+          ribbonDispatch({
+            action: "setClickedPoints",
+            payload: [],
+          });
           const edgeContext = props.edgeDataCanvasRef.getContext("2d")!;
           edgeContext.clearRect(
             0,
