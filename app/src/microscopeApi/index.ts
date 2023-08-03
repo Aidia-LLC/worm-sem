@@ -1,8 +1,15 @@
+import { CONNECTION_ID } from "src/data/signals/history";
 import { z } from "zod";
-import { getSEMParam, setSEMParam } from "./getSEMParam";
 import { MicroscopeApi } from "./MicroscopeApi";
+import { getSEMParam, grabSEMImage, setSEMParam } from "./semBridge";
 
 export const microscopeApi: MicroscopeApi = {
+  connect: async () => {
+    window.semClient.send({
+      type: "connect",
+      id: CONNECTION_ID,
+    });
+  },
   getMagnification: async () => {
     const param = await getSEMParam("MAGNIFICATION");
     return parseFloat(param);
@@ -76,5 +83,18 @@ export const microscopeApi: MicroscopeApi = {
         }),
       })
       .parse(JSON.parse(bounds));
+  },
+  setFrozen: async (frozen) => {
+    await setSEMParam("FROZEN", frozen);
+  },
+  getFrozen: async () => {
+    const frozen = await getSEMParam("FROZEN");
+    return z.boolean().parse(frozen);
+  },
+  setFreezeOn: async (freezeOn) => {
+    await setSEMParam("FREEZE_ON", freezeOn);
+  },
+  grabFullFrame: async (props: Parameters<typeof grabSEMImage>[0]) => {
+    await grabSEMImage(props);
   },
 };

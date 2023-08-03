@@ -1,11 +1,6 @@
+import { microscopeApi } from "src/microscopeApi";
+import { grabImageOnFrameEnd } from "src/microscopeApi/grabImageOnFrameEnd";
 import { FinalSliceConfiguration } from "src/types/canvas";
-import {
-  DETECTOR_TYPE_STEM_A_ZOOMED_IN,
-  grabSEMImage,
-  grabSEMImageOnFrameEnd,
-  HIGHEST_IMAGE_QUALITY,
-} from "../data/semParams";
-import { getNextCommandId } from "../data/signals/commandQueue";
 
 export const sleep = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -18,88 +13,36 @@ export const handleFinalImaging = async (
   if (configurations.length === 0)
     return alert("No configurations received. Please try again.");
   onProgressUpdate(0);
-  await grabSEMImage({
-    id: getNextCommandId(),
-    type: "GRAB_FULL_FRAME",
-    name: "setup",
-    reduction: -1,
+  await microscopeApi.grabFullFrame({
     temporary: false,
     ribbonId: configurations[0].ribbonId,
     ribbonName: configurations[0].ribbonName,
+    filename: "",
+    name: "setup",
   });
   await sleep(500);
-  window.semClient.send({
-    id: getNextCommandId(),
-    type: "setParam",
-    param: "AP_MAG",
-    doubleValue: configurations[0].magnification,
-  });
+  await microscopeApi.setMagnification(configurations[0].magnification);
   await sleep(500);
-  window.semClient.send({
-    id: getNextCommandId(),
-    type: "setParam",
-    param: "DP_DETECTOR_TYPE",
-    doubleValue: DETECTOR_TYPE_STEM_A_ZOOMED_IN,
-  });
+  await microscopeApi.setDetectorType("ZOOMED_IN");
   await sleep(500);
-  window.semClient.send({
-    id: getNextCommandId(),
-    type: "execute",
-    command: `CMD_SCANRATE${scanSpeed}`,
-    // command: `CMD_SCANRATE${SLOWEST_SCAN_SPEED}`,
-  });
+  await microscopeApi.setScanSpeed(scanSpeed);
   await sleep(500);
-  window.semClient.send({
-    id: getNextCommandId(),
-    type: "setParam",
-    param: "DP_IMAGE_STORE",
-    doubleValue: HIGHEST_IMAGE_QUALITY,
-  });
+  await microscopeApi.setImageQuality("HIGH");
   await sleep(3000);
   for (let i = 0; i < configurations.length; i++) {
     onProgressUpdate(Math.round((i / configurations.length) * 10000) / 100);
     const config = configurations[i];
-    window.semClient.send({
-      id: getNextCommandId(),
-      type: "setParam",
-      param: "AP_STAGE_GOTO_X",
-      doubleValue: config.point.x,
-    });
+    await microscopeApi.moveStageTo(config.point);
     await sleep(500);
-    window.semClient.send({
-      id: getNextCommandId(),
-      type: "setParam",
-      param: "AP_STAGE_GOTO_Y",
-      doubleValue: config.point.y,
-    });
+    await microscopeApi.setBrightness(config.brightness);
     await sleep(500);
-    window.semClient.send({
-      id: getNextCommandId(),
-      type: "setParam",
-      param: "AP_BRIGHTNESS",
-      doubleValue: config.brightness,
-    });
+    await microscopeApi.setContrast(config.contrast);
     await sleep(500);
-    window.semClient.send({
-      id: getNextCommandId(),
-      type: "setParam",
-      param: "AP_CONTRAST",
-      doubleValue: config.contrast,
-    });
-    await sleep(500);
-    window.semClient.send({
-      id: getNextCommandId(),
-      type: "setParam",
-      param: "AP_WD",
-      doubleValue: config.focus,
-    });
+    await microscopeApi.setWorkingDistance(config.focus);
     await sleep(5000);
-    await grabSEMImageOnFrameEnd(
+    await grabImageOnFrameEnd(
       {
-        id: getNextCommandId(),
-        type: "GRAB_FULL_FRAME",
         name: config.label,
-        reduction: -1,
         temporary: false,
         ribbonId: config.ribbonId,
         ribbonName: config.ribbonName,

@@ -40,12 +40,6 @@ export type SliceConfiguration = {
   focus?: number;
 };
 
-export type ZoomState = {
-  x: number;
-  y: number;
-  scale: number;
-};
-
 export type FinalSliceConfiguration = {
   label: string;
   contrast: number;

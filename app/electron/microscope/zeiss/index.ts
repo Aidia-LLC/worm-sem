@@ -6,7 +6,11 @@ import fs from "fs";
 import path from "path";
 import { Message } from "src/microscopeApi/types";
 import { MicroscopeCallingInterface } from "..";
-import { MicroscopeDetectorType, MicroscopeImageQuality } from "../types";
+import {
+  MicroscopeDetectorType,
+  MicroscopeFreezeOn,
+  MicroscopeImageQuality,
+} from "../types";
 
 const isProduction = app.isPackaged;
 const isLinux = getPlatform() === "linux";
@@ -24,6 +28,7 @@ export const resourcePath =
     : path.join(appRootDir.get(), "resources", getPlatform());
 
 export class ZeissInterface extends MicroscopeCallingInterface {
+  private dryRun: boolean;
   private childProcess: ChildProcessWithoutNullStreams | null = null;
   private messageId = 2;
   private responseCallbacks: Map<
@@ -34,8 +39,9 @@ export class ZeissInterface extends MicroscopeCallingInterface {
     }
   > = new Map();
 
-  constructor() {
+  constructor(options?: { dryRun?: boolean }) {
     super();
+    this.dryRun = Boolean(options?.dryRun);
   }
 
   private sendMessage(
@@ -181,7 +187,31 @@ export class ZeissInterface extends MicroscopeCallingInterface {
     return { x: parseFloat(x), y: parseFloat(y) };
   }
 
-  override async grabFullFrame(name: string, filename: string): Promise<Message> {
+  override async getFrozen(): Promise<boolean> {
+    const value = await this.getZeissParam("DP_FROZEN");
+    return value === "1";
+  }
+
+  override async setFrozen(frozen: boolean): Promise<void> {
+    await this.setZeissParam("DP_FROZEN", frozen ? 1 : 0);
+  }
+
+  override async setFreezeOn(freezeOn: MicroscopeFreezeOn): Promise<void> {
+    const value = (() => {
+      switch (freezeOn) {
+        case "END_FRAME":
+          return 0;
+        case "COMMAND":
+          return 2;
+      }
+    })();
+    await this.setZeissParam("DP_FREEZE_ON", value);
+  }
+
+  override async grabFullFrame(
+    name: string,
+    filename: string
+  ): Promise<Message> {
     return this.sendMessage({
       id: this.messageId++,
       type: "GRAB_FULL_FRAME",
@@ -208,7 +238,7 @@ export class ZeissInterface extends MicroscopeCallingInterface {
           console.log("Done building Zeiss interface.");
           const childProcess = spawn(
             path.join(".", "bin", "release", "net7.0", "wormsem"),
-            ["--dry-run"], // TODO remove dry run flag when ready to connect to SEM
+            this.dryRun ? ["--dry-run"] : [],
             { cwd }
           );
           res(childProcess);

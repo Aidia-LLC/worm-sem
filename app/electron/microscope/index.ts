@@ -1,6 +1,10 @@
 import { Message, ParamName } from "src/microscopeApi/types";
 import { z } from "zod";
-import { MicroscopeDetectorType, MicroscopeImageQuality } from "./types";
+import {
+  MicroscopeDetectorType,
+  MicroscopeFreezeOn,
+  MicroscopeImageQuality,
+} from "./types";
 
 export abstract class MicroscopeCallingInterface {
   abstract getMagnification(): Promise<number>;
@@ -18,11 +22,19 @@ export abstract class MicroscopeCallingInterface {
   abstract getStagePosition(): Promise<{ x: number; y: number }>;
   abstract getFieldOfView(): Promise<{ width: number; height: number }>;
   abstract grabFullFrame(name: string, filename: string): Promise<Message>;
+  abstract setFrozen(frozen: boolean): Promise<void>;
+  abstract getFrozen(): Promise<boolean>;
+  abstract setFreezeOn(freezeOn: MicroscopeFreezeOn): Promise<void>;
+
   abstract initialize(): Promise<void>;
   abstract shutdown(): void;
 
   setParam(param: ParamName, value: any) {
     switch (param) {
+      case "FROZEN":
+        return this.setFrozen(value);
+      case "FREEZE_ON":
+        return this.setFreezeOn(value);
       case "MAGNIFICATION":
         const mag = z.number().int().min(1).max(100000).parse(value);
         return this.setMagnification(mag);
@@ -50,13 +62,16 @@ export abstract class MicroscopeCallingInterface {
           })
           .parse(value);
         return this.moveStageTo(position);
-      default:
-        throw new Error(`Unknown param ${param}`);
+      case "FIELD_OF_VIEW":
+      case "STAGE_BOUNDS":
+        throw new Error(`Cannot set ${param}`);
     }
   }
 
   getParam(param: ParamName) {
     switch (param) {
+      case "FROZEN":
+        return this.getFrozen();
       case "MAGNIFICATION":
         return this.getMagnification();
       case "BRIGHTNESS":
@@ -69,8 +84,12 @@ export abstract class MicroscopeCallingInterface {
         return this.getStagePosition();
       case "FIELD_OF_VIEW":
         return this.getFieldOfView();
-      default:
-        throw new Error(`Unknown param ${param}`);
+      case "DETECTOR_TYPE":
+      case "FREEZE_ON":
+      case "IMAGE_QUALITY":
+      case "SCAN_SPEED":
+      case "STAGE_BOUNDS":
+        throw new Error(`Cannot get ${param} (or not yet implemented)`);
     }
   }
 }

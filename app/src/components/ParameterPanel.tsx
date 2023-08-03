@@ -3,7 +3,7 @@ import {
   optionsSequenceSignal,
   optionsStore,
   scanSpeedSignal,
-} from "src/data/signals/options";
+} from "src/data/signals/globals";
 import { Button } from "./Button";
 import { Param } from "./Param";
 

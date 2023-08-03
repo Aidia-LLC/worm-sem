@@ -10,109 +10,70 @@ import { handleFinalImaging, sleep } from "@logic/handleFinalImaging";
 import { base64ToImageSrc } from "@logic/image";
 import pointMatching from "@logic/pointMatching";
 import { segmentImage } from "@logic/segmentation";
-import {
-  computeStageCoordinates,
-  StageConfiguration,
-} from "@logic/semCoordinates";
+import { computeStageCoordinates } from "@logic/semCoordinates";
 import { getIndicesOfSlicesToConfigure } from "@logic/sliceConfiguration";
 import { findNearestPoint, isPointInTrapezoid } from "@logic/trapezoids/points";
 import { findNearestVertex, moveVertex } from "@logic/trapezoids/vertices";
-import { createReducer } from "@solid-primitives/reducer";
 import {
   createEffect,
   createSignal,
   For,
   Match,
-  onCleanup,
   onMount,
   Show,
   Switch,
 } from "solid-js";
-import {
-  actions,
-  ribbonDispatcher,
-  ribbonReducerInitialState,
-  RibbonReducerState,
-} from "src/data/ribbonReducer";
-import { getSEMParam } from "src/data/semParams";
+import { actions } from "src/data/ribbonReducer";
 import { getNextCommandId } from "src/data/signals/commandQueue";
 import {
+  imageSrcFilenameSignal,
+  imageSrcSignal,
+  initialStageSignal,
   magnificationSignal,
-  optionsSequenceSignal,
   optionsStore,
+  ribbonState,
   scanSpeedSignal,
-} from "src/data/signals/options";
-import { getMicroscopeApi } from "src/microscopeApi";
+  zoomStateSignal,
+} from "src/data/signals/globals";
+import { microscopeApi } from "src/microscopeApi";
 import type {
   FinalSliceConfiguration,
   RibbonData,
   SliceConfiguration,
   Trapezoid,
-  ZoomState,
 } from "src/types/canvas";
 import { Button } from "./Button";
 import { ConfigureSliceCanvas } from "./ConfigureSliceCanvas";
-import { GrabForm } from "./GrabForm";
 import { ParameterPanel } from "./ParameterPanel";
 import { availableColors, RibbonConfig } from "./RibbonConfig";
 import { RibbonDetector } from "./RibbonDetector";
 import { SliderPicker } from "./SliderPicker";
-
-const DEFAULT_ZOOM_SCALE = 10;
+import { DEFAULT_ZOOM_SCALE, ZoomController } from "./ZoomController";
 
 export const Canvas = (props: { samLoaded: boolean }) => {
   let canvasRef!: HTMLCanvasElement;
   let overlayCanvasRef!: HTMLCanvasElement;
   let edgeDataCanvasRef!: HTMLCanvasElement;
 
-  const [magnification, setMagnification] = magnificationSignal;
-  const [scanSpeed, setScanSpeed] = scanSpeedSignal;
+  const [zoomState, setZoomState] = zoomStateSignal;
+  const [magnification] = magnificationSignal;
+  const [scanSpeed] = scanSpeedSignal;
   const [nextId, setNextId] = createSignal(1);
-  const [ribbonReducer, ribbonDispatch]: [RibbonReducerState, any] =
-    createReducer<RibbonReducerState, any[]>(
-      ribbonDispatcher,
-      ribbonReducerInitialState
-    );
+  const [ribbonReducer, ribbonDispatch] = ribbonState;
 
-  //not sure if these can be moved/simplified
-  const [imageSrc, setImageSrc] = createSignal<string | null>(null);
-  const [imageSrcFilename, setImageSrcFilename] = createSignal<string | null>(
-    null
-  );
+  const [imageSrc, setImageSrc] = imageSrcSignal;
+  const [imageSrcFilename] = imageSrcFilenameSignal;
+  const [initialStage] = initialStageSignal;
   const [showOriginalImage, setShowOriginalImage] = createSignal(true);
   const [focusedSlice, setFocusedSlice] = createSignal<number>(-1);
   const [sliceConfiguration, setSliceConfiguration] = createSignal<
     SliceConfiguration[]
   >([]);
-  const [zoomState, setZoomState] = createSignal<
-    ZoomState | "pickingCenter" | null
-  >(null);
   const [percentComplete, setPercentComplete] = createSignal(0);
-  const [initialStage, setInitialStage] =
-    createSignal<StageConfiguration | null>(null);
   const [cursorPosition, setCursorPosition] = createSignal<[number, number]>([
     0, 0,
   ]);
-  // const [clickedPoints, setClickedPoints] = createSignal<[number, number][]>(
-  //   []
-  // );
-  // const [detectionLoading, setDetectionLoading] = createSignal(false);
-  // const [masks, setMasks] = createSignal<ImageData[]>([]);
   const [options] = optionsStore;
-  const [optionsSequence] = optionsSequenceSignal;
-  //we can put this somewhere else
-  const [VERTEX_DIST, setVertexDist] = createSignal(
-    options.options.squareSize / 5
-  );
-
-  const handleKeyPress = (e: KeyboardEvent) => {
-    if (e.key.toLowerCase() === "z") handleZoomButtonPressed();
-  };
-
-  const handleZoomButtonPressed = () => {
-    if (zoomState()) setZoomState(null);
-    else setZoomState("pickingCenter");
-  };
 
   createEffect(() => {
     const [mask] = ribbonReducer.masks;
@@ -124,28 +85,22 @@ export const Canvas = (props: { samLoaded: boolean }) => {
 
   createEffect(() => {
     // re-draw the overlay canvas when the ribbons, cursor, detection state, or zoom change
-    [...ribbonReducer.ribbons]; // destructering array to create dependency, otherwise its not reactive
+    [...ribbonReducer().ribbons]; // destructuring array to create dependency, otherwise its not reactive
     zoomState();
     cursorPosition();
-    ribbonReducer.detection;
+    ribbonReducer().detection;
     drawOverlay();
   });
 
   createEffect(() => {
     // re-draw the image canvas when zoom changes
-    const src = imageSrc();
-    if (!src) return;
+    imageSrc();
     zoomState();
     draw();
   });
 
-  createEffect(() => {
-    optionsSequence();
-    setVertexDist(options.options.squareSize / 5);
-  });
-
   const handleClick = async (e: MouseEvent) => {
-    if (!ribbonReducer.detection) return;
+    if (!ribbonReducer().detection) return;
     const rect = canvasRef.getBoundingClientRect();
     const rectWidth = rect.right - rect.left;
     const rectHeight = rect.bottom - rect.top;
@@ -155,20 +110,15 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     const imgY = Math.round((y / rectHeight) * canvasRef.height);
 
     ribbonDispatch(actions.setClickedPoints, [
-      ...ribbonReducer.clickedPoints,
+      ...ribbonReducer().clickedPoints,
       [imgX, imgY],
     ]);
-    console.log(ribbonReducer.clickedPoints);
+    console.log(ribbonReducer().clickedPoints);
   };
 
   onMount(async () => {
     overlayCanvasRef.addEventListener("mousedown", handleMouseDown);
-    window.addEventListener("keydown", handleKeyPress);
     setOriginalImage();
-  });
-
-  onCleanup(() => {
-    window.removeEventListener("keydown", handleKeyPress);
   });
 
   async function setOriginalImage() {
@@ -192,8 +142,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     ctx.save();
 
     const zoom = zoomState();
-    const scale = zoom && zoom !== "pickingCenter" ? zoom.scale : 1;
-    if (zoom && zoom !== "pickingCenter") {
+    if (zoom.status === "zoomed-in") {
       const { x, y, scale } = zoom;
       ctx.translate(canvasRef.width / 2, canvasRef.height / 2);
       ctx.scale(scale, scale);
@@ -257,8 +206,8 @@ export const Canvas = (props: { samLoaded: boolean }) => {
         ctx.fillText(`${i + 1}`, trapezoids[i].left.x1, trapezoids[i].left.y1);
       }
       ctx.globalAlpha = 1;
-      ctx.lineWidth = 9 / scale;
-      const radius = (3 / scale) * 4;
+      ctx.lineWidth = 9 / zoom.scale;
+      const radius = (3 / zoom.scale) * 4;
       for (const point of trapezoidSet.matchedPoints) {
         ctx.beginPath();
         ctx.arc(point.x, point.y, radius, 0, 2 * Math.PI);
@@ -282,11 +231,9 @@ export const Canvas = (props: { samLoaded: boolean }) => {
       overlayCanvasRef.height = img.height;
       edgeDataCanvasRef.width = img.width;
       edgeDataCanvasRef.height = img.height;
-      const zoom =
-        !zoomState() || zoomState() === "pickingCenter"
-          ? null
-          : (zoomState() as ZoomState);
-      if (zoom) {
+
+      const zoom = zoomState();
+      if (zoom.status === "zoomed-in") {
         const { x, y, scale } = zoom;
         const viewportWidth = canvasRef.width / scale;
         const viewportHeight = canvasRef.height / scale;
@@ -311,6 +258,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
   }
 
   function handleMouseDown(e: MouseEvent) {
+    const vertexDist = options.options.squareSize / 5;
     const rect = canvasRef.getBoundingClientRect();
     const rectWidth = rect.right - rect.left;
     const rectHeight = rect.bottom - rect.top;
@@ -319,11 +267,12 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     const imgX1 = Math.round((x / rectWidth) * canvasRef.width);
     const imgY1 = Math.round((y / rectHeight) * canvasRef.height);
 
-    if (zoomState() === "pickingCenter") {
+    if (zoomState().status === "picking-center") {
       setZoomState({
+        status: "zoomed-in",
+        scale: DEFAULT_ZOOM_SCALE,
         x: imgX1,
         y: imgY1,
-        scale: DEFAULT_ZOOM_SCALE,
       });
       return;
     }
@@ -331,7 +280,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     const { x: imgX, y: imgY } = convertZoomedCoordinatesToFullImage(
       imgX1,
       imgY1,
-      zoomState() as ZoomState | null,
+      zoomState(),
       canvasRef.width,
       canvasRef.height
     );
@@ -362,7 +311,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
       imgY,
       ribbonReducer.ribbons.map((t) => t.trapezoids).flat()
     );
-    if (nearestDistance < VERTEX_DIST() || inTrapezoid) {
+    if (nearestDistance < vertexDist || inTrapezoid) {
       ribbonDispatch(actions.setClickedPoint, { x: imgX, y: imgY });
       overlayCanvasRef.addEventListener("mousemove", handleMouseMove);
       overlayCanvasRef.addEventListener("mouseup", handleMouseUp);
@@ -380,6 +329,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
   }
 
   function handleMouseMove(e: MouseEvent) {
+    const vertexDist = options.options.squareSize / 5;
     // calculate the new cursor position:
     const rect = canvasRef.getBoundingClientRect();
     const rectWidth = rect.right - rect.left;
@@ -389,14 +339,10 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     const imgX1 = Math.round((x / rectWidth) * canvasRef.width);
     const imgY1 = Math.round((y / rectHeight) * canvasRef.height);
 
-    const zoom =
-      zoomState() && zoomState() !== "pickingCenter"
-        ? (zoomState() as ZoomState)
-        : null;
     const { x: imgX, y: imgY } = convertZoomedCoordinatesToFullImage(
       imgX1,
       imgY1,
-      zoom,
+      zoomState(),
       canvasRef.width,
       canvasRef.height
     );
@@ -441,11 +387,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
         }
       }
       // Dragging a trapezoid
-      else if (
-        nearestVertex &&
-        nearestDistance > VERTEX_DIST() &&
-        trapezoidSet
-      ) {
+      else if (nearestVertex && nearestDistance > vertexDist && trapezoidSet) {
         const dy = imgY - ribbonReducer.clickedPoint!.y ?? 0;
         const dx = imgX - ribbonReducer.clickedPoint!.x ?? 0;
         ribbonDispatch(actions.setClickedPoint, { x: imgX, y: imgY });
@@ -631,19 +573,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
       stageConfiguration: initialStage()!,
     });
     await sleep(200);
-    window.semClient.send({
-      type: "setParam",
-      id: getNextCommandId(),
-      param: "AP_STAGE_GOTO_X",
-      doubleValue: coordinates.x,
-    });
-    await sleep(200);
-    window.semClient.send({
-      type: "setParam",
-      id: getNextCommandId(),
-      param: "AP_STAGE_GOTO_Y",
-      doubleValue: coordinates.y,
-    });
+    await microscopeApi.moveStageTo(coordinates);
   };
 
   const handleRibbonDetection = async ([[imgX, imgY], ...points]: [
@@ -687,41 +617,23 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           <Show when={focusedSlice() !== -1 && initialStage()}>
             <ConfigureSliceCanvas
               stage={initialStage()!}
-              magnification={magnification()}
-              setMagnification={setMagnification}
-              scanSpeed={scanSpeed()}
-              setScanSpeed={(value) => setScanSpeed(value)}
               canvas={canvasRef}
               configuration={
                 sliceConfiguration().find(
                   ({ index }) => index === focusedSlice()
                 )!
               }
-              setConfiguration={(newConfiguration) => {
-                if (newConfiguration.brightness) {
-                  window.semClient.send({
-                    id: getNextCommandId(),
-                    type: "setParam",
-                    param: "AP_BRIGHTNESS",
-                    doubleValue: newConfiguration.brightness,
-                  });
-                }
-                if (newConfiguration.contrast) {
-                  window.semClient.send({
-                    id: getNextCommandId(),
-                    type: "setParam",
-                    param: "AP_CONTRAST",
-                    doubleValue: newConfiguration.contrast,
-                  });
-                }
-                if (newConfiguration.focus) {
-                  window.semClient.send({
-                    id: getNextCommandId(),
-                    type: "setParam",
-                    param: "AP_WD",
-                    doubleValue: newConfiguration.focus,
-                  });
-                }
+              setConfiguration={async (newConfiguration) => {
+                if (newConfiguration.brightness)
+                  await microscopeApi.setBrightness(
+                    newConfiguration.brightness
+                  );
+                if (newConfiguration.contrast)
+                  await microscopeApi.setContrast(newConfiguration.contrast);
+                if (newConfiguration.focus)
+                  await microscopeApi.setWorkingDistance(
+                    newConfiguration.focus
+                  );
                 setSliceConfiguration(
                   sliceConfiguration().map((c) =>
                     c.index === focusedSlice()
@@ -777,7 +689,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
               onClick={() => {
                 setImageSrc(null);
                 ribbonDispatch(actions.resetImage);
-                setZoomState(null);
+                setZoomState({ status: "zoomed-out", scale: 1 });
               }}
             >
               Clear Image
@@ -799,7 +711,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
               <Show when={ribbonReducer.clickedPoints.length > 2}>
                 <Button
                   onClick={async () => {
-                    const points = ribbonReducer.clickedPoints;
+                    const points = ribbonReducer().clickedPoints;
                     ribbonDispatch(actions.setDetection, false);
                     ribbonDispatch(actions.setDetectionLoading, true);
                     const segmentedImageData = await segmentImage({
@@ -811,16 +723,16 @@ export const Canvas = (props: { samLoaded: boolean }) => {
                     ribbonDispatch(actions.setDetectionLoading, false);
                     ribbonDispatch(actions.setMasks, segmentedImageData);
                   }}
-                  disabled={ribbonReducer.detectionLoading || !props.samLoaded}
+                  disabled={ribbonReducer().detectionLoading || !props.samLoaded}
                 >
                   Detect Ribbon
                 </Button>
               </Show>
             </Show>
-            <Show when={ribbonReducer.masks.length > 1}>
+            <Show when={ribbonReducer().masks.length > 1}>
               <Button
                 onClick={() => {
-                  const prev = ribbonReducer.masks;
+                  const prev = ribbonReducer().masks;
                   if (prev.length === 0) return;
                   const [mask, ...rest] = prev;
                   ribbonDispatch(actions.setMasks, [...rest, mask]);
@@ -830,8 +742,8 @@ export const Canvas = (props: { samLoaded: boolean }) => {
               </Button>
               <Button
                 onClick={() => {
-                  const [mask] = ribbonReducer.masks;
-                  const points = ribbonReducer.clickedPoints;
+                  const [mask] = ribbonReducer().masks;
+                  const points = ribbonReducer().clickedPoints;
                   ribbonDispatch(actions.setMasks, []);
                   ribbonDispatch(actions.setClickedPoints, []);
                   const edgeContext = edgeDataCanvasRef.getContext("2d")!;
@@ -865,14 +777,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
             >
               Show {showOriginalImage() ? "Edge Data" : "Original Image"}
             </Button>
-            <Button onClick={handleZoomButtonPressed}>
-              <Switch fallback="Zoom in">
-                <Match when={zoomState() === "pickingCenter"}>
-                  Click on image to zoom
-                </Match>
-                <Match when={zoomState()}>Zoom Out</Match>
-              </Switch>
-            </Button>
+            <ZoomController />
           </div>
         </Show>
         <For each={ribbonReducer.ribbons}>
@@ -887,17 +792,11 @@ export const Canvas = (props: { samLoaded: boolean }) => {
                 const indicesToConfigure = getIndicesOfSlicesToConfigure(
                   trapezoids.length
                 );
-                const brightness = parseFloat(
-                  await getSEMParam("AP_BRIGHTNESS")
-                );
-                const contrast = parseFloat(await getSEMParam("AP_CONTRAST"));
-                const focus = parseFloat(await getSEMParam("AP_WD"));
-                window.semClient.send({
-                  id: getNextCommandId(),
-                  type: "setParam",
-                  param: "AP_MAG",
-                  doubleValue: magnification(),
-                });
+                const brightness = await microscopeApi.getBrightness();
+                const contrast = await microscopeApi.getContrast();
+                const workingDistance =
+                  await microscopeApi.getWorkingDistance();
+                await microscopeApi.setMagnification(magnification());
                 setSliceConfiguration(
                   trapezoids
                     .map(
@@ -906,7 +805,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
                           index,
                           brightness,
                           contrast,
-                          focus,
+                          focus: workingDistance,
                         } as SliceConfiguration)
                     )
                     .filter((_, index) => indicesToConfigure.includes(index))
@@ -942,12 +841,14 @@ export const Canvas = (props: { samLoaded: boolean }) => {
             />
           )}
         </For>
-        <Show when={zoomState() && zoomState() !== "pickingCenter"}>
+        <Show when={zoomState().status !== "picking-center"}>
           <SliderPicker
             label="Zoom"
-            value={(zoomState() as ZoomState).scale}
+            value={zoomState().scale}
             setValue={(scale) => {
-              setZoomState({ ...(zoomState() as ZoomState), scale });
+              const zoom = zoomState();
+              if (zoom.status !== "zoomed-in") return;
+              setZoomState({ ...zoom, scale });
             }}
             unit="x"
             max={15}
@@ -955,7 +856,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
             step={1}
           />
         </Show>
-        <Show when={ribbonReducer.detection && imageSrc()}>
+        <Show when={ribbonReducer.detection}>
           <span class="text-xl font-bold">
             <Switch>
               <Match when={ribbonReducer.clickedPoints.length === 0}>
@@ -990,14 +891,10 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           const imgX1 = Math.round((x / rectWidth) * canvasRef.width);
           const imgY1 = Math.round((y / rectHeight) * canvasRef.height);
 
-          const zoom =
-            zoomState() && zoomState() !== "pickingCenter"
-              ? (zoomState() as ZoomState)
-              : null;
           const { x: imgX, y: imgY } = convertZoomedCoordinatesToFullImage(
             imgX1,
             imgY1,
-            zoom,
+            zoomState(),
             canvasRef.width,
             canvasRef.height
           );
@@ -1010,9 +907,6 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           width="1000"
           height="1000"
           class="w-[clamp(300px,_100%,_85vh)] mx-auto"
-          classList={{
-            hidden: !imageSrc(),
-          }}
         ></canvas>
         <canvas
           ref={edgeDataCanvasRef}
@@ -1021,7 +915,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           height="1000"
           class="w-[clamp(300px,_100%,_85vh)] mx-auto absolute top-0 left-[50%] translate-x-[-50%] z-10"
           classList={{
-            hidden: !imageSrc() || showOriginalImage(),
+            hidden: showOriginalImage(),
           }}
         ></canvas>
         <canvas
@@ -1031,41 +925,13 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           height="1000"
           class="w-[clamp(300px,_100%,_85vh)] mx-auto absolute top-0 left-[50%] translate-x-[-50%] z-50"
           classList={{
-            hidden: !imageSrc(),
-            "cursor-zoom-in": zoomState() === "pickingCenter",
+            "cursor-zoom-in": zoomState().status === "picking-center",
             "cursor-crosshair":
-              zoomState() !== "pickingCenter" && ribbonReducer.detection,
+              zoomState().status !== "picking-center" &&
+              ribbonReducer.detection,
           }}
         ></canvas>
-        <Show
-          when={imageSrc()}
-          fallback={
-            <GrabForm
-              onGrabbed={async (src, filename) => {
-                setImageSrc(src);
-                setImageSrcFilename(filename);
-
-                const api = getMicroscopeApi();
-                const stage = await api.getStagePosition();
-                const limits = await api.getStageBounds();
-                const fieldOfView = await api.getFieldOfView();
-                setInitialStage({
-                  x: stage.x,
-                  y: stage.y,
-                  width: fieldOfView.width,
-                  height: fieldOfView.height,
-                  limits: {
-                    x: [limits.x.min, limits.x.max],
-                    y: [limits.y.min, limits.y.max],
-                  },
-                });
-                console.log(initialStage());
-              }}
-            />
-          }
-        >
-          <ParameterPanel />
-        </Show>
+        <ParameterPanel />
       </div>
     </div>
   );

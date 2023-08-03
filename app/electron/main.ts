@@ -1,6 +1,7 @@
 import { ChildProcess } from "child_process";
 import { app, BrowserWindow, ipcMain } from "electron";
 import path from "path";
+import { platform } from "process";
 import {
   Command,
   GrabFullFrameCommand,
@@ -21,7 +22,10 @@ process.env.PUBLIC = isProduction
 
 let browserWindow: BrowserWindow | null;
 let maskApi: ChildProcess | null = null;
-const microscopeApi: MicroscopeCallingInterface = new ZeissInterface();
+
+const microscopeApi: MicroscopeCallingInterface = new ZeissInterface({
+  dryRun: platform === "darwin", // on macOS for testing, just do a dry run
+});
 
 app.on("window-all-closed", () => {
   app.quit();

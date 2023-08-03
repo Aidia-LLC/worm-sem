@@ -23,31 +23,67 @@ export const actions = {
   resetImage: "resetImage",
 };
 
+type DispatchPayload =
+  | {
+      action: "setRibbons";
+      payload: RibbonData[];
+    }
+  | {
+      action: "setFocusedRibbon";
+      payload: number;
+    }
+  | {
+      action: "setGrabbing";
+      payload: boolean;
+    }
+  | {
+      action: "setClickedPoints";
+      payload: [number, number][];
+    }
+  | {
+      action: "setClickedPoint";
+      payload: Vertex | null;
+    }
+  | {
+      action: "setDetection";
+      payload: boolean;
+    }
+  | {
+      action: "setDetectionLoading";
+      payload: boolean;
+    }
+  | {
+      action: "setMasks";
+      payload: ImageData[];
+    }
+  | {
+      action: "resetImage";
+    };
+
 export type RibbonReducerState = typeof ribbonReducerInitialState;
 
 export const ribbonDispatcher = (
   state: typeof ribbonReducerInitialState,
-  action: keyof typeof actions,
-  payload: any
+  event: DispatchPayload
 ) => {
-  switch (action) {
-    case actions.setRibbons:
-      return { ...state, ribbons: payload };
-    case actions.setFocusedRibbon:
-      return { ...state, focusedRibbon: payload };
-    case actions.setGrabbing:
-      return { ...state, grabbing: payload };
-    case actions.setClickedPoints:
-      return { ...state, clickedPoints: payload };
-    case actions.setClickedPoint:
-      return { ...state, clickedPoint: payload };
-    case actions.setDetection:
-      return { ...state, detection: payload };
-    case actions.setDetectionLoading:
-      return { ...state, detectionLoading: payload };
-    case actions.setMasks:
-      return { ...state, masks: payload };
-    case actions.resetImage:
+  switch (event.action) {
+    case "setRibbons":
+      return { ...state, ribbons: event.payload };
+    case "setFocusedRibbon":
+      return { ...state, focusedRibbon: event.payload };
+    case "setGrabbing":
+      return { ...state, grabbing: event.payload };
+    case "setClickedPoints":
+      return { ...state, clickedPoints: event.payload };
+    case "setClickedPoint":
+      return { ...state, clickedPoint: event.payload };
+    case "setDetection":
+      return { ...state, detection: event.payload };
+    case "setDetectionLoading":
+      return { ...state, detectionLoading: event.payload };
+    case "setMasks":
+      return { ...state, masks: event.payload };
+    case "resetImage":
       return { ...state, ribbons: [], masks: [], clickedPoints: [] };
     default:
       return state;

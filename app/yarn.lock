@@ -516,6 +516,11 @@
   resolved "https://registry.yarnpkg.com/@sindresorhus/is/-/is-4.6.0.tgz#3c7c9c46e678feefe7a2e5bb609d3dbd665ffb3f"
   integrity sha512-t09vSN3MdfsyCHoFcTRCH/iUtG7OJ0CsjzB8cjAmKc/va/kIgeDI/TxsigdncE/4be734m0cvIYwNaV4i2XqAw==
 
+"@solid-primitives/reducer@^0.0.101":
+  version "0.0.101"
+  resolved "https://registry.yarnpkg.com/@solid-primitives/reducer/-/reducer-0.0.101.tgz#0d81d8d32294fcfc91b4e5fa1f693c7cbdae2291"
+  integrity sha512-ApMHhIBtPo38gfQ1x9ikclu3yP3jQ3Gk4aFRovi/+Ij1KT+uHwOO+dBbSVj0AHLShUXezGKdxY2RRTUpX7oLcg==
+
 "@szmarczak/http-timer@^4.0.5":
   version "4.0.6"
   resolved "https://registry.yarnpkg.com/@szmarczak/http-timer/-/http-timer-4.0.6.tgz#b4a914bb62e7c272d4e5989fe4440f812ab1d807"
