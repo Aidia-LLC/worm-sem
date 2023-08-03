@@ -1,6 +1,6 @@
 import { createEffect, createSignal, untrack } from "solid-js";
-import { Button } from "./Button";
-import { Tooltip } from "./Tooltip";
+import { Button } from "../Button";
+import { Tooltip } from "../Tooltip";
 
 export const Param = (props: {
   label: string;

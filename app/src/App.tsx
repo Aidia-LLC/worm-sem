@@ -1,4 +1,4 @@
-import { Canvas } from "@components/Canvas";
+import { Canvas } from "@components/RibbonDetector/Canvas";
 import { HistoryLog } from "@components/HistoryLog";
 import { GrabForm } from "@components/InitialGrab";
 import { Instructions } from "@components/Instructions";

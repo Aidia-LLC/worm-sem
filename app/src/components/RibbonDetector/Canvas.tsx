@@ -42,16 +42,16 @@ import type {
   SliceConfiguration,
   Trapezoid,
 } from "src/types/canvas";
-import { Button } from "./Button";
+import { Button } from "../Button";
 import { ParameterPanel } from "./ParameterPanel";
 import { availableColors, RibbonConfig } from "./RibbonConfig";
-import { MaskSelector } from "./RibbonDetector/MaskSelector";
+import { MaskSelector } from "./MaskSelector";
 import {
   DEFAULT_ZOOM_SCALE,
   ZoomController,
-} from "./RibbonDetector/ZoomController";
-import { SliceConfigurationScreen } from "./SliceConfigurationScreen";
-import { SliderPicker } from "./SliderPicker";
+} from "./ZoomController";
+import { SliceConfigurationScreen } from "../SliceConfigurationScreen";
+import { SliderPicker } from "../SliderPicker";
 
 export const Canvas = (props: { samLoaded: boolean }) => {
   let canvasRef!: HTMLCanvasElement;

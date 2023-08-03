@@ -4,7 +4,7 @@ import {
   optionsStore,
   scanSpeedSignal,
 } from "src/data/signals/globals";
-import { Button } from "./Button";
+import { Button } from "../Button";
 import { Param } from "./Param";
 
 export const ParameterPanel = () => {

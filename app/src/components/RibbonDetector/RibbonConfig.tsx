@@ -1,6 +1,6 @@
 import { Show } from "solid-js";
 import { RibbonData, Trapezoid } from "src/types/canvas";
-import { Button } from "./Button";
+import { Button } from "../Button";
 
 export const availableColors = [
   "red",
