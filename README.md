@@ -16,7 +16,7 @@ The two programs send JSON messages via stdin and stdout. The Electron app is re
 
 ## Running the CLI program
 
-Install `dotnet`. Navigate to the `csharp` directory and run `dotnet run`. The program will start and wait for commands.
+Install `dotnet`. Navigate to the `zeiss-api` directory and run `dotnet run`. The program will start and wait for commands.
 
 You can use the command line argument `--dry-run` to skip the microscope connection and just return a success response for every command.
 

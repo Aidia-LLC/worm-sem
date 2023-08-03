@@ -1,4 +1,4 @@
-import { Message } from "src/types/semClient";
+import { Message } from "src/microscopeApi/types";
 import { createSignal, onMount } from "solid-js";
 
 export const CONNECTION_ID = 1;

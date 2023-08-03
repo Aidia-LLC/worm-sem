@@ -2,8 +2,5 @@
   "scripts": {
     "dev": "cd app && yarn dev",
     "start": "cd app && yarn start"
-  },
-  "dependencies": {
-    "@solid-primitives/reducer": "^0.0.101"
   }
 }

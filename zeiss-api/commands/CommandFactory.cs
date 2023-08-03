@@ -17,13 +17,9 @@ namespace wormsem.commands
             int id = (int)nullableId;
             switch (serializedCommand?.type)
             {
-                case "echo":
-                    if (serializedCommand.message == null)
-                        throw new Exception("Expecting string value");
-                    return new EchoCommand(id, serializedCommand.message);
-                case "connect":
+                case "CONNECT":
                     return new ConnectCommand(id);
-                case "setParam":
+                case "SET_PARAM":
                     if (serializedCommand.param == null)
                         throw new Exception("expecting param");
                     if (serializedCommand.intValue != null)
@@ -31,15 +27,15 @@ namespace wormsem.commands
                     if (serializedCommand.doubleValue != null)
                         return new SetParamCommand(id, serializedCommand.param, null, serializedCommand.doubleValue);
                     throw new Exception("expecting value");
-                case "getParam":
+                case "GET_PARAM":
                     if (serializedCommand.param == null)
                         throw new Exception("expecting param");
                     return new GetParamCommand(id, serializedCommand.param);
-                case "execute":
+                case "EXECUTE":
                     if (serializedCommand.command == null)
                         throw new Exception("expecing command");
                     return new ExecuteCommand(id, serializedCommand.command);
-                case "grab":
+                case "GRAB":
                     {
                         if (serializedCommand.x == null || serializedCommand.y == null || serializedCommand.width == null || serializedCommand.height == null)
                             throw new Exception("Expecting x, y, width, and height");
@@ -57,7 +53,7 @@ namespace wormsem.commands
                             reduction
                         );
                     }
-                case "grabFullFrame":
+                case "GRAB_FULL_FRAME":
                     {
                         if (serializedCommand.name == null || serializedCommand.filename == null)
                             throw new Exception("Expecting name and filename");

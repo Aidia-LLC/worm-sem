@@ -1,25 +1,16 @@
 import { createSignal, Show } from "solid-js";
-import { ProcessingOptions } from "src/types/ProcessingOptions";
+import {
+  optionsSequenceSignal,
+  optionsStore,
+  scanSpeedSignal,
+} from "src/data/signals/globals";
 import { Button } from "./Button";
 import { Param } from "./Param";
 
-export const ParameterPanel = ({
-  options,
-  setOptions,
-  optionsSequence,
-  setOptionsSequence,
-  scanSpeed,
-  setScanSpeed,
-  resetOptions,
-}: {
-  options: ProcessingOptions;
-  setOptions: (key: string, subkey: string, value: number) => void;
-  optionsSequence: () => number;
-  setOptionsSequence: (value: number) => void;
-  scanSpeed: () => number;
-  setScanSpeed: (value: number) => void;
-  resetOptions: () => void;
-}) => {
+export const ParameterPanel = () => {
+  const [options, setOptions, resetOptions] = optionsStore;
+  const [optionsSequence, setOptionsSequence] = optionsSequenceSignal;
+  const [scanSpeed, setScanSpeed] = scanSpeedSignal;
   const [paramsHidden, setParamsHidden] = createSignal(true);
 
   return (
@@ -40,7 +31,7 @@ export const ParameterPanel = ({
           </p>
           <Param
             label="Square Size"
-            value={options.squareSize}
+            value={options.options.squareSize}
             onChange={(value) => {
               setOptions("options", "squareSize", value);
               setOptionsSequence(optionsSequence() + 1);
@@ -65,7 +56,7 @@ export const ParameterPanel = ({
           </p>
           <Param
             label="Minimum Fit for Recurrence"
-            value={options.minimumFit}
+            value={options.options.minimumFit}
             onChange={(value) => {
               setOptions("options", "minimumFit", value);
               setOptionsSequence(optionsSequence() + 1);
@@ -80,7 +71,7 @@ export const ParameterPanel = ({
           </p>
           <Param
             label="Minimum Fit for First"
-            value={options.firstFit}
+            value={options.options.firstFit}
             onChange={(value) => {
               setOptions("options", "firstFit", value);
               setOptionsSequence(optionsSequence() + 1);
@@ -96,7 +87,7 @@ export const ParameterPanel = ({
             </p>
             <Param
               label="Hough Vote Threshold"
-              value={options.houghVoteThreshold}
+              value={options.options.houghVoteThreshold}
               onChange={(value) => {
                 setOptions("options", "houghVoteThreshold", value);
                 setOptionsSequence(optionsSequence() + 1);
@@ -109,7 +100,7 @@ export const ParameterPanel = ({
             </p>
             <Param
               label="Merge Line Threshold"
-              value={options.mergeLineThreshold}
+              value={options.options.mergeLineThreshold}
               onChange={(value) => {
                 setOptions("options", "mergeLineThreshold", value);
                 setOptionsSequence(optionsSequence() + 1);
@@ -123,7 +114,7 @@ export const ParameterPanel = ({
             </p>
             <Param
               label="Pixels Per Line Percentage Threshold"
-              value={options.pixelThreshold}
+              value={options.options.pixelThreshold}
               onChange={(value) => {
                 setOptions("options", "pixelThreshold", value);
                 setOptionsSequence(optionsSequence() + 1);
@@ -137,7 +128,7 @@ export const ParameterPanel = ({
             </p>
             <Param
               label="Max Lines Per Square"
-              value={options.maxLines}
+              value={options.options.maxLines}
               onChange={(value) => {
                 setOptions("options", "maxLines", value);
                 setOptionsSequence(optionsSequence() + 1);

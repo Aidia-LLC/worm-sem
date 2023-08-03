@@ -4,23 +4,18 @@ import {
   StageConfiguration,
 } from "@logic/semCoordinates";
 import { createSignal, onMount, Show } from "solid-js";
-import { MAX_MAG } from "src/data/magnification";
 import {
-  DETECTOR_TYPE_STEM_A_ZOOMED_IN,
-  getSEMParam,
-  MEDIUM_SCAN_SPEED,
-} from "src/data/semParams";
-import { getNextCommandId } from "src/data/signals/commandQueue";
+  magnificationSignal,
+  MAX_MAG,
+  scanSpeedSignal,
+} from "src/data/signals/globals";
+import { microscopeApi } from "src/microscopeApi";
 import { RibbonData, SliceConfiguration } from "src/types/canvas";
 import { Button } from "./Button";
 import { SliderPicker } from "./SliderPicker";
 
 export const ConfigureSliceCanvas = (props: {
   ribbon: RibbonData;
-  magnification: number;
-  setMagnification: (magnification: number) => void;
-  scanSpeed: number;
-  setScanSpeed: (value: number) => void;
   configuration: SliceConfiguration;
   setConfiguration: (config: Partial<SliceConfiguration>) => void;
   onNext: () => void;
@@ -28,6 +23,9 @@ export const ConfigureSliceCanvas = (props: {
   canvas: HTMLCanvasElement;
   stage: StageConfiguration;
 }) => {
+  const [magnification, setMagnification] = magnificationSignal;
+  const [scanSpeed, setScanSpeed] = scanSpeedSignal;
+
   const [brightness, setBrightness] = createSignal<number | null>(null);
   const [contrast, setContrast] = createSignal<number | null>(null);
   const [focus, setFocus] = createSignal<number | null>(null);
@@ -35,13 +33,13 @@ export const ConfigureSliceCanvas = (props: {
   onMount(async () => {
     if (!props.configuration) return;
 
-    const brightness = await getSEMParam("AP_BRIGHTNESS");
-    const contrast = await getSEMParam("AP_CONTRAST");
-    const focus = await getSEMParam("AP_WD");
+    const brightness = await microscopeApi.getBrightness();
+    const contrast = await microscopeApi.getContrast();
+    const focus = await microscopeApi.getWorkingDistance();
 
-    setBrightness(parseFloat(brightness));
-    setContrast(parseFloat(contrast));
-    setFocus(parseFloat(focus));
+    setBrightness(brightness);
+    setContrast(contrast);
+    setFocus(focus);
 
     const point = props.ribbon.matchedPoints[props.configuration.index];
 
@@ -51,53 +49,12 @@ export const ConfigureSliceCanvas = (props: {
       stageConfiguration: props.stage,
     });
 
-    await sleep(1000);
-
-    window.semClient.send({
-      id: getNextCommandId(),
-      type: "setParam",
-      param: "DP_DETECTOR_TYPE",
-      doubleValue: DETECTOR_TYPE_STEM_A_ZOOMED_IN,
-    });
-    await sleep(1000);
-
-    window.semClient.send({
-      type: "setParam",
-      id: getNextCommandId(),
-      param: "AP_STAGE_GOTO_X",
-      doubleValue: coordinates.x,
-    });
     await sleep(500);
-
-    window.semClient.send({
-      type: "setParam",
-      id: getNextCommandId(),
-      param: "AP_STAGE_GOTO_Y",
-      doubleValue: coordinates.y,
-    });
-    await sleep(500);
-
-    window.semClient.send({
-      type: "setParam",
-      id: getNextCommandId(),
-      param: "AP_MAG",
-      doubleValue: props.magnification,
-    });
-    await sleep(500);
-
-    window.semClient.send({
-      type: "execute",
-      id: getNextCommandId(),
-      command: `CMD_SCANRATE${MEDIUM_SCAN_SPEED}`,
-    });
-    await sleep(500);
-
-    window.semClient.send({
-      id: getNextCommandId(),
-      type: "setParam",
-      param: "DP_FROZEN",
-      doubleValue: 0,
-    });
+    await microscopeApi.setDetectorType("ZOOMED_IN");
+    await microscopeApi.moveStageTo(coordinates);
+    await microscopeApi.setMagnification(magnification());
+    await microscopeApi.setScanSpeed(scanSpeed());
+    await microscopeApi.setFrozen(false);
   });
 
   return (
@@ -127,27 +84,25 @@ export const ConfigureSliceCanvas = (props: {
       </div>
       <SliderPicker
         label="Magnification (applies to all slices)"
-        value={props.magnification || 1}
+        value={magnification()}
         min={40}
         max={MAX_MAG}
         step={1}
-        setValue={(value) => {
-          props.setMagnification(value);
-          window.semClient.send({
-            type: "setParam",
-            id: getNextCommandId(),
-            param: "AP_MAG",
-            doubleValue: value,
-          });
+        setValue={async (value) => {
+          setMagnification(value);
+          await microscopeApi.setMagnification(value);
         }}
         unit="x"
       />
       <SliderPicker
         label="Scan Speed"
-        value={props.scanSpeed}
+        value={scanSpeed()}
         min={1}
         max={10}
-        setValue={(value) => props.setScanSpeed(value)}
+        setValue={async (value) => {
+          setScanSpeed(value);
+          await microscopeApi.setScanSpeed(value);
+        }}
         step={1}
         unit=""
       />

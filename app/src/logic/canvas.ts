@@ -1,4 +1,5 @@
-import { Trapezoid, Vertex, ZoomState } from "src/types/canvas";
+import { ZoomState } from "@components/ZoomController";
+import { Trapezoid, Vertex } from "src/types/canvas";
 import { ProcessingOptions } from "src/types/ProcessingOptions";
 import { base64ToImageSrc } from "./image";
 import { linesIntersect } from "./intersection";
@@ -800,11 +801,11 @@ export function getSquare(
 export const convertZoomedCoordinatesToFullImage = (
   x: number,
   y: number,
-  zoom: ZoomState | null,
+  zoom: ZoomState,
   width: number,
   height: number
 ) => {
-  if (!zoom) return { x, y };
+  if (zoom.status !== "zoomed-in") return { x, y };
 
   const viewportWidth = width / zoom.scale;
   const viewportHeight = height / zoom.scale;
