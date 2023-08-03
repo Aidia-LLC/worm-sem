@@ -2,7 +2,7 @@ import { Button } from "@components/Button";
 import { createSignal } from "solid-js";
 import { microscopeApi } from "src/microscopeApi";
 
-export const Unconnected = () => {
+export const Unconnected = (props: { onConnect: () => void }) => {
   const [acknowledged, setAcknowledged] = createSignal(false);
 
   return (
@@ -16,7 +16,10 @@ export const Unconnected = () => {
         <span>I have disabled the data zone!</span>
       </label>
       <Button
-        onClick={() => microscopeApi.connect()}
+        onClick={async () => {
+          await microscopeApi.connect();
+          props.onConnect();
+        }}
         disabled={!acknowledged()}
       >
         Connect

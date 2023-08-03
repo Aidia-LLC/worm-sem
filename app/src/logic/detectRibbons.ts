@@ -12,7 +12,7 @@ import { detectTrapezoid } from "@logic/trapezoids/detection";
 import { trapezoidIsValid } from "@logic/trapezoids/valid";
 import { ProcessingOptions } from "src/types/ProcessingOptions";
 
-export const RibbonDetector = async ({
+export const detectRibbons = async ({
   point: [imgX, imgY],
   edgeDataCanvasRef,
   options,

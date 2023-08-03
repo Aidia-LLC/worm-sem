@@ -2,7 +2,8 @@ import {
   MicroscopeDetectorType,
   MicroscopeFreezeOn,
   MicroscopeImageQuality,
-} from "electron/microscope/types";
+} from "@electron/microscope/types";
+import { ElectronMessage } from "@electron/types";
 import { grabSEMImage } from "./semBridge";
 
 export interface MicroscopeApi {
@@ -14,9 +15,6 @@ export interface MicroscopeApi {
 
   /// Sets the magnification value of the microscope in times.
   setMagnification(magnification: number): Promise<void>;
-
-  /// Gets the scan speed of the microscope in [1, 10], with 1 being the slowest and 10 being the fastest.
-  // getScanSpeed(): Promise<number>;
 
   /// Sets the scan speed of the microscope in [1, 10], with 1 being the slowest and 10 being the fastest.
   setScanSpeed(scanSpeed: number): Promise<void>;
@@ -70,5 +68,7 @@ export interface MicroscopeApi {
   setFreezeOn(freezeOn: MicroscopeFreezeOn): Promise<void>;
 
   /// Grabs a full frame image from the microscope and saves it to the specified file.
-  grabFullFrame(props: Parameters<typeof grabSEMImage>[0]): Promise<void>;
+  grabFullFrame(
+    props: Parameters<typeof grabSEMImage>[0]
+  ): Promise<ElectronMessage>;
 }

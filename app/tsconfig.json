@@ -24,6 +24,8 @@
       "@components/*": ["src/components/*"],
       "@types/*": ["src/types/*"],
       "@logic/*": ["src/logic/*"],
+      "@electron/*": ["src/electron/*"],
+      "@microscopeApi/*": ["src/microscopeApi/*"],
     }
   }
 }

@@ -1,23 +1,15 @@
-export type Message = {
-  type: "error" | "success" | "ready";
-  id: number;
-  code?: number;
-  message?: string;
-  payload?: any;
-  filename?: string;
-};
+import { ElectronMessage } from "@electron/types";
 
 export type SEMClient = {
   send: (comand: Command) => void;
-  subscribe: (callback: (message: Message) => void) => () => void;
+  subscribe: (callback: (message: ElectronMessage) => void) => () => void;
 };
 
 export type Command =
   | GrabFullFrameCommand
   | ConnectCommand
   | SetParamCommand
-  | GetParamCommand
-  | ExecuteCommand;
+  | GetParamCommand;
 
 interface BaseCommand {
   id: number;
@@ -34,18 +26,11 @@ export interface GrabFullFrameCommand extends BaseCommand {
   ribbonName?: string;
 }
 
-interface ConnectCommand extends BaseCommand {
-  type: "connect";
+export interface ConnectCommand extends BaseCommand {
+  type: "CONNECT";
 }
 
-interface ExecuteCommand extends BaseCommand {
-  type: "execute";
-  command: CommandString;
-}
-
-type CommandString = `CMD_SCANRATE${number}` | "CMD_UNFREEZE_ALL";
-
-type ParamName =
+export type ParamName =
   | "SCAN_SPEED"
   | "IMAGE_QUALITY"
   | "FREEZE_ON"
@@ -59,7 +44,7 @@ type ParamName =
   | "FIELD_OF_VIEW"
   | "DETECTOR_TYPE";
 
-interface SetParamCommand extends BaseCommand {
+export interface SetParamCommand extends BaseCommand {
   type: "SET_PARAM";
   param: ParamName;
   value?: any;

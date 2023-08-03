@@ -1,16 +1,17 @@
+import { ElectronMessage } from "@electron/types";
 import appRootDir from "app-root-dir";
 import { ChildProcessWithoutNullStreams, exec, spawn } from "child_process";
 import { app } from "electron";
-import { getPlatform } from "electron/platform";
 import fs from "fs";
 import path from "path";
-import { Message } from "src/microscopeApi/types";
 import { MicroscopeCallingInterface } from "..";
+import { getPlatform } from "../../platform";
 import {
   MicroscopeDetectorType,
   MicroscopeFreezeOn,
   MicroscopeImageQuality,
 } from "../types";
+import type { ZeissMessage } from "./types";
 
 const isProduction = app.isPackaged;
 const isLinux = getPlatform() === "linux";
@@ -30,12 +31,12 @@ export const resourcePath =
 export class ZeissInterface extends MicroscopeCallingInterface {
   private dryRun: boolean;
   private childProcess: ChildProcessWithoutNullStreams | null = null;
-  private messageId = 2;
+  private messageId = 1;
   private responseCallbacks: Map<
     number,
     {
-      onSuccess: (message: Message) => void;
-      onError: (message: Message) => void;
+      onSuccess: (message: ZeissMessage) => void;
+      onError: (message: ZeissMessage) => void;
     }
   > = new Map();
 
@@ -48,13 +49,14 @@ export class ZeissInterface extends MicroscopeCallingInterface {
     message: {
       id: number;
     } & Record<string, any>
-  ): Promise<Message> {
+  ): Promise<ZeissMessage> {
     const child = this.childProcess;
     if (!child)
       throw new Error(
         "Attempted to send message to microscope before initialization"
       );
     return new Promise((res, rej) => {
+      console.log("Sending message", message);
       child.stdin.write(JSON.stringify(message) + "\n");
       setTimeout(rej, RESPONSE_TIMEOUT);
       this.responseCallbacks.set(message.id, {
@@ -71,7 +73,7 @@ export class ZeissInterface extends MicroscopeCallingInterface {
       param,
     });
     if (!response.payload) throw new Error("No payload in response");
-    const [_, value] = response.payload.split("=");
+    const [_, value] = (response.payload || "").split("=");
     return value;
   }
 
@@ -130,6 +132,26 @@ export class ZeissInterface extends MicroscopeCallingInterface {
 
   override async setScanSpeed(scanSpeed: number): Promise<void> {
     await this.sendZeissCommand(`CMD_SCANRATE${scanSpeed}`);
+  }
+
+  override async getStageBounds(): Promise<{
+    x: { min: number; max: number };
+    y: { min: number; max: number };
+  }> {
+    const stageLowLimitX = await this.getZeissParam("AP_STAGE_LOW_X");
+    const stageLowLimitY = await this.getZeissParam("AP_STAGE_LOW_Y");
+    const stageHighLimitX = await this.getZeissParam("AP_STAGE_HIGH_X");
+    const stageHighLimitY = await this.getZeissParam("AP_STAGE_HIGH_Y");
+    return {
+      x: {
+        min: parseFloat(stageLowLimitX),
+        max: parseFloat(stageHighLimitX),
+      },
+      y: {
+        min: parseFloat(stageLowLimitY),
+        max: parseFloat(stageHighLimitY),
+      },
+    };
   }
 
   override async setDetectorType(
@@ -211,23 +233,81 @@ export class ZeissInterface extends MicroscopeCallingInterface {
   override async grabFullFrame(
     name: string,
     filename: string
-  ): Promise<Message> {
-    return this.sendMessage({
+  ): Promise<ElectronMessage> {
+    const response = await this.sendMessage({
       id: this.messageId++,
       type: "GRAB_FULL_FRAME",
       reduction: -1,
       name,
       filename,
     });
+    return {
+      id: response.id,
+      code: response.code,
+      payload: response.payload,
+      type: "SUCCESS",
+    };
   }
 
-  private async spawnChildProcess(): Promise<ChildProcessWithoutNullStreams> {
-    return new Promise((res, rej) => {
+  public override async initialize() {
+    return new Promise<void>((res, rej) => {
+      const handleSpawned = (child: ChildProcessWithoutNullStreams) => {
+        this.childProcess = child;
+        child.stdout.on("data", (data: Buffer) => {
+          const messages: ElectronMessage[] = data
+            .toString("utf8")
+            .trim()
+            .split("\n")
+            .map((message) => {
+              const trimmed = message.trim();
+              if (trimmed.length > 0) return JSON.parse(trimmed);
+              return undefined;
+            })
+            .filter(Boolean);
+          messages.forEach(async (message) => {
+            console.log("Received message from Zeiss interface:", message);
+            const callbacks = this.responseCallbacks.get(message.id);
+            if (!callbacks) return;
+            this.responseCallbacks.delete(message.id);
+            if (message.code === 200) {
+              // grab success
+              const payload = message.payload;
+              if (!payload) return;
+              if (payload.endsWith("setup.tiff")) {
+                // this is a temporary file just used to make the user choose a folder before waiting for the first image to be taken
+                await fs.promises.rm(payload);
+                message = {
+                  ...message,
+                  payload: "",
+                };
+              } else {
+                const data = await fs.promises.readFile(payload);
+                message = {
+                  ...message,
+                  payload: Buffer.from(data).toString("base64"),
+                  filename: payload,
+                };
+              }
+            }
+            if (message.type === "ERROR") callbacks.onError(message);
+            else callbacks.onSuccess(message);
+          });
+        });
+
+        child.stderr.on("data", (data: Buffer) => {
+          console.error(data.toString("utf8"));
+        });
+      };
+
       if (isProduction || isLinux) {
         const childProcess = spawn(path.join(resourcePath, "zeiss-api"), [
           "--dry-run",
         ]);
-        res(childProcess);
+        childProcess.on("spawn", () => {
+          console.log("child process spawned");
+          handleSpawned(childProcess);
+          res();
+        });
       } else {
         console.log("Building Zeiss interface...");
         const cwd = path.join(__dirname, "..", "..", "zeiss-api");
@@ -236,65 +316,33 @@ export class ZeissInterface extends MicroscopeCallingInterface {
         }).on("exit", (e) => {
           if (e !== 0) rej("Failed to build Zeiss interface.");
           console.log("Done building Zeiss interface.");
+          const executablePath = path.join(
+            ".",
+            "bin",
+            "release",
+            "net7.0",
+            "wormsem"
+          );
+          console.log(executablePath);
           const childProcess = spawn(
-            path.join(".", "bin", "release", "net7.0", "wormsem"),
+            executablePath,
             this.dryRun ? ["--dry-run"] : [],
             { cwd }
           );
-          res(childProcess);
+          childProcess.on("spawn", () => {
+            console.log("child process spawned");
+            handleSpawned(childProcess);
+            res();
+          });
         });
       }
     });
   }
 
-  public override async initialize() {
-    const child = await this.spawnChildProcess();
-    this.childProcess = child;
-    child.on("spawn", () => {
-      child.stdout.on("data", (data: Buffer) => {
-        const messages: Message[] = data
-          .toString("utf8")
-          .trim()
-          .split("\n")
-          .map((message) => {
-            const trimmed = message.trim();
-            if (trimmed.length > 0) return JSON.parse(trimmed);
-            return undefined;
-          })
-          .filter(Boolean);
-        messages.forEach(async (message) => {
-          console.log("Received message from Zeiss interface:", message);
-          const callbacks = this.responseCallbacks.get(message.id);
-          if (!callbacks) return;
-          this.responseCallbacks.delete(message.id);
-          if (message.code === 200) {
-            // grab success
-            const payload = message.payload;
-            if (!payload) return;
-            if (payload.endsWith("setup.tiff")) {
-              // this is a temporary file just used to make the user choose a folder before waiting for the first image to be taken
-              await fs.promises.rm(payload);
-              message = {
-                ...message,
-                payload: "",
-              };
-            } else {
-              const data = await fs.promises.readFile(payload);
-              message = {
-                ...message,
-                payload: Buffer.from(data).toString("base64"),
-                filename: payload,
-              };
-            }
-          }
-          if (message.type === "error") callbacks.onError(message);
-          else callbacks.onSuccess(message);
-        });
-      });
-
-      child.stderr.on("data", (data: Buffer) => {
-        console.error(data.toString("utf8"));
-      });
+  public override async connect(): Promise<void> {
+    await this.sendMessage({
+      id: this.messageId++,
+      type: "CONNECT",
     });
   }
 

@@ -5,7 +5,7 @@ import {
   setupCanvas,
   translateTrapezoid,
 } from "@logic/canvas";
-import { edgeFilter } from "@logic/edgeFilter";
+import { detectRibbons } from "@logic/detectRibbons";
 import { handleFinalImaging, sleep } from "@logic/handleFinalImaging";
 import { base64ToImageSrc } from "@logic/image";
 import pointMatching from "@logic/pointMatching";
@@ -33,6 +33,7 @@ import {
   optionsStore,
   ribbonState,
   scanSpeedSignal,
+  showOriginalImageSignal,
   zoomStateSignal,
 } from "src/data/signals/globals";
 import { microscopeApi } from "src/microscopeApi";
@@ -46,7 +47,7 @@ import { Button } from "./Button";
 import { ConfigureSliceCanvas } from "./ConfigureSliceCanvas";
 import { ParameterPanel } from "./ParameterPanel";
 import { availableColors, RibbonConfig } from "./RibbonConfig";
-import { RibbonDetector } from "./RibbonDetector";
+import { MaskSelector } from "./RibbonDetector/MaskSelector";
 import { SliderPicker } from "./SliderPicker";
 import { DEFAULT_ZOOM_SCALE, ZoomController } from "./ZoomController";
 
@@ -55,16 +56,15 @@ export const Canvas = (props: { samLoaded: boolean }) => {
   let overlayCanvasRef!: HTMLCanvasElement;
   let edgeDataCanvasRef!: HTMLCanvasElement;
 
+  const [nextId, setNextId] = createSignal(1);
   const [zoomState, setZoomState] = zoomStateSignal;
   const [magnification] = magnificationSignal;
   const [scanSpeed] = scanSpeedSignal;
-  const [nextId, setNextId] = createSignal(1);
   const [ribbonReducer, ribbonDispatch] = ribbonState;
-
+  const [showOriginalImage, setShowOriginalImage] = showOriginalImageSignal;
   const [imageSrc, setImageSrc] = imageSrcSignal;
   const [imageSrcFilename] = imageSrcFilenameSignal;
   const [initialStage] = initialStageSignal;
-  const [showOriginalImage, setShowOriginalImage] = createSignal(true);
   const [focusedSlice, setFocusedSlice] = createSignal<number>(-1);
   const [sliceConfiguration, setSliceConfiguration] = createSignal<
     SliceConfiguration[]
@@ -571,27 +571,13 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     ribbonDispatch(actions.setFocusedRibbon, -1);
   };
 
-  const handleMoveStageToSlice = async () => {
-    const ribbon = ribbonReducer().ribbons.find(
-      (ribbon) => ribbon.id === ribbonReducer().focusedRibbon
-    )!;
-    const point = ribbon.matchedPoints[focusedSlice()];
-    const coordinates = computeStageCoordinates({
-      point,
-      canvasConfiguration: canvasRef,
-      stageConfiguration: initialStage()!,
-    });
-    await sleep(200);
-    await microscopeApi.moveStageTo(coordinates);
-  };
-
   const handleRibbonDetection = async ([[imgX, imgY], ...points]: [
     number,
     number
   ][]) => {
-    const trapezoids = await RibbonDetector({
+    const trapezoids = await detectRibbons({
       point: [imgX, imgY],
-      edgeDataCanvasRef,
+      edgeDataCanvasRef: edgeDataCanvasRef,
       options: options.options,
     });
     const id = nextId();
@@ -604,18 +590,32 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     ribbonDispatch(actions.setRibbons, [
       ...ribbonReducer().ribbons,
       {
-        trapezoids,
+        trapezoids: trapezoids!,
         id,
         name: `Ribbon ${Math.ceil(id / 2)}`,
         color,
         thickness: 5,
         status: "editing",
         matchedPoints: [],
-        reversed: false,
+        // reversed: false,
         phase: 2,
         clickedPoints: [[imgX, imgY], ...points],
-      } as RibbonData,
+      } satisfies RibbonData,
     ]);
+  };
+
+  const handleMoveStageToSlice = async () => {
+    const ribbon = ribbonReducer().ribbons.find(
+      (ribbon) => ribbon.id === ribbonReducer().focusedRibbon
+    )!;
+    const point = ribbon.matchedPoints[focusedSlice()];
+    const coordinates = computeStageCoordinates({
+      point,
+      canvasConfiguration: canvasRef,
+      stageConfiguration: initialStage()!,
+    });
+    await sleep(200);
+    await microscopeApi.moveStageTo(coordinates);
   };
 
   return (
@@ -695,22 +695,26 @@ export const Canvas = (props: { samLoaded: boolean }) => {
         <Show when={imageSrc()}>
           <div class="grid grid-cols-5 gap-4 mt-1">
             <Button
+              variant="ghost"
               onClick={() => {
                 setImageSrc(null);
                 ribbonDispatch(actions.resetImage);
                 setZoomState({ status: "zoomed-out", scale: 1 });
               }}
+              tooltip="Erase the current image. You'll have to grab a new image to continue."
             >
               Clear Image
             </Button>
             <Show when={ribbonReducer().masks.length === 0}>
               <Button
+                variant="primary-outline"
                 onClick={() => {
                   const newState = !ribbonReducer().detection;
                   if (!newState) ribbonDispatch(actions.setClickedPoints, []);
                   ribbonDispatch(actions.setDetection, newState);
                 }}
                 disabled={ribbonReducer().detectionLoading}
+                tooltip="Toggle ribbon detection. If enabled, click on the image to select a ribbon. If disabled, you won't be able to detect a new ribbon."
               >
                 <Show when={ribbonReducer().detection} fallback="Enable">
                   Disable
@@ -735,60 +739,32 @@ export const Canvas = (props: { samLoaded: boolean }) => {
                   disabled={
                     ribbonReducer().detectionLoading || !props.samLoaded
                   }
+                  tooltip="Detect a ribbon from the clicked points. You'll be able to edit the ribbon manually after it's detected."
                 >
                   Detect Ribbon
                 </Button>
               </Show>
             </Show>
-            <Show when={ribbonReducer().masks.length > 1}>
-              <Button
-                onClick={() => {
-                  const prev = ribbonReducer().masks;
-                  if (prev.length === 0) return;
-                  const [mask, ...rest] = prev;
-                  ribbonDispatch(actions.setMasks, [...rest, mask]);
-                }}
-              >
-                Next mask
-              </Button>
-              <Button
-                onClick={() => {
-                  const [mask] = ribbonReducer().masks;
-                  const points = ribbonReducer().clickedPoints;
-                  ribbonDispatch(actions.setMasks, []);
-                  ribbonDispatch(actions.setClickedPoints, []);
-                  const edgeContext = edgeDataCanvasRef.getContext("2d")!;
-                  edgeContext.clearRect(
-                    0,
-                    0,
-                    edgeDataCanvasRef.width,
-                    edgeDataCanvasRef.height
-                  );
-                  const edgeData = edgeFilter(
-                    edgeDataCanvasRef,
-                    mask,
-                    edgeContext
-                  );
-                  edgeContext.putImageData(edgeData, 0, 0);
-                  handleRibbonDetection(points);
-                }}
-              >
-                Accept Mask
-              </Button>
-            </Show>
+            <MaskSelector
+              edgeDataCanvasRef={edgeDataCanvasRef}
+              handleRibbonDetection={handleRibbonDetection}
+            />
             <Show when={ribbonReducer().ribbons.length > 0}>
               <Button onClick={() => ribbonDispatch(actions.setRibbons, [])}>
                 Remove All Ribbons
               </Button>
             </Show>
-            <Button
-              onClick={() => {
-                setShowOriginalImage(!showOriginalImage());
-              }}
-            >
-              Show {showOriginalImage() ? "Edge Data" : "Original Image"}
-            </Button>
-            <ZoomController />
+            <Show when={ribbonReducer().masks.length > 0}>
+              <Button
+                onClick={() => {
+                  setShowOriginalImage(!showOriginalImage());
+                }}
+                tooltip="Toggle between the image from the microscope and the edge data."
+              >
+                Show {showOriginalImage() ? "Edge Data" : "Original Image"}
+              </Button>
+              <ZoomController />
+            </Show>
           </div>
         </Show>
         <For each={ribbonReducer().ribbons}>
@@ -854,7 +830,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
             />
           )}
         </For>
-        <Show when={zoomState().status !== "picking-center"}>
+        <Show when={zoomState().status === "zoomed-in"}>
           <SliderPicker
             label="Zoom"
             value={zoomState().scale}

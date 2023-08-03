@@ -1,4 +1,5 @@
-import { Message, ParamName } from "src/microscopeApi/types";
+import { ElectronMessage } from "@electron/types";
+import { ParamName } from "src/microscopeApi/types";
 import { z } from "zod";
 import {
   MicroscopeDetectorType,
@@ -20,13 +21,21 @@ export abstract class MicroscopeCallingInterface {
   abstract setImageQuality(imageQuality: MicroscopeImageQuality): Promise<void>;
   abstract moveStageTo({ x, y }: { x: number; y: number }): Promise<void>;
   abstract getStagePosition(): Promise<{ x: number; y: number }>;
+  abstract getStageBounds(): Promise<{
+    x: { min: number; max: number };
+    y: { min: number; max: number };
+  }>;
   abstract getFieldOfView(): Promise<{ width: number; height: number }>;
-  abstract grabFullFrame(name: string, filename: string): Promise<Message>;
+  abstract grabFullFrame(
+    name: string,
+    filename: string
+  ): Promise<ElectronMessage>;
   abstract setFrozen(frozen: boolean): Promise<void>;
   abstract getFrozen(): Promise<boolean>;
   abstract setFreezeOn(freezeOn: MicroscopeFreezeOn): Promise<void>;
 
   abstract initialize(): Promise<void>;
+  abstract connect(): Promise<void>;
   abstract shutdown(): void;
 
   setParam(param: ParamName, value: any) {
@@ -84,11 +93,12 @@ export abstract class MicroscopeCallingInterface {
         return this.getStagePosition();
       case "FIELD_OF_VIEW":
         return this.getFieldOfView();
+      case "STAGE_BOUNDS":
+        return this.getStageBounds();
       case "DETECTOR_TYPE":
       case "FREEZE_ON":
       case "IMAGE_QUALITY":
       case "SCAN_SPEED":
-      case "STAGE_BOUNDS":
         throw new Error(`Cannot get ${param} (or not yet implemented)`);
     }
   }

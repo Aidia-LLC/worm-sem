@@ -6,7 +6,7 @@ namespace wormsem.responses
 		public ReadyResponse()
 		{
 			id = 0;
-			type = "ready";
+			type = "READY";
 		}
 	}
 }

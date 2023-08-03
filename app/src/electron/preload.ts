@@ -7,7 +7,7 @@
  */
 
 import { contextBridge, ipcRenderer } from "electron";
-import { Message, SEMClient } from "../src/microscopeApi/types";
+import { Message, SEMClient } from "../microscopeApi/types";
 
 const subscribers: ((message: Message) => void)[] = [];
 

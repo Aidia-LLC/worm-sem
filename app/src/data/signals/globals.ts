@@ -32,3 +32,4 @@ export const ribbonState = createReducer<RibbonReducerState, any[]>(
   ribbonDispatcher,
   ribbonReducerInitialState
 );
+export const showOriginalImageSignal = createSignal(true);

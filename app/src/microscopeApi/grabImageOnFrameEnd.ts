@@ -4,7 +4,7 @@ import { microscopeApi } from ".";
 export const grabImageOnFrameEnd = async (
   details: Parameters<(typeof microscopeApi)["grabFullFrame"]>[0],
   options?: { minSleepMs?: number; pollIntervalMs?: number }
-): Promise<void> => {
+) => {
   await microscopeApi.setFrozen(false);
   await sleep(250);
   await microscopeApi.setFreezeOn("END_FRAME");
@@ -16,5 +16,5 @@ export const grabImageOnFrameEnd = async (
     if (isFrozen) break;
     await sleep(options?.pollIntervalMs || 10000);
   }
-  await microscopeApi.grabFullFrame(details);
+  return microscopeApi.grabFullFrame(details);
 };

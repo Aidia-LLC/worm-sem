@@ -19,7 +19,7 @@ namespace wormsem.responses
             this.message = message;
             this.payload = payload;
             this.code = (int)code;
-            type = "success";
+            type = "SUCCESS";
         }
     }
 }

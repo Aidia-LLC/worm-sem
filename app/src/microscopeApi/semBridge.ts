@@ -1,3 +1,4 @@
+import { ElectronMessage } from "@electron/types";
 import {
   GetParamCommand,
   GrabFullFrameCommand,
@@ -17,9 +18,8 @@ export const getSEMParam = (param: ParamName): Promise<string> => {
     const unsubscribe = window.semClient.subscribe((message) => {
       if (message.id === command.id) {
         unsubscribe();
-        if (message.type === "success") {
-          const [_, value] = message.payload!.split("=");
-          resolve(value);
+        if (message.type === "SUCCESS") {
+          resolve(message.payload);
         } else {
           reject();
         }
@@ -40,7 +40,7 @@ export const setSEMParam = (param: ParamName, value: any) => {
     const unsubscribe = window.semClient.subscribe((message) => {
       if (message.id === command.id) {
         unsubscribe();
-        if (message.type === "success") {
+        if (message.type === "SUCCESS") {
           resolve();
         } else {
           reject();
@@ -57,7 +57,7 @@ export const grabSEMImage = (props: {
   temporary?: boolean;
   ribbonId?: number;
   ribbonName?: string;
-}): Promise<void> => {
+}): Promise<ElectronMessage> => {
   return new Promise((resolve, reject) => {
     const command: GrabFullFrameCommand = {
       id: nextId++,
@@ -70,10 +70,11 @@ export const grabSEMImage = (props: {
       ribbonName: props.ribbonName,
     };
     const unsubscribe = window.semClient.subscribe((message) => {
+      console.log("got message", message, command);
       if (message.id === command.id) {
         unsubscribe();
-        if (message.type === "success") {
-          resolve();
+        if (message.type === "SUCCESS") {
+          resolve(message);
         } else {
           reject(new Error(message.message));
         }
