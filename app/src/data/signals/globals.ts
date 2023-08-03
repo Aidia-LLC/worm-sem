@@ -5,6 +5,7 @@ import { createSignal } from "solid-js";
 import { createOptionsStore } from "../createOptionsStore";
 import {
   ribbonDispatcher,
+  RibbonDispatchPayload,
   ribbonReducerInitialState,
   RibbonReducerState,
 } from "../ribbonReducer";
@@ -28,8 +29,8 @@ export const imageSrcFilenameSignal = createSignal<string | null>(null);
 
 export const initialStageSignal = createSignal<StageConfiguration | null>(null);
 
-export const ribbonState = createReducer<RibbonReducerState, any[]>(
-  ribbonDispatcher,
-  ribbonReducerInitialState
-);
+export const ribbonState = createReducer<
+  RibbonReducerState,
+  RibbonDispatchPayload[]
+>(ribbonDispatcher, ribbonReducerInitialState);
 export const showOriginalImageSignal = createSignal(true);

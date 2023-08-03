@@ -23,7 +23,6 @@ import {
   Show,
   Switch,
 } from "solid-js";
-import { actions } from "src/data/ribbonReducer";
 import { getNextCommandId } from "src/data/signals/commandQueue";
 import {
   imageSrcFilenameSignal,
@@ -109,10 +108,10 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     const imgX = Math.round((x / rectWidth) * canvasRef.width);
     const imgY = Math.round((y / rectHeight) * canvasRef.height);
 
-    ribbonDispatch(actions.setClickedPoints, [
-      ...ribbonReducer().clickedPoints,
-      [imgX, imgY],
-    ]);
+    ribbonDispatch({
+      action: "setClickedPoints",
+      payload: [...ribbonReducer().clickedPoints, [imgX, imgY]],
+    });
     console.log(ribbonReducer().clickedPoints);
   };
 
@@ -316,7 +315,10 @@ export const Canvas = (props: { samLoaded: boolean }) => {
         .flat()
     );
     if (nearestDistance < vertexDist || inTrapezoid) {
-      ribbonDispatch(actions.setClickedPoint, { x: imgX, y: imgY });
+      ribbonDispatch({
+        action: "setClickedPoint",
+        payload: { x: imgX, y: imgY },
+      });
       overlayCanvasRef.addEventListener("mousemove", handleMouseMove);
       overlayCanvasRef.addEventListener("mouseup", handleMouseUp);
       e.preventDefault();
@@ -380,9 +382,9 @@ export const Canvas = (props: { samLoaded: boolean }) => {
             }
             return point;
           });
-          ribbonDispatch(
-            actions.setRibbons,
-            ribbonReducer().ribbons.map((t) => {
+          ribbonDispatch({
+            action: "setRibbons",
+            payload: ribbonReducer().ribbons.map((t) => {
               if (t.trapezoids === trapezoidSet.trapezoids) {
                 return {
                   ...t,
@@ -390,8 +392,8 @@ export const Canvas = (props: { samLoaded: boolean }) => {
                 };
               }
               return t;
-            })
-          );
+            }),
+          });
           return;
         }
       }
@@ -399,7 +401,10 @@ export const Canvas = (props: { samLoaded: boolean }) => {
       else if (nearestVertex && nearestDistance > vertexDist && trapezoidSet) {
         const dy = imgY - ribbonReducer().clickedPoint!.y ?? 0;
         const dx = imgX - ribbonReducer().clickedPoint!.x ?? 0;
-        ribbonDispatch(actions.setClickedPoint, { x: imgX, y: imgY });
+        ribbonDispatch({
+          action: "setClickedPoint",
+          payload: { x: imgX, y: imgY },
+        });
         const newTrapezoid = translateTrapezoid(trapezoid, dx, dy);
         // if new trapezoid is touching the edge of the image, delete it
         if (
@@ -423,14 +428,14 @@ export const Canvas = (props: { samLoaded: boolean }) => {
               (t.bottom.x2 !== trapezoid.bottom.x2 &&
                 t.bottom.y2 !== trapezoid.bottom.y2)
           );
-          ribbonDispatch(
-            actions.setRibbons,
-            ribbonReducer().ribbons.map((t) =>
+          ribbonDispatch({
+            action: "setRibbons",
+            payload: ribbonReducer().ribbons.map((t) =>
               t.trapezoids === trapezoidSet.trapezoids
                 ? { ...t, trapezoids: newTrapezoids, matchedPoints: [] }
                 : t
-            )
-          );
+            ),
+          });
           handleMouseUp();
           return;
         }
@@ -444,14 +449,14 @@ export const Canvas = (props: { samLoaded: boolean }) => {
             ? newTrapezoid
             : t
         );
-        ribbonDispatch(
-          actions.setRibbons,
-          ribbonReducer().ribbons.map((t) =>
+        ribbonDispatch({
+          action: "setRibbons",
+          payload: ribbonReducer().ribbons.map((t) =>
             t.trapezoids === trapezoidSet.trapezoids
               ? { ...t, trapezoids: newTrapezoids, matchedPoints: [] }
               : t
-          )
-        );
+          ),
+        });
         return;
       }
     }
@@ -487,7 +492,10 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           ? { ...t, trapezoids: newSet, matchedPoints: [] }
           : t
       );
-      ribbonDispatch(actions.setRibbons, newTrapezoids); //TODO double check
+      ribbonDispatch({
+        action: "setRibbons",
+        payload: newTrapezoids,
+      }); //TODO double check
     }
   }
 
@@ -495,12 +503,15 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     overlayCanvasRef.removeEventListener("mousemove", handleMouseMove);
     overlayCanvasRef.removeEventListener("mouseup", handleMouseUp);
 
-    ribbonDispatch(actions.setClickedPoint, undefined);
+    ribbonDispatch({
+      action: "setClickedPoint",
+      payload: null,
+    });
   }
 
   const handleStartGrabbing = async () => {
     setFocusedSlice(-1);
-    ribbonDispatch(actions.setGrabbing, true);
+    ribbonDispatch({ action: "setGrabbing", payload: true });
     const userConfigurations = sliceConfiguration();
     const ribbon = ribbonReducer().ribbons.find(
       (r) => r.id === ribbonReducer().focusedRibbon
@@ -567,8 +578,14 @@ export const Canvas = (props: { samLoaded: boolean }) => {
       console.error(err);
       alert(`Error imaging ${ribbon.name}. ${(err as Error).message}`);
     }
-    ribbonDispatch(actions.setGrabbing, false);
-    ribbonDispatch(actions.setFocusedRibbon, -1);
+    ribbonDispatch({
+      action: "setGrabbing",
+      payload: false,
+    });
+    ribbonDispatch({
+      action: "setFocusedRibbon",
+      payload: -1,
+    });
   };
 
   const handleRibbonDetection = async ([[imgX, imgY], ...points]: [
@@ -582,14 +599,17 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     });
     const id = nextId();
     setNextId((prev) => prev + 1);
-    ribbonDispatch(actions.setDetection, false); //may need to be called earlier?
+    ribbonDispatch({
+      action: "setDetection",
+      payload: false,
+    });
     setShowOriginalImage(true);
     const colors = new Set(availableColors);
     ribbonReducer().ribbons.forEach((set) => colors.delete(set.color));
     const color = colors.size > 0 ? colors.values().next().value : "red";
-    ribbonDispatch(actions.setRibbons, [
-      ...ribbonReducer().ribbons,
-      {
+    ribbonDispatch({
+      action: "addRibbon",
+      payload: {
         trapezoids: trapezoids!,
         id,
         name: `Ribbon ${Math.ceil(id / 2)}`,
@@ -601,7 +621,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
         phase: 2,
         clickedPoints: [[imgX, imgY], ...points],
       } satisfies RibbonData,
-    ]);
+    });
   };
 
   const handleMoveStageToSlice = async () => {
@@ -698,7 +718,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
               variant="ghost"
               onClick={() => {
                 setImageSrc(null);
-                ribbonDispatch(actions.resetImage);
+                ribbonDispatch({ action: "resetImage" });
                 setZoomState({ status: "zoomed-out", scale: 1 });
               }}
               tooltip="Erase the current image. You'll have to grab a new image to continue."
@@ -710,8 +730,9 @@ export const Canvas = (props: { samLoaded: boolean }) => {
                 variant="primary-outline"
                 onClick={() => {
                   const newState = !ribbonReducer().detection;
-                  if (!newState) ribbonDispatch(actions.setClickedPoints, []);
-                  ribbonDispatch(actions.setDetection, newState);
+                  if (!newState)
+                    ribbonDispatch({ action: "setClickedPoints", payload: [] });
+                  ribbonDispatch({ action: "setDetection", payload: newState });
                 }}
                 disabled={ribbonReducer().detectionLoading}
                 tooltip="Toggle ribbon detection. If enabled, click on the image to select a ribbon. If disabled, you won't be able to detect a new ribbon."
@@ -725,16 +746,28 @@ export const Canvas = (props: { samLoaded: boolean }) => {
                 <Button
                   onClick={async () => {
                     const points = ribbonReducer().clickedPoints;
-                    ribbonDispatch(actions.setDetection, false);
-                    ribbonDispatch(actions.setDetectionLoading, true);
+                    ribbonDispatch({
+                      action: "setDetection",
+                      payload: false,
+                    });
+                    ribbonDispatch({
+                      action: "setDetectionLoading",
+                      payload: true,
+                    });
                     const segmentedImageData = await segmentImage({
                       points,
                       canvasRef,
                       filename: imageSrcFilename()!,
                     });
                     setShowOriginalImage(false);
-                    ribbonDispatch(actions.setDetectionLoading, false);
-                    ribbonDispatch(actions.setMasks, segmentedImageData);
+                    ribbonDispatch({
+                      action: "setDetectionLoading",
+                      payload: false,
+                    });
+                    ribbonDispatch({
+                      action: "setMasks",
+                      payload: segmentedImageData,
+                    });
                   }}
                   disabled={
                     ribbonReducer().detectionLoading || !props.samLoaded
@@ -750,7 +783,14 @@ export const Canvas = (props: { samLoaded: boolean }) => {
               handleRibbonDetection={handleRibbonDetection}
             />
             <Show when={ribbonReducer().ribbons.length > 0}>
-              <Button onClick={() => ribbonDispatch(actions.setRibbons, [])}>
+              <Button
+                onClick={() =>
+                  ribbonDispatch({
+                    action: "setRibbons",
+                    payload: [],
+                  })
+                }
+              >
                 Remove All Ribbons
               </Button>
             </Show>
@@ -772,7 +812,10 @@ export const Canvas = (props: { samLoaded: boolean }) => {
             <RibbonConfig
               grabbing={ribbonReducer().focusedRibbon === trapezoidSet.id}
               onGrab={async (id) => {
-                ribbonDispatch(actions.setFocusedRibbon, id);
+                ribbonDispatch({
+                  action: "setFocusedRibbon",
+                  payload: id,
+                });
                 const trapezoids = ribbonReducer().ribbons.find(
                   (t) => t.id === id
                 )!.trapezoids;
@@ -806,22 +849,25 @@ export const Canvas = (props: { samLoaded: boolean }) => {
                 const newTrapezoidSets = ribbonReducer().ribbons.map((t) =>
                   t.id === newTrapezoidSet.id ? { ...t, ...newTrapezoidSet } : t
                 );
-                ribbonDispatch(actions.setRibbons, newTrapezoidSets);
+                ribbonDispatch({
+                  action: "setRibbons",
+                  payload: newTrapezoidSets,
+                });
               }}
               onDelete={({ id }) =>
-                ribbonDispatch(
-                  actions.setRibbons,
-                  ribbonReducer().ribbons.filter((t) => t.id !== id)
-                )
+                ribbonDispatch({
+                  action: "setRibbons",
+                  payload: ribbonReducer().ribbons.filter((t) => t.id !== id),
+                })
               }
               ctx={canvasRef.getContext("2d")!}
               onDetectAgain={() => {
-                ribbonDispatch(
-                  actions.setRibbons,
-                  ribbonReducer().ribbons.filter(
-                    (s) => s.id !== trapezoidSet.id
-                  )
-                );
+                ribbonDispatch({
+                  action: "setRibbons",
+                  payload: ribbonReducer().ribbons.filter(
+                    (t) => t.id !== trapezoidSet.id
+                  ),
+                });
                 const points = [...trapezoidSet.clickedPoints];
                 // move the first point to the end of the array
                 points.push(points.shift()!);

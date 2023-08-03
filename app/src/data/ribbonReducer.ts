@@ -23,14 +23,14 @@ export const actions = {
   resetImage: "resetImage",
 };
 
-type DispatchPayload =
+export type RibbonDispatchPayload =
   | {
       action: "setRibbons";
       payload: RibbonData[];
     }
   | {
       action: "setFocusedRibbon";
-      payload: number;
+      payload: number | null;
     }
   | {
       action: "setGrabbing";
@@ -58,17 +58,23 @@ type DispatchPayload =
     }
   | {
       action: "resetImage";
+    }
+  | {
+      action: "addRibbon";
+      payload: RibbonData;
     };
 
 export type RibbonReducerState = typeof ribbonReducerInitialState;
 
 export const ribbonDispatcher = (
   state: typeof ribbonReducerInitialState,
-  event: DispatchPayload
+  event: RibbonDispatchPayload
 ) => {
   switch (event.action) {
     case "setRibbons":
       return { ...state, ribbons: event.payload };
+    case 'addRibbon':
+      return { ...state, ribbons: [...state.ribbons, event.payload] };
     case "setFocusedRibbon":
       return { ...state, focusedRibbon: event.payload };
     case "setGrabbing":
