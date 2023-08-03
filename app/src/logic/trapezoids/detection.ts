@@ -8,6 +8,8 @@ export function detectTrapezoid(
   ctx: CanvasRenderingContext2D,
   options: ProcessingOptions
 ) {
+  console.log(ctx)
+  ctx.lineWidth = 5;
   const square = getSquare(imageData, x, y, options.squareSize);
   console.log("square", square);
   // draw square

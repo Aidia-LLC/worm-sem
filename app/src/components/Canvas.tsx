@@ -43,17 +43,21 @@ import type {
   Trapezoid,
 } from "src/types/canvas";
 import { Button } from "./Button";
-import { SliceConfigurationScreen } from "./SliceConfigurationScreen";
 import { ParameterPanel } from "./ParameterPanel";
 import { availableColors, RibbonConfig } from "./RibbonConfig";
 import { MaskSelector } from "./RibbonDetector/MaskSelector";
+import {
+  DEFAULT_ZOOM_SCALE,
+  ZoomController,
+} from "./RibbonDetector/ZoomController";
+import { SliceConfigurationScreen } from "./SliceConfigurationScreen";
 import { SliderPicker } from "./SliderPicker";
-import { DEFAULT_ZOOM_SCALE, ZoomController } from "./RibbonDetector/ZoomController";
 
 export const Canvas = (props: { samLoaded: boolean }) => {
   let canvasRef!: HTMLCanvasElement;
   let overlayCanvasRef!: HTMLCanvasElement;
   let edgeDataCanvasRef!: HTMLCanvasElement;
+  let debugCanvasRef!: HTMLCanvasElement;
 
   const [nextId, setNextId] = createSignal(1);
   const [zoomState, setZoomState] = zoomStateSignal;
@@ -128,6 +132,8 @@ export const Canvas = (props: { samLoaded: boolean }) => {
       const canvas = document.createElement("canvas");
       canvas.width = img.width;
       canvas.height = img.height;
+      debugCanvasRef.width = img.width;
+      debugCanvasRef.height = img.height;
       const ctx = canvas.getContext("2d")!;
       ctx.drawImage(img, 0, 0);
     };
@@ -588,6 +594,12 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     });
   };
 
+  createEffect(() => {
+    debugCanvasRef.getContext('2d')?.moveTo(0, 0);
+    debugCanvasRef.getContext('2d')?.lineTo(100, 100);
+    debugCanvasRef.getContext('2d')?.stroke();
+  })
+
   const handleRibbonDetection = async ([[imgX, imgY], ...points]: [
     number,
     number
@@ -596,7 +608,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     const trapezoids = await detectRibbons({
       point: [imgX, imgY],
       edgeDataCanvasRef,
-      overlayCanvasRef,
+      overlayCanvasRef: debugCanvasRef,
       options: options.options,
     });
     const id = nextId();
@@ -968,6 +980,12 @@ export const Canvas = (props: { samLoaded: boolean }) => {
               zoomState().status !== "picking-center" &&
               ribbonReducer().detection,
           }}
+        ></canvas>
+        <canvas
+          ref={debugCanvasRef}
+          width="1000"
+          height="1000"
+          class="w-[clamp(300px,_100%,_85vh)] mx-auto absolute top-0 left-[50%] translate-x-[-50%] z-[40]"
         ></canvas>
         <ParameterPanel />
       </div>

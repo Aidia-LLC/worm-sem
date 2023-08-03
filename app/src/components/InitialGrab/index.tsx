@@ -35,8 +35,10 @@ export const GrabForm = () => {
                 temporary: true,
               },
               {
-                minSleepMs: 15000,
-                pollIntervalMs: 5000,
+                // minSleepMs: 15000,
+                // pollIntervalMs: 5000,
+                minSleepMs: 100,
+                pollIntervalMs: 100,
               }
             );
             console.log("got image");
