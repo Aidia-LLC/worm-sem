@@ -11,10 +11,10 @@ import {
 } from "src/data/signals/globals";
 import { microscopeApi } from "src/microscopeApi";
 import { RibbonData, SliceConfiguration } from "src/types/canvas";
-import { Button } from "./Button";
-import { SliderPicker } from "./SliderPicker";
+import { Button } from "../Button";
+import { SliderPicker } from "../SliderPicker";
 
-export const ConfigureSliceCanvas = (props: {
+export const SliceConfigurationScreen = (props: {
   ribbon: RibbonData;
   configuration: SliceConfiguration;
   setConfiguration: (config: Partial<SliceConfiguration>) => void;

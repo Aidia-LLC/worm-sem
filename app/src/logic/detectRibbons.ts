@@ -11,6 +11,7 @@ import { orderTrapezoids } from "@logic/trapezoids/connected";
 import { detectTrapezoid } from "@logic/trapezoids/detection";
 import { trapezoidIsValid } from "@logic/trapezoids/valid";
 import { ProcessingOptions } from "src/types/ProcessingOptions";
+import { Trapezoid } from "../types/canvas";
 
 export const detectRibbons = async ({
   point: [imgX, imgY],
@@ -22,7 +23,7 @@ export const detectRibbons = async ({
   edgeDataCanvasRef: HTMLCanvasElement;
   overlayCanvasRef: HTMLCanvasElement;
   options: ProcessingOptions;
-}) => {
+}): Promise<Trapezoid[]> => {
   console.log("findTrapezoid");
   const edgeContext = edgeDataCanvasRef.getContext("2d")!;
   const edgeData = edgeContext.getImageData(
@@ -52,7 +53,7 @@ export const detectRibbons = async ({
       imgY - options.squareSize / 2
     )!;
     console.log("trapezoid ransac", trapezoid);
-    if (!trapezoid) return;
+    if (!trapezoid) return [];
     trapezoid = translateTrapezoid(
       trapezoid,
       imgX - options.squareSize / 2,
@@ -68,7 +69,7 @@ export const detectRibbons = async ({
     );
     trapezoid = newTrapezoid;
   }
-  if (!trapezoid) return;
+  if (!trapezoid) return [];
   trapezoid = permuteTrapezoid(trapezoid);
   const connectedTrapezoids = findConnectedTrapezoids(
     trapezoid,

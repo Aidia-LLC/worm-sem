@@ -1,4 +1,4 @@
-import { ZoomState } from "@components/ZoomController";
+import { ZoomState } from "@components/RibbonDetector/ZoomController";
 import { StageConfiguration } from "@logic/semCoordinates";
 import { createReducer } from "@solid-primitives/reducer";
 import { createSignal } from "solid-js";

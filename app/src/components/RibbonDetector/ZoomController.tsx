@@ -1,6 +1,6 @@
 import { Match, onCleanup, onMount, Switch } from "solid-js";
 import { zoomStateSignal } from "src/data/signals/globals";
-import { Button } from "./Button";
+import { Button } from "../Button";
 
 export const DEFAULT_ZOOM_SCALE = 10;
 
