@@ -1,4 +1,5 @@
 import { createEffect, createSignal, untrack } from "solid-js";
+import { Button } from "./Button";
 import { Tooltip } from "./Tooltip";
 
 export const Param = (props: {
@@ -23,7 +24,10 @@ export const Param = (props: {
     <div class="flex flex-row items-center gap-2">
       <label class="font-bold flex flex-row">
         {props.label}
-        <Tooltip message={props.description} position={props.tooltipPosition || 'bottom'}>
+        <Tooltip
+          message={props.description}
+          position={props.tooltipPosition || "bottom"}
+        >
           <svg
             width="24px"
             height="24px"
@@ -60,7 +64,13 @@ export const Param = (props: {
         ref={inputRef}
         onChange={(e) => setCurrentValue(parseFloat(e.currentTarget.value))}
       />
-      <button
+      <Button
+        onClick={() => props.onChange(currentValue())}
+        variant="primary-outline"
+      >
+        Set
+      </Button>
+      {/* <button
         onClick={() => props.onChange(currentValue())}
         class="text-white font-bold py-2 px-4 rounded"
         classList={{
@@ -69,7 +79,7 @@ export const Param = (props: {
         }}
       >
         Set
-      </button>
+      </button> */}
     </div>
   );
 };

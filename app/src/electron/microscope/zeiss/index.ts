@@ -245,6 +245,7 @@ export class ZeissInterface extends MicroscopeCallingInterface {
       id: response.id,
       code: response.code,
       payload: response.payload,
+      filename,
       type: "SUCCESS",
     };
   }

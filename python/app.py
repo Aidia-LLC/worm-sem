@@ -55,29 +55,35 @@ def segment():
 
     if cache and cachedResponse is not None:
         return cachedResponse
+    
+    try:
+        filename = request.json['filename']
+        image = cv2.imread(filename)
+        predictor.set_image(image)
+        points = request.json['points']
+        input_point = np.array(points)
+        input_label = np.array([1 for _ in points])
+        masks, scores, _ = predictor.predict(
+            point_coords=input_point,
+            point_labels=input_label,
+            multimask_output=True,
+        )
 
-    filename = request.json['filename']
-    image = cv2.imread(filename)
-    predictor.set_image(image)
-    points = request.json['points']
-    input_point = np.array(points)
-    input_label = np.array([1 for _ in points])
-    masks, scores, _ = predictor.predict(
-        point_coords=input_point,
-        point_labels=input_label,
-        multimask_output=True,
-    )
+        data = json.dumps({
+            'masks': masks,
+            'scores': scores,
+            'success': True,
+        }, cls=NumpyEncoder)
 
-    data = json.dumps({
-        'masks': masks,
-        'scores': scores,
-        'success': True,
-    }, cls=NumpyEncoder)
+        if cache:
+            cachedResponse = data
 
-    if cache:
-        cachedResponse = data
-
-    return data
+        return data
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e),
+        }
 
 
 class NumpyEncoder(json.JSONEncoder):

@@ -22,9 +22,9 @@ export const Button = (props: {
             !props.variant || props.variant === "primary",
           "bg-gray-500 hover:bg-gray-700 active:bg-gray-800":
             props.variant === "secondary",
-          "bg-transparent hover:bg-gray-100 active:bg-gray-200 text-black":
+          "bg-transparent hover:bg-gray-100 active:bg-gray-200 !text-black":
             props.variant === "ghost",
-          "bg-transparent hover:bg-blue-100 active:bg-blue-200 text-blue-500 border border-blue-500":
+          "bg-transparent hover:bg-blue-100 active:bg-blue-200 !text-blue-500 border border-blue-500":
             props.variant === "primary-outline",
           "cursor-not-allowed opacity-50": props.disabled,
         }}
