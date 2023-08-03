@@ -9,7 +9,6 @@ export const MaskSelector = (props: {
   handleRibbonDetection: (points: [number, number][]) => void;
 }) => {
   const [ribbonReducer, ribbonDispatch] = ribbonState;
-
   return (
     <Show when={ribbonReducer().masks.length > 1}>
       <Button

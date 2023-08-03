@@ -66,6 +66,7 @@ export const ribbonDispatcher = (
   state: typeof ribbonReducerInitialState,
   event: DispatchPayload
 ) => {
+  console.log("ribbonDispatcher", state);
   switch (event.action) {
     case "setRibbons":
       return { ...state, ribbons: event.payload };
@@ -74,6 +75,7 @@ export const ribbonDispatcher = (
     case "setGrabbing":
       return { ...state, grabbing: event.payload };
     case "setClickedPoints":
+      console.log("setClickedPoints", event.payload);
       return { ...state, clickedPoints: event.payload };
     case "setClickedPoint":
       return { ...state, clickedPoint: event.payload };

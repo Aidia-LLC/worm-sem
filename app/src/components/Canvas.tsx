@@ -109,11 +109,13 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     const imgX = Math.round((x / rectWidth) * canvasRef.width);
     const imgY = Math.round((y / rectHeight) * canvasRef.height);
 
+    console.log("before", ribbonReducer());
+
     ribbonDispatch(actions.setClickedPoints, [
       ...ribbonReducer().clickedPoints,
       [imgX, imgY],
     ]);
-    console.log(ribbonReducer().clickedPoints);
+    console.log(ribbonReducer());
   };
 
   onMount(async () => {

@@ -32,3 +32,10 @@ Install `node`. Navigate to the `app` directory and run `yarn`. Then run `yarn d
 - [ ] Interpolation of slice configuration (brightness, contrast, focus)
 - [ ] Scale of brightness, contrast, and working distance. May need to adjust to allow using arrow keys and having proper increments (very small, maybe 0.01)
 - [ ] Maybe change device to `cuda` in the Python server to allow hardware acceleration
+
+## Building the CLI program
+
+to build:
+dotnet publish -p:PublishSingleFile=true worm-sem.csproj --configuration Release --self-contained true
+
+move wormsem to publish folder, rename to zeiss-api. may need the dll file too
