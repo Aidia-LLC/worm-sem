@@ -19,11 +19,6 @@ model_type = "default"
 predictor: SamPredictor = None
 
 
-@app.route("/")
-def hello_world():
-    return "<p>Hello, World!</p>"
-
-
 @app.get('/init')
 def init():
     global predictor
