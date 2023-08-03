@@ -315,7 +315,7 @@ export class ZeissInterface extends MicroscopeCallingInterface {
         exec("dotnet publish worm-sem.csproj --configuration Release", {
           cwd,
         }).on("exit", (e) => {
-          if (e !== 0) rej("Failed to build Zeiss interface.");
+          if (e !== 0) rej(`Failed to build Zeiss interface. Error: ${e}`);
           console.log("Done building Zeiss interface.");
           const executablePath = path.join(
             ".",
