@@ -1,5 +1,5 @@
 import { ElectronMessage } from "@electron/types";
-import { createEffect, createSignal, onMount } from "solid-js";
+import { createSignal, onMount } from "solid-js";
 
 export const CONNECTION_ID = 1;
 const MAX_HISTORY_LENGTH = 100;
@@ -18,8 +18,4 @@ export const clearHistory = () => {
 
 onMount(() => {
   window.semClient.subscribe(addHistory);
-});
-
-createEffect(() => {
-  console.log(historySignal[0]());
 });

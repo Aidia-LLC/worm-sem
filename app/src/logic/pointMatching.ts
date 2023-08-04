@@ -1,4 +1,7 @@
-import { actions, RibbonReducerState } from "src/data/ribbonReducer";
+import {
+  RibbonDispatchPayload,
+  RibbonReducerState,
+} from "src/data/ribbonReducer";
 import { RibbonData, Vertex } from "src/types/canvas";
 import { findNearestPoint, isPointInTrapezoid } from "./trapezoids/points";
 
@@ -6,13 +9,13 @@ export default function pointMatching(
   x: number,
   y: number,
   trapezoidSet: RibbonData,
-  ribbonDispatch: any,
+  ribbonDispatch: (x: RibbonDispatchPayload) => void,
   ribbonReducer: RibbonReducerState,
   overlayCanvasRef: any,
   handleMouseMove: any,
   handleMouseUp: any
 ) {
-  const { trapezoids } = trapezoidSet;
+  const { slices: trapezoids } = trapezoidSet;
   if (trapezoidSet.matchedPoints.length !== 0) {
     // find closest matched point
     const { nearestDistance, nearestPoint } = findNearestPoint(
@@ -24,21 +27,25 @@ export default function pointMatching(
       // click and drag
       overlayCanvasRef.addEventListener("mousemove", handleMouseMove);
       overlayCanvasRef.addEventListener("mouseup", handleMouseUp);
-      ribbonDispatch(actions.setClickedPoint, nearestPoint);
+      if (nearestPoint)
+        ribbonDispatch({
+          action: "setClickedPoint",
+          payload: nearestPoint,
+        });
       return;
     } else {
-      ribbonDispatch(
-        actions.setRibbons,
-        ribbonReducer.ribbons.map((t) => {
-          if (t.trapezoids === trapezoids) {
+      ribbonDispatch({
+        action: "setRibbons",
+        payload: ribbonReducer.ribbons.map((t) => {
+          if (t.slices === trapezoids) {
             return {
               ...t,
               matchedPoints: [],
             };
           }
           return t;
-        })
-      );
+        }),
+      });
     }
   }
   const { trapezoid, inTrapezoid } = isPointInTrapezoid(x, y, trapezoids);
@@ -113,16 +120,16 @@ export default function pointMatching(
       y: otherY,
     });
   }
-  ribbonDispatch(
-    actions.setRibbons,
-    ribbonReducer.ribbons.map((t) => {
-      if (t.trapezoids === trapezoids) {
+  ribbonDispatch({
+    action: "setRibbons",
+    payload: ribbonReducer.ribbons.map((t) => {
+      if (t.slices === trapezoids) {
         return {
           ...t,
           matchedPoints: points,
         };
       }
       return t;
-    })
-  );
+    }),
+  });
 }

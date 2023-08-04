@@ -1,4 +1,4 @@
-import { sleep } from "@logic/handleFinalImaging";
+import { sleep } from "@logic/finalImaging";
 import { microscopeApi } from ".";
 
 export const grabImageOnFrameEnd = async (

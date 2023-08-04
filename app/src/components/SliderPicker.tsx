@@ -1,10 +1,12 @@
+import { Show } from "solid-js";
+
 export const SliderPicker = (props: {
   label: string;
   value: number;
   setValue: (value: number) => void;
   min: number;
   max: number;
-  unit: string;
+  unit?: string;
   step: number;
 }) => {
   return (
@@ -29,7 +31,9 @@ export const SliderPicker = (props: {
             value={props.value}
             onChange={(e) => props.setValue(parseFloat(e.currentTarget.value))}
           />
-          <span>{props.unit}</span>
+          <Show when={props.unit}>
+            <span>{props.unit}</span>
+          </Show>
         </div>
       </div>
     </div>

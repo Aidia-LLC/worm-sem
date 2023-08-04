@@ -1,4 +1,4 @@
-import { Trapezoid, Vertex } from "src/types/canvas";
+import { Slice, Trapezoid, Vertex } from "src/types/canvas";
 
 export function findNearestVertex(
   x: number,
@@ -28,7 +28,7 @@ export function findNearestVertex(
 }
 
 export function moveVertex(
-  trapezoid: Trapezoid,
+  trapezoid: Slice,
   vertex: Vertex,
   x: number,
   y: number

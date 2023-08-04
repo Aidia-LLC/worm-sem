@@ -1,19 +1,18 @@
-import { sleep } from "@logic/handleFinalImaging";
+import { sleep } from "@logic/finalImaging";
 import { createSignal, Show } from "solid-js";
-import { FASTEST_SCAN_SPEED } from "src/data/semParams";
 import {
-  imageSrcFilenameSignal,
-  imageSrcSignal,
   initialStageSignal,
+  primaryImageSignal,
 } from "src/data/signals/globals";
 import { microscopeApi } from "src/microscopeApi";
 import { grabImageOnFrameEnd } from "src/microscopeApi/grabImageOnFrameEnd";
 import { Button } from "../Button";
 
+const SCAN_SPEED = 5;
+
 export const GrabForm = () => {
   const [loading, setLoading] = createSignal(false);
-  const [_, setImageSrc] = imageSrcSignal;
-  const [__, setImageSrcFilename] = imageSrcFilenameSignal;
+  const [_, setPrimaryImage] = primaryImageSignal;
   const [initialStage, setInitialStage] = initialStageSignal;
 
   return (
@@ -26,7 +25,7 @@ export const GrabForm = () => {
             await microscopeApi.setImageQuality("LOW");
             await microscopeApi.setDetectorType("ZOOMED_OUT");
             await sleep(1000);
-            await microscopeApi.setScanSpeed(FASTEST_SCAN_SPEED);
+            await microscopeApi.setScanSpeed(SCAN_SPEED);
             await sleep(2000);
             console.log("grabbing image");
             const message = await grabImageOnFrameEnd(
@@ -45,8 +44,10 @@ export const GrabForm = () => {
             const stage = await microscopeApi.getStagePosition();
             const limits = await microscopeApi.getStageBounds();
             const fieldOfView = await microscopeApi.getFieldOfView();
-            setImageSrc(message.payload);
-            setImageSrcFilename(message.filename!);
+            setPrimaryImage({
+              filename: message.filename!,
+              src: message.payload,
+            });
             setInitialStage({
               x: stage.x,
               y: stage.y,

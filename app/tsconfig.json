@@ -26,6 +26,7 @@
       "@logic/*": ["src/logic/*"],
       "@electron/*": ["src/electron/*"],
       "@microscopeApi/*": ["src/microscopeApi/*"],
+      "@config": ["src/config.ts"],
     }
   }
 }

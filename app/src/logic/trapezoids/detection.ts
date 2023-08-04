@@ -1,5 +1,6 @@
 import { permuteTrapezoid } from "@logic/canvas";
 import { ProcessingOptions } from "src/types/ProcessingOptions";
+import { Slice } from "../../types/canvas";
 
 export function detectTrapezoid(
   x: number,
@@ -8,7 +9,7 @@ export function detectTrapezoid(
   ctx: CanvasRenderingContext2D,
   options: ProcessingOptions
 ) {
-  console.log(ctx)
+  console.log(ctx);
   ctx.lineWidth = 5;
   const square = getSquare(imageData, x, y, options.squareSize);
   console.log("square", square);
@@ -67,7 +68,7 @@ export function detectTrapezoid(
   //   ctx.closePath();
   // }
 
-  const trapezoid: Trapezoid | null = computeTrapezoid(vertices);
+  const trapezoid: Slice | null = computeTrapezoid(vertices);
   // console.log("trapezoid", trapezoid);
   if (!trapezoid) {
     return { trapezoid: null, fit: null };
@@ -602,7 +603,7 @@ function getPointsOnTrapezoid(
 function computeTrapezoid(
   vertices: Vertex[]
   // ctx?: CanvasRenderingContext2D
-): Trapezoid | null {
+): Slice | null {
   if (vertices.length < 4) return null;
   //  the shortest edge is the bottom edge
   const pairs = [
@@ -666,5 +667,6 @@ function computeTrapezoid(
       x2: bottomRight.x,
       y2: bottomRight.y,
     },
+    id: Math.floor(Math.random() * 1000000000),
   };
 }

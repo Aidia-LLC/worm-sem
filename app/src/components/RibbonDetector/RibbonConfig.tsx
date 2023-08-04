@@ -114,7 +114,7 @@ export const RibbonConfig = (props: {
                   onClick={() =>
                     props.setTrapezoidSet({
                       id: props.ribbon.id,
-                      trapezoids: props.ribbon.trapezoids.reverse(),
+                      slices: props.ribbon.slices.reverse(),
                     })
                   }
                 >
@@ -123,13 +123,13 @@ export const RibbonConfig = (props: {
                 <Button
                   onClick={() => {
                     const newSet = addTrapezoid(
-                      props.ribbon.trapezoids,
+                      props.ribbon.slices,
                       true
                       // props.ctx
                     );
                     props.setTrapezoidSet({
                       ...props.ribbon,
-                      trapezoids: newSet,
+                      slices: newSet,
                     });
                   }}
                 >
@@ -138,13 +138,13 @@ export const RibbonConfig = (props: {
                 <Button
                   onClick={() => {
                     const newSet = addTrapezoid(
-                      props.ribbon.trapezoids,
+                      props.ribbon.slices,
                       false
                       // props.ctx
                     );
                     props.setTrapezoidSet({
                       ...props.ribbon,
-                      trapezoids: newSet,
+                      slices: newSet,
                     });
                   }}
                 >
@@ -207,7 +207,7 @@ export const RibbonConfig = (props: {
 };
 
 const addTrapezoid = (
-  trapezoids: RibbonData["trapezoids"],
+  trapezoids: RibbonData["slices"],
   top = false
   // ctx: any
 ) => {

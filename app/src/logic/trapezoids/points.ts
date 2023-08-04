@@ -1,11 +1,7 @@
-import { Trapezoid, Vertex } from "src/types/canvas";
 import { calculateArea } from "@logic/canvas";
+import { Slice, Trapezoid, Vertex } from "src/types/canvas";
 
-export function isPointInTrapezoid(
-  x: number,
-  y: number,
-  trapezoids: Trapezoid[]
-) {
+export function isPointInTrapezoid(x: number, y: number, trapezoids: Slice[]) {
   for (const trapezoid of trapezoids) {
     const { top, bottom, left, right } = trapezoid;
     const trapezoidArea = calculateArea(trapezoid);
@@ -62,3 +58,22 @@ export function findNearestPoint(x: number, y: number, points: Vertex[]) {
   }
   return { nearestDistance, nearestPoint };
 }
+
+export const isOutOfBounds = (
+  trapezoid: Trapezoid,
+  canvas: {
+    width: number;
+    height: number;
+  }
+) => {
+  return (
+    trapezoid.left.x1 < 0 ||
+    trapezoid.right.x1 > canvas.width ||
+    trapezoid.left.x2 < 0 ||
+    trapezoid.right.x2 > canvas.width ||
+    trapezoid.top.y1 < 0 ||
+    trapezoid.top.y2 < 0 ||
+    trapezoid.bottom.y1 > canvas.height ||
+    trapezoid.bottom.y2 > canvas.height
+  );
+};
