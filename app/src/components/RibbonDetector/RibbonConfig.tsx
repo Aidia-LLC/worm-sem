@@ -1,5 +1,12 @@
-import { Show } from "solid-js";
-import { RibbonData, Trapezoid } from "src/types/canvas";
+import { addTrapezoid } from "@logic/trapezoids/addTrapezoid";
+import { microscopeApi } from "@microscopeApi/index";
+import { For, Show } from "solid-js";
+import {
+  magnificationSignal,
+  nextSliceIdSignal,
+  ribbonState,
+} from "src/data/signals/globals";
+import { RibbonData } from "src/types/canvas";
 import { Button } from "../Button";
 
 export const availableColors = [
@@ -13,21 +20,44 @@ export const availableColors = [
 
 export const RibbonConfig = (props: {
   ribbon: RibbonData;
-  setTrapezoidSet: (
-    trapezoidSet: Pick<RibbonData, "id"> & Partial<RibbonData>
-  ) => void;
-  onDelete: (trapezoid: Pick<RibbonData, "id">) => void;
   canvasSize: { width: number; height: number };
-  onGrab: (id: RibbonData["id"] | null) => void;
-  grabbing: boolean;
-  ctx: any;
-  onDetectAgain: () => void;
+  ctx: CanvasRenderingContext2D;
+  handleRibbonDetection: (points: [number, number][]) => void;
 }) => {
+  const [_, ribbonDispatch] = ribbonState;
+  const [nextSliceId, setNextSliceId] = nextSliceIdSignal;
+  const [magnification] = magnificationSignal;
+
   const radioName = () => `status-${props.ribbon.id}`;
 
-  const toggleGrabbing = () => {
-    if (props.grabbing) props.onGrab(null);
-    else props.onGrab(props.ribbon.id);
+  const setRibbon = (ribbon: Partial<RibbonData>) => {
+    ribbonDispatch({
+      action: "updateRibbon",
+      payload: { ...props.ribbon, ...ribbon },
+    });
+  };
+
+  const handleAddTrapezoid = ({ top }: { top: boolean }) => {
+    setRibbon({
+      ...props.ribbon,
+      slices: addTrapezoid({
+        trapezoids: props.ribbon.slices,
+        id: nextSliceId(),
+        top,
+      }),
+    });
+    setNextSliceId(nextSliceId() + 1);
+  };
+
+  const handleDetectAgain = () => {
+    ribbonDispatch({
+      action: "deleteRibbon",
+      payload: props.ribbon,
+    });
+    const points = [...props.ribbon.clickedPoints];
+    // move the first point to the end of the array
+    points.push(points.shift()!);
+    props.handleRibbonDetection(points);
   };
 
   return (
@@ -47,38 +77,31 @@ export const RibbonConfig = (props: {
           class="w-full"
           type="text"
           value={props.ribbon.name}
-          onChange={(e) =>
-            props.setTrapezoidSet({
-              id: props.ribbon.id,
-              name: e.currentTarget.value,
+          onChange={(e) => setRibbon({ name: e.currentTarget.value })}
+        />
+        <button
+          class="text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-red-500 hover:bg-red-700 active:bg-red-800"
+          onClick={() =>
+            ribbonDispatch({
+              action: "deleteRibbon",
+              payload: props.ribbon,
             })
           }
-        />
-        <Show when={!props.grabbing}>
-          <button
-            class="text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-red-500 hover:bg-red-700 active:bg-red-800"
-            onClick={() => props.onDelete(props.ribbon)}
-          >
-            Remove
-          </button>
-        </Show>
+        >
+          Remove
+        </button>
       </div>
-      <Show when={!props.grabbing && props.ribbon.phase === 2}>
+      <Show when={props.ribbon.phase === 2}>
         <div class="flex flex-col gap-1 col-span-2 my-auto">
           <label class="font-bold">Color</label>
           <select
             class="p-2 rounded-md border border-gray-300"
             value={props.ribbon.color}
-            onChange={(e) => {
-              props.setTrapezoidSet({
-                id: props.ribbon.id,
-                color: e.currentTarget.value,
-              });
-            }}
+            onChange={(e) => setRibbon({ color: e.currentTarget.value })}
           >
-            {availableColors.map((color) => (
-              <option value={color}>{color}</option>
-            ))}
+            <For each={availableColors}>
+              {(color) => <option value={color}>{color}</option>}
+            </For>
           </select>
         </div>
 
@@ -100,10 +123,7 @@ export const RibbonConfig = (props: {
                   checked={props.ribbon.status === "editing"}
                   onChange={(e) => {
                     if (e.currentTarget.checked)
-                      props.setTrapezoidSet({
-                        id: props.ribbon.id,
-                        status: "editing",
-                      });
+                      setRibbon({ status: "editing" });
                   }}
                 />
                 Editing
@@ -112,47 +132,18 @@ export const RibbonConfig = (props: {
                 <button
                   class="text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-green-500 hover:bg-green-700 active:bg-green-800"
                   onClick={() =>
-                    props.setTrapezoidSet({
-                      id: props.ribbon.id,
-                      slices: props.ribbon.slices.reverse(),
-                    })
+                    setRibbon({ slices: props.ribbon.slices.reverse() })
                   }
                 >
                   Reverse Direction
                 </button>
-                <Button
-                  onClick={() => {
-                    const newSet = addTrapezoid(
-                      props.ribbon.slices,
-                      true
-                      // props.ctx
-                    );
-                    props.setTrapezoidSet({
-                      ...props.ribbon,
-                      slices: newSet,
-                    });
-                  }}
-                >
+                <Button onClick={() => handleAddTrapezoid({ top: true })}>
                   Add slice to top of ribbon
                 </Button>
-                <Button
-                  onClick={() => {
-                    const newSet = addTrapezoid(
-                      props.ribbon.slices,
-                      false
-                      // props.ctx
-                    );
-                    props.setTrapezoidSet({
-                      ...props.ribbon,
-                      slices: newSet,
-                    });
-                  }}
-                >
+                <Button onClick={() => handleAddTrapezoid({ top: false })}>
                   Add slice to bottom of ribbon
                 </Button>
-                <Button onClick={props.onDetectAgain}>
-                  Detect slices again
-                </Button>
+                <Button onClick={handleDetectAgain}>Detect slices again</Button>
               </Show>
             </div>
             <label class="flex flex-row items-center gap-1">
@@ -163,10 +154,7 @@ export const RibbonConfig = (props: {
                 checked={props.ribbon.status === "matching"}
                 onChange={(e) => {
                   if (e.currentTarget.checked)
-                    props.setTrapezoidSet({
-                      id: props.ribbon.id,
-                      status: "matching",
-                    });
+                    setRibbon({ status: "matching" });
                 }}
               />
               Matching
@@ -178,11 +166,7 @@ export const RibbonConfig = (props: {
                 value="saved"
                 checked={props.ribbon.status === "saved"}
                 onChange={(e) => {
-                  if (e.currentTarget.checked)
-                    props.setTrapezoidSet({
-                      id: props.ribbon.id,
-                      status: "saved",
-                    });
+                  if (e.currentTarget.checked) setRibbon({ status: "saved" });
                 }}
               />
               Locked
@@ -191,152 +175,34 @@ export const RibbonConfig = (props: {
         </div>
       </Show>
       <Show when={props.ribbon.matchedPoints.length > 0}>
-        <Show when={!props.grabbing} fallback="Grabbing...">
-          <div class="flex items-center justify-center">
-            <button
-              class="text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-green-600 hover:bg-green-700 active:bg-green-800"
-              onClick={toggleGrabbing}
-            >
-              Configure Slices
-            </button>
-          </div>
-        </Show>
+        <div class="flex items-center justify-center">
+          <button
+            class="text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-green-600 hover:bg-green-700 active:bg-green-800"
+            onClick={async () => {
+              const brightness = await microscopeApi.getBrightness();
+              const contrast = await microscopeApi.getContrast();
+              const focus = await microscopeApi.getWorkingDistance();
+              await microscopeApi.setMagnification(magnification());
+              ribbonDispatch(
+                {
+                  action: "setFocusedRibbonId",
+                  payload: props.ribbon.id,
+                },
+                {
+                  action: "setFocusedSliceIndex",
+                  payload: 0,
+                },
+                {
+                  action: "resetSliceConfigurations",
+                  payload: { brightness, contrast, focus },
+                }
+              );
+            }}
+          >
+            Configure Slices
+          </button>
+        </div>
       </Show>
     </div>
   );
-};
-
-const addTrapezoid = (
-  trapezoids: RibbonData["slices"],
-  top = false
-  // ctx: any
-) => {
-  // insert and identical trapezoid to either the beginning or end of the array
-  const newTrapezoidSet = [...trapezoids];
-  if (top) {
-    const newTrapezoid = trapezoids[0];
-    const referenceTrapezoid = trapezoids[1];
-    const topTrapezoid: Trapezoid = {
-      top: {
-        x1:
-          newTrapezoid.top.x1 +
-          (newTrapezoid.top.x1 - referenceTrapezoid.top.x1),
-        x2:
-          newTrapezoid.top.x2 +
-          (newTrapezoid.top.x2 - referenceTrapezoid.top.x2),
-        y1:
-          newTrapezoid.top.y1 +
-          (newTrapezoid.top.y1 - referenceTrapezoid.top.y1),
-        y2:
-          newTrapezoid.top.y2 +
-          (newTrapezoid.top.y2 - referenceTrapezoid.top.y2),
-      },
-      bottom: {
-        x1:
-          newTrapezoid.bottom.x1 +
-          (newTrapezoid.bottom.x1 - referenceTrapezoid.bottom.x1),
-        x2:
-          newTrapezoid.bottom.x2 +
-          (newTrapezoid.bottom.x2 - referenceTrapezoid.bottom.x2),
-        y1:
-          newTrapezoid.bottom.y1 +
-          (newTrapezoid.bottom.y1 - referenceTrapezoid.bottom.y1),
-        y2:
-          newTrapezoid.bottom.y2 +
-          (newTrapezoid.bottom.y2 - referenceTrapezoid.bottom.y2),
-      },
-      left: {
-        x1:
-          newTrapezoid.left.x1 +
-          (newTrapezoid.left.x1 - referenceTrapezoid.left.x1),
-        x2:
-          newTrapezoid.left.x2 +
-          (newTrapezoid.left.x2 - referenceTrapezoid.left.x2),
-        y1:
-          newTrapezoid.left.y1 +
-          (newTrapezoid.left.y1 - referenceTrapezoid.left.y1),
-        y2:
-          newTrapezoid.left.y2 +
-          (newTrapezoid.left.y2 - referenceTrapezoid.left.y2),
-      },
-      right: {
-        x1:
-          newTrapezoid.right.x1 +
-          (newTrapezoid.right.x1 - referenceTrapezoid.right.x1),
-        x2:
-          newTrapezoid.right.x2 +
-          (newTrapezoid.right.x2 - referenceTrapezoid.right.x2),
-        y1:
-          newTrapezoid.right.y1 +
-          (newTrapezoid.right.y1 - referenceTrapezoid.right.y1),
-        y2:
-          newTrapezoid.right.y2 +
-          (newTrapezoid.right.y2 - referenceTrapezoid.right.y2),
-      },
-    };
-    newTrapezoidSet.unshift(topTrapezoid);
-  } else {
-    const newTrapezoid = trapezoids[trapezoids.length - 1];
-    const referenceTrapezoid = trapezoids[trapezoids.length - 2];
-    const bottomTrapezoid: Trapezoid = {
-      top: {
-        x1:
-          newTrapezoid.top.x1 +
-          (newTrapezoid.top.x1 - referenceTrapezoid.top.x1),
-        x2:
-          newTrapezoid.top.x2 +
-          (newTrapezoid.top.x2 - referenceTrapezoid.top.x2),
-        y1:
-          newTrapezoid.top.y1 +
-          (newTrapezoid.top.y1 - referenceTrapezoid.top.y1),
-        y2:
-          newTrapezoid.top.y2 +
-          (newTrapezoid.top.y2 - referenceTrapezoid.top.y2),
-      },
-      bottom: {
-        x1:
-          newTrapezoid.bottom.x1 +
-          (newTrapezoid.bottom.x1 - referenceTrapezoid.bottom.x1),
-        x2:
-          newTrapezoid.bottom.x2 +
-          (newTrapezoid.bottom.x2 - referenceTrapezoid.bottom.x2),
-        y1:
-          newTrapezoid.bottom.y1 +
-          (newTrapezoid.bottom.y1 - referenceTrapezoid.bottom.y1),
-        y2:
-          newTrapezoid.bottom.y2 +
-          (newTrapezoid.bottom.y2 - referenceTrapezoid.bottom.y2),
-      },
-      left: {
-        x1:
-          newTrapezoid.left.x1 +
-          (newTrapezoid.left.x1 - referenceTrapezoid.left.x1),
-        x2:
-          newTrapezoid.left.x2 +
-          (newTrapezoid.left.x2 - referenceTrapezoid.left.x2),
-        y1:
-          newTrapezoid.left.y1 +
-          (newTrapezoid.left.y1 - referenceTrapezoid.left.y1),
-        y2:
-          newTrapezoid.left.y2 +
-          (newTrapezoid.left.y2 - referenceTrapezoid.left.y2),
-      },
-      right: {
-        x1:
-          newTrapezoid.right.x1 +
-          (newTrapezoid.right.x1 - referenceTrapezoid.right.x1),
-        x2:
-          newTrapezoid.right.x2 +
-          (newTrapezoid.right.x2 - referenceTrapezoid.right.x2),
-        y1:
-          newTrapezoid.right.y1 +
-          (newTrapezoid.right.y1 - referenceTrapezoid.right.y1),
-        y2:
-          newTrapezoid.right.y2 +
-          (newTrapezoid.right.y2 - referenceTrapezoid.right.y2),
-      },
-    };
-    newTrapezoidSet.push(bottomTrapezoid);
-  }
-  return newTrapezoidSet;
 };

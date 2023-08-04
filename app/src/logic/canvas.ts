@@ -4,33 +4,28 @@ import { ProcessingOptions } from "src/types/ProcessingOptions";
 import { base64ToImageSrc } from "./image";
 import { linesIntersect } from "./intersection";
 
-export const setupCanvas = async (
-  canvas: HTMLCanvasElement,
-  src: string,
-  overlayCanvas: HTMLCanvasElement
-  // rotated: boolean
-): Promise<void> => {
-  console.log("here");
-  const ctx = canvas.getContext("2d")!;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const img = new Image();
-
-  return new Promise((resolve) => {
-    img.onload = function () {
-      if (!ctx) return;
-      canvas.width = img.width;
-      canvas.height = img.height;
-      overlayCanvas.width = img.width;
-      overlayCanvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-      resolve();
-    };
-    img.onerror = (e) => {
-      console.log("IMAGE ERROR", e);
-    };
-    img.src = base64ToImageSrc(src);
+export const setupCanvases = async (details: {
+  primaryCanvas: HTMLCanvasElement;
+  canvases: HTMLCanvasElement[];
+  src: string;
+}) => {
+  return new Promise<void>((res) => {
+    const image = new Image();
+    image.onload = () => {
+      const ctx = details.primaryCanvas.getContext("2d")!;
+      ctx.clearRect(0, 0, details.primaryCanvas.width, details.primaryCanvas.height);
+      details.primaryCanvas.width = image.width;
+      details.primaryCanvas.height = image.height;
+      ctx.drawImage(image, 0, 0);
+      details.canvases.forEach((canvas) => {
+        canvas.width = image.width;
+        canvas.height = image.height;
+      });
+      res();
+    }
+    image.src = base64ToImageSrc(details.src);
   });
-};
+}
 
 export function translateTrapezoid(
   trapezoid: Slice,

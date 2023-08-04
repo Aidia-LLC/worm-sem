@@ -1,7 +1,7 @@
 import {
   convertZoomedCoordinatesToFullImage,
   DrawTrapezoid,
-  setupCanvas,
+  setupCanvases,
   translateTrapezoid,
 } from "@logic/canvas";
 import { detectRibbons } from "@logic/detectRibbons";
@@ -13,27 +13,12 @@ import {
   findNearestVertex,
   translateSliceVertex,
 } from "@logic/trapezoids/vertices";
-import {
-  createEffect,
-  createSignal,
-  For,
-  Match,
-  onMount,
-  Show,
-  Switch,
-} from "solid-js";
-import {
-  magnificationSignal,
-  optionsStore,
-  primaryImageSignal,
-  ribbonState,
-  showOriginalImageSignal,
-  zoomStateSignal,
-} from "src/data/signals/globals";
-import { microscopeApi } from "src/microscopeApi";
+import { createEffect, createSignal, For, onMount, Show } from "solid-js";
+import * as signals from "src/data/signals/globals";
 import type { RibbonData, Slice } from "src/types/canvas";
 import { Button } from "../Button";
 import { SliderPicker } from "../SliderPicker";
+import { DetectionInstructions } from "./DetectionInstructions";
 import { MaskSelector } from "./MaskSelector";
 import { ParameterPanel } from "./ParameterPanel";
 import { availableColors, RibbonConfig } from "./RibbonConfig";
@@ -46,15 +31,15 @@ export const Canvas = (props: { samLoaded: boolean }) => {
   let debugCanvasRef!: HTMLCanvasElement;
 
   const [nextId, setNextId] = createSignal(1);
-  const [zoomState, setZoomState] = zoomStateSignal;
-  const [magnification] = magnificationSignal;
-  const [ribbonReducer, ribbonDispatch] = ribbonState;
-  const [showOriginalImage, setShowOriginalImage] = showOriginalImageSignal;
-  const [primaryImage, setPrimaryImage] = primaryImageSignal;
+  const [zoomState, setZoomState] = signals.zoomStateSignal;
+  const [ribbonReducer, ribbonDispatch] = signals.ribbonState;
+  const [showOriginalImage, setShowOriginalImage] =
+    signals.showOriginalImageSignal;
+  const [primaryImage, setPrimaryImage] = signals.primaryImageSignal;
   const [cursorPosition, setCursorPosition] = createSignal<[number, number]>([
     0, 0,
   ]);
-  const [options] = optionsStore;
+  const [options] = signals.optionsStore;
 
   createEffect(() => {
     const [mask] = ribbonReducer().masks;
@@ -80,39 +65,21 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     draw();
   });
 
-  const handleDetectionClick = async (position: { x: number; y: number }) => {
+  const handleDetectionClick = async (position: { x: number; y: number }) =>
     ribbonDispatch({
       action: "setClickedPoints",
       payload: [...ribbonReducer().clickedPoints, [position.x, position.y]],
     });
-  };
 
   onMount(async () => {
-    setOriginalImage();
-  });
-
-  async function setOriginalImage() {
     const imageData = primaryImage();
-    const src = imageData?.src;
-    if (!src) return;
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      debugCanvasRef.width = img.width;
-      debugCanvasRef.height = img.height;
-      if (!imageData.size)
-        setPrimaryImage({
-          ...imageData,
-          size: { width: img.width, height: img.height },
-        });
-      const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0);
-    };
-    img.src = base64ToImageSrc(src);
-    await setupCanvas(canvasRef, src, overlayCanvasRef);
-  }
+    if (!imageData?.src) return;
+    await setupCanvases({
+      primaryCanvas: canvasRef,
+      src: imageData.src,
+      canvases: [overlayCanvasRef, edgeDataCanvasRef, debugCanvasRef],
+    });
+  });
 
   const drawOverlay = () => {
     const ctx = overlayCanvasRef.getContext("2d")!;
@@ -196,73 +163,48 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     ctx.restore();
   };
 
-  function draw() {
+  const draw = () => {
     const ctx = canvasRef.getContext("2d")!;
     ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
     const src = primaryImage()?.src;
     if (!src) return;
     const img = new Image();
     img.onload = () => {
-      ctx.canvas.width = img.width;
-      ctx.canvas.height = img.height;
-      overlayCanvasRef.width = img.width;
-      overlayCanvasRef.height = img.height;
-      edgeDataCanvasRef.width = img.width;
-      edgeDataCanvasRef.height = img.height;
-
       const zoom = zoomState();
-      if (zoom.status === "zoomed-in") {
-        const { x, y, scale } = zoom;
-        const viewportWidth = canvasRef.width / scale;
-        const viewportHeight = canvasRef.height / scale;
-        const viewportX = x - viewportWidth / 2;
-        const viewportY = y - viewportHeight / 2;
-        ctx.drawImage(
-          img,
-          viewportX,
-          viewportY,
-          viewportWidth,
-          viewportHeight,
-          0,
-          0,
-          canvasRef.width,
-          canvasRef.height
-        );
-      } else {
-        ctx.drawImage(img, 0, 0);
-      }
+      if (zoom.status !== "zoomed-in") return ctx.drawImage(img, 0, 0);
+      const { x, y, scale } = zoom;
+      const viewportWidth = canvasRef.width / scale;
+      const viewportHeight = canvasRef.height / scale;
+      const viewportX = x - viewportWidth / 2;
+      const viewportY = y - viewportHeight / 2;
+      ctx.drawImage(
+        img,
+        viewportX,
+        viewportY,
+        viewportWidth,
+        viewportHeight,
+        0,
+        0,
+        canvasRef.width,
+        canvasRef.height
+      );
     };
     img.src = base64ToImageSrc(src);
-  }
+  };
 
-  function handleMouseDown(e: MouseEvent) {
+  const handleMouseDown = (e: MouseEvent) => {
     e.preventDefault();
-
-    const rect = canvasRef.getBoundingClientRect();
-    const rectWidth = rect.right - rect.left;
-    const rectHeight = rect.bottom - rect.top;
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const imgX1 = Math.round((x / rectWidth) * canvasRef.width);
-    const imgY1 = Math.round((y / rectHeight) * canvasRef.height);
+    const { x: imgX, y: imgY, unzoomed } = getImageCoordinatesFromMouseEvent(e);
 
     if (zoomState().status === "picking-center") {
       setZoomState({
         status: "zoomed-in",
         scale: DEFAULT_ZOOM_SCALE,
-        x: imgX1,
-        y: imgY1,
+        x: unzoomed.x,
+        y: unzoomed.y,
       });
       return;
     }
-
-    const { x: imgX, y: imgY } = convertZoomedCoordinatesToFullImage(
-      imgX1,
-      imgY1,
-      zoomState(),
-      canvasRef.width,
-      canvasRef.height
-    );
 
     if (ribbonReducer().detection) {
       handleDetectionClick({ x: imgX, y: imgY });
@@ -314,13 +256,12 @@ export const Canvas = (props: { samLoaded: boolean }) => {
         return;
       }
     }
-  }
+  };
 
-  function handleMouseMove(e: MouseEvent) {
-    e.preventDefault();
-    const draggingData = ribbonReducer().draggingData;
-    if (!draggingData || !draggingData.sliceId) return;
-
+  const getImageCoordinatesFromMouseEvent = (e: {
+    clientX: number;
+    clientY: number;
+  }) => {
     const rect = canvasRef.getBoundingClientRect();
     const rectWidth = rect.right - rect.left;
     const rectHeight = rect.bottom - rect.top;
@@ -328,33 +269,45 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     const y = e.clientY - rect.top;
     const imgX1 = Math.round((x / rectWidth) * canvasRef.width);
     const imgY1 = Math.round((y / rectHeight) * canvasRef.height);
+    return {
+      ...convertZoomedCoordinatesToFullImage(
+        imgX1,
+        imgY1,
+        zoomState(),
+        canvasRef.width,
+        canvasRef.height
+      ),
+      unzoomed: {
+        x: imgX1,
+        y: imgY1,
+      },
+    };
+  };
 
-    const { x: imgX, y: imgY } = convertZoomedCoordinatesToFullImage(
-      imgX1,
-      imgY1,
-      zoomState(),
-      canvasRef.width,
-      canvasRef.height
-    );
+  const handleMouseMove = (e: MouseEvent) => {
+    e.preventDefault();
+    const draggingData = ribbonReducer().draggingData;
+    const { x, y } = getImageCoordinatesFromMouseEvent(e);
+    setCursorPosition([x, y]);
+    if (!draggingData || !draggingData.sliceId) return;
 
     ribbonDispatch({
       action: "setDraggingData",
       payload: {
         ...draggingData,
-        position: { x: imgX, y: imgY },
+        position: { x: x, y: y },
       },
     });
 
-    const dx = imgX - draggingData.position.x;
-    const dy = imgY - draggingData.position.y;
+    const dx = x - draggingData.position.x;
+    const dy = y - draggingData.position.y;
 
     const ribbon = ribbonReducer().ribbons.find(
       (r) => r.id === draggingData.ribbonId
     )!;
     if (ribbon.status === "matching") {
       const newMatchedPoints = ribbon.matchedPoints.map((point, i) => {
-        if (ribbon.slices[i].id === draggingData.sliceId)
-          return { x: imgX, y: imgY };
+        if (ribbon.slices[i].id === draggingData.sliceId) return { x, y };
         return point;
       });
       ribbonDispatch({
@@ -410,7 +363,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
             {
               action: "setDraggingData",
               payload: {
-                position: { x: imgX, y: imgY },
+                position: { x, y },
                 ribbonId: ribbon.id,
                 sliceId: slice.id,
               },
@@ -428,7 +381,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
         }
       }
     }
-  }
+  };
 
   const handleMouseUp = () => {
     ribbonDispatch({
@@ -474,6 +427,24 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     });
   };
 
+  const handleMask = async () => {
+    const points = ribbonReducer().clickedPoints;
+    ribbonDispatch(
+      { action: "setDetection", payload: false },
+      { action: "setDetectionLoading", payload: true }
+    );
+    const segmentedImageData = await segmentImage({
+      points,
+      canvasRef,
+      filename: primaryImage()?.filename ?? "",
+    });
+    setShowOriginalImage(false);
+    ribbonDispatch(
+      { action: "setDetectionLoading", payload: false },
+      { action: "setMasks", payload: segmentedImageData }
+    );
+  };
+
   return (
     <div class="flex flex-col gap-3 text-xs">
       <div class="grid grid-cols-5 gap-4 mt-1">
@@ -507,23 +478,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           </Button>
           <Show when={ribbonReducer().clickedPoints.length > 2}>
             <Button
-              onClick={async () => {
-                const points = ribbonReducer().clickedPoints;
-                ribbonDispatch(
-                  { action: "setDetection", payload: false },
-                  { action: "setDetectionLoading", payload: true }
-                );
-                const segmentedImageData = await segmentImage({
-                  points,
-                  canvasRef,
-                  filename: primaryImage()?.filename ?? "",
-                });
-                setShowOriginalImage(false);
-                ribbonDispatch(
-                  { action: "setDetectionLoading", payload: false },
-                  { action: "setMasks", payload: segmentedImageData }
-                );
-              }}
+              onClick={handleMask}
               disabled={ribbonReducer().detectionLoading || !props.samLoaded}
               tooltip="Detect a ribbon from the clicked points. You'll be able to edit the ribbon manually after it's detected."
             >
@@ -538,10 +493,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
         <Show when={ribbonReducer().ribbons.length > 0}>
           <Button
             onClick={() =>
-              ribbonDispatch({
-                action: "setRibbons",
-                payload: [],
-              })
+              ribbonDispatch({ action: "setRibbons", payload: [] })
             }
           >
             Remove All Ribbons
@@ -550,9 +502,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
         <Show when={ribbonReducer().masks.length > 0}>
           <Button
             variant="ghost"
-            onClick={() => {
-              setShowOriginalImage(!showOriginalImage());
-            }}
+            onClick={() => setShowOriginalImage(!showOriginalImage())}
             tooltip="Toggle between the image from the microscope and the edge data."
           >
             Show {showOriginalImage() ? "Edge Data" : "Original Image"}
@@ -563,52 +513,10 @@ export const Canvas = (props: { samLoaded: boolean }) => {
       <For each={ribbonReducer().ribbons}>
         {(ribbon) => (
           <RibbonConfig
-            grabbing={ribbonReducer().focusedRibbonId === ribbon.id}
-            onGrab={async (id) => {
-              const brightness = await microscopeApi.getBrightness();
-              const contrast = await microscopeApi.getContrast();
-              const focus = await microscopeApi.getWorkingDistance();
-              await microscopeApi.setMagnification(magnification());
-              ribbonDispatch(
-                {
-                  action: "setFocusedRibbonId",
-                  payload: id,
-                },
-                {
-                  action: "setFocusedSliceIndex",
-                  payload: 0,
-                },
-                {
-                  action: "resetSliceConfigurations",
-                  payload: { brightness, contrast, focus },
-                }
-              );
-            }}
             canvasSize={canvasRef}
             ribbon={ribbon}
-            setTrapezoidSet={(newRibbon) => {
-              ribbonDispatch({
-                action: "updateRibbon",
-                payload: newRibbon,
-              });
-            }}
-            onDelete={(ribbon) =>
-              ribbonDispatch({
-                action: "deleteRibbon",
-                payload: ribbon,
-              })
-            }
             ctx={canvasRef.getContext("2d")!}
-            onDetectAgain={() => {
-              ribbonDispatch({
-                action: "deleteRibbon",
-                payload: ribbon,
-              });
-              const points = [...ribbon.clickedPoints];
-              // move the first point to the end of the array
-              points.push(points.shift()!);
-              handleRibbonDetection(points);
-            }}
+            handleRibbonDetection={handleRibbonDetection}
           />
         )}
       </For>
@@ -627,47 +535,8 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           step={1}
         />
       </Show>
-      <Show when={ribbonReducer().detection}>
-        <span class="text-xl font-bold">
-          <Switch>
-            <Match when={ribbonReducer().clickedPoints.length === 0}>
-              Click the center point of a slice in the middle of the ribbon
-            </Match>
-            <Match when={ribbonReducer().clickedPoints.length === 1}>
-              Click the center point of a slice at the start of the ribbon
-            </Match>
-            <Match when={ribbonReducer().clickedPoints.length === 2}>
-              Click the center point of a slice at the end of the ribbon
-            </Match>
-            <Match when={ribbonReducer().clickedPoints.length === 3}>
-              Click any other points in the ribbon if desired, or click "Detect
-              Ribbon" to finish
-            </Match>
-          </Switch>
-        </span>
-      </Show>
-
-      <div
-        class="relative"
-        onMouseMove={(e) => {
-          const rect = canvasRef.getBoundingClientRect();
-          const rectWidth = rect.right - rect.left;
-          const rectHeight = rect.bottom - rect.top;
-          const x = e.clientX - rect.left;
-          const y = e.clientY - rect.top;
-          const imgX1 = Math.round((x / rectWidth) * canvasRef.width);
-          const imgY1 = Math.round((y / rectHeight) * canvasRef.height);
-
-          const { x: imgX, y: imgY } = convertZoomedCoordinatesToFullImage(
-            imgX1,
-            imgY1,
-            zoomState(),
-            canvasRef.width,
-            canvasRef.height
-          );
-          setCursorPosition([imgX, imgY]);
-        }}
-      >
+      <DetectionInstructions />
+      <div class="relative">
         <canvas
           ref={canvasRef}
           id="canvas"
