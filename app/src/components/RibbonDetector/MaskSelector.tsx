@@ -40,14 +40,16 @@ export const MaskSelector = (props: {
         onClick={() => {
           const [mask] = ribbonReducer().masks;
           const points = ribbonReducer().clickedPoints;
-          ribbonDispatch({
-            action: "setMasks",
-            payload: [],
-          });
-          ribbonDispatch({
-            action: "setClickedPoints",
-            payload: [],
-          });
+          ribbonDispatch(
+            {
+              action: "setMasks",
+              payload: [],
+            },
+            {
+              action: "setClickedPoints",
+              payload: [],
+            }
+          );
           const edgeContext = props.edgeDataCanvasRef().getContext("2d")!;
           edgeContext.clearRect(
             0,

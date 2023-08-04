@@ -4,8 +4,8 @@ import { Instructions } from "@components/Instructions";
 import { Canvas } from "@components/RibbonDetector/Canvas";
 import { SliceConfigurationScreen } from "@components/SliceConfigurationScreen";
 import { Unconnected } from "@components/Unconnected";
-import { PYTHON_PORT } from "@config";
 import { createSignal, Match, onMount, Switch } from "solid-js";
+import { PYTHON_PORT } from "./config";
 import {
   initialStageSignal,
   primaryImageSignal,
@@ -52,7 +52,7 @@ export const App = () => {
           when={
             connected() &&
             primaryImage() &&
-            ribbonReducer().focusedRibbonId !== -1 &&
+            ribbonReducer().focusedRibbonId &&
             initialStage()
           }
         >

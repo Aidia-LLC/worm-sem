@@ -8,12 +8,11 @@ import { detectRibbons } from "@logic/detectRibbons";
 import { base64ToImageSrc } from "@logic/image";
 import pointMatching from "@logic/pointMatching";
 import { segmentImage } from "@logic/segmentation";
+import { isOutOfBounds, isPointInTrapezoid } from "@logic/trapezoids/points";
 import {
-  findNearestPoint,
-  isOutOfBounds,
-  isPointInTrapezoid,
-} from "@logic/trapezoids/points";
-import { findNearestVertex, moveVertex } from "@logic/trapezoids/vertices";
+  findNearestVertex,
+  translateSliceVertex,
+} from "@logic/trapezoids/vertices";
 import {
   createEffect,
   createSignal,
@@ -81,25 +80,14 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     draw();
   });
 
-  const handleClick = async (e: MouseEvent) => {
-    if (!ribbonReducer().detection) return;
-    const rect = canvasRef.getBoundingClientRect();
-    const rectWidth = rect.right - rect.left;
-    const rectHeight = rect.bottom - rect.top;
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const imgX = Math.round((x / rectWidth) * canvasRef.width);
-    const imgY = Math.round((y / rectHeight) * canvasRef.height);
-
+  const handleDetectionClick = async (position: { x: number; y: number }) => {
     ribbonDispatch({
       action: "setClickedPoints",
-      payload: [...ribbonReducer().clickedPoints, [imgX, imgY]],
+      payload: [...ribbonReducer().clickedPoints, [position.x, position.y]],
     });
-    console.log(ribbonReducer().clickedPoints);
   };
 
   onMount(async () => {
-    overlayCanvasRef.addEventListener("mousedown", handleMouseDown);
     setOriginalImage();
   });
 
@@ -248,7 +236,8 @@ export const Canvas = (props: { samLoaded: boolean }) => {
   }
 
   function handleMouseDown(e: MouseEvent) {
-    const vertexDist = options.options.squareSize / 5;
+    e.preventDefault();
+
     const rect = canvasRef.getBoundingClientRect();
     const rectWidth = rect.right - rect.left;
     const rectHeight = rect.bottom - rect.top;
@@ -275,20 +264,37 @@ export const Canvas = (props: { samLoaded: boolean }) => {
       canvasRef.height
     );
 
-    const { inTrapezoid, trapezoid } = isPointInTrapezoid(
+    if (ribbonReducer().detection) {
+      handleDetectionClick({ x: imgX, y: imgY });
+      return;
+    }
+
+    const dragVertexThreshold = canvasRef.width / 120;
+    const nearest = findNearestVertex(imgX, imgY, ribbonReducer().ribbons);
+    if (nearest.distance < dragVertexThreshold) {
+      ribbonDispatch({
+        action: "setDraggingData",
+        payload: {
+          position: { x: imgX, y: imgY },
+          ribbonId: nearest.ribbonId,
+          sliceId: nearest.slice.id,
+          vertexPosition: nearest.vertexPosition,
+        },
+      });
+      return;
+    }
+
+    const { inTrapezoid, slice, ribbon } = isPointInTrapezoid(
       imgX,
       imgY,
-      ribbonReducer()
-        .ribbons.map((t) => t.slices)
-        .flat()
+      ribbonReducer().ribbons
     );
-    if (inTrapezoid && trapezoid) {
-      const { trapezoidSet } = findTrapezoidSet(trapezoid);
-      if (trapezoidSet && trapezoidSet.status === "matching") {
+    if (inTrapezoid && slice && ribbon) {
+      if (ribbon.status === "matching") {
         pointMatching(
           imgX,
           imgY,
-          trapezoidSet,
+          ribbon,
           ribbonDispatch,
           ribbonReducer(),
           overlayCanvasRef,
@@ -296,39 +302,25 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           handleMouseUp
         );
         return;
+      } else if (ribbon.status === "editing") {
+        ribbonDispatch({
+          action: "setDraggingData",
+          payload: {
+            position: { x: imgX, y: imgY },
+            ribbonId: ribbon.id,
+            sliceId: slice.id,
+          },
+        });
+        return;
       }
     }
-    const { nearestDistance } = findNearestVertex(
-      imgX,
-      imgY,
-      ribbonReducer()
-        .ribbons.map((t) => t.slices)
-        .flat()
-    );
-    if (nearestDistance < vertexDist || inTrapezoid) {
-      ribbonDispatch({
-        action: "setClickedPoint",
-        payload: { x: imgX, y: imgY },
-      });
-      overlayCanvasRef.addEventListener("mousemove", handleMouseMove);
-      overlayCanvasRef.addEventListener("mouseup", handleMouseUp);
-      e.preventDefault();
-    } else {
-      handleClick(e);
-    }
   }
 
-  function findTrapezoidSet(trapezoid: Slice) {
-    for (const trapezoidSet of ribbonReducer().ribbons) {
-      if (trapezoidSet.slices.includes(trapezoid)) return { trapezoidSet };
-    }
-    return { trapezoidSet: undefined };
-  }
-
-  //rewrite this to be smaller and rely less on guesswork
   function handleMouseMove(e: MouseEvent) {
-    const vertexDist = options.options.squareSize / 5;
-    // calculate the new cursor position:
+    e.preventDefault();
+    const draggingData = ribbonReducer().draggingData;
+    if (!draggingData || !draggingData.sliceId) return;
+
     const rect = canvasRef.getBoundingClientRect();
     const rectWidth = rect.right - rect.left;
     const rectHeight = rect.bottom - rect.top;
@@ -345,146 +337,110 @@ export const Canvas = (props: { samLoaded: boolean }) => {
       canvasRef.height
     );
 
-    // are they dragging a point?
-    const { inTrapezoid, trapezoid } = isPointInTrapezoid(
-      imgX,
-      imgY,
-      ribbonReducer()
-        .ribbons.map((t) => t.slices)
-        .flat()
-    );
-    const { nearestVertex, nearestDistance } = findNearestVertex(
-      imgX,
-      imgY,
-      ribbonReducer()
-        .ribbons.map((t) => t.slices)
-        .flat()
-    );
-    if (inTrapezoid && trapezoid) {
-      const { trapezoidSet } = findTrapezoidSet(trapezoid);
-      if (trapezoidSet?.status === "saved") return;
-      if (trapezoidSet && trapezoidSet.status === "matching") {
-        const { nearestPoint, nearestDistance: pointDistance } =
-          findNearestPoint(imgX, imgY, trapezoidSet.matchedPoints);
-        if (nearestPoint && pointDistance < 10) {
-          const newMatchedPoints = trapezoidSet.matchedPoints.map((point) => {
-            if (point.x === nearestPoint.x && point.y === nearestPoint.y) {
-              return { x: imgX, y: imgY };
-            }
-            return point;
-          });
-          ribbonDispatch({
-            action: "setRibbons",
-            payload: ribbonReducer().ribbons.map((t) => {
-              if (t.slices === trapezoidSet.slices) {
-                return {
-                  ...t,
-                  matchedPoints: newMatchedPoints,
-                };
-              }
-              return t;
-            }),
-          });
-          return;
-        }
-      }
-      // Dragging a trapezoid
-      else if (nearestVertex && nearestDistance > vertexDist && trapezoidSet) {
-        const dy = imgY - ribbonReducer().clickedPoint!.y ?? 0;
-        const dx = imgX - ribbonReducer().clickedPoint!.x ?? 0;
+    ribbonDispatch({
+      action: "setDraggingData",
+      payload: {
+        ...draggingData,
+        position: { x: imgX, y: imgY },
+      },
+    });
+
+    const dx = imgX - draggingData.position.x;
+    const dy = imgY - draggingData.position.y;
+
+    const ribbon = ribbonReducer().ribbons.find(
+      (r) => r.id === draggingData.ribbonId
+    )!;
+    if (ribbon.status === "matching") {
+      const newMatchedPoints = ribbon.matchedPoints.map((point, i) => {
+        if (ribbon.slices[i].id === draggingData.sliceId)
+          return { x: imgX, y: imgY };
+        return point;
+      });
+      ribbonDispatch({
+        action: "setRibbons",
+        payload: ribbonReducer().ribbons.map((t) => {
+          if (t.id === ribbon.id)
+            return { ...t, matchedPoints: newMatchedPoints };
+          return t;
+        }),
+      });
+      return;
+    } else if (ribbon.status === "editing") {
+      const slice = ribbon.slices.find((t) => t.id === draggingData.sliceId);
+      if (!slice) return;
+      if (draggingData.vertexPosition) {
+        // dragging a vertex
+        const pos = draggingData.vertexPosition;
+        const newSlice = translateSliceVertex(slice, pos, { x: dx, y: dy });
         ribbonDispatch({
-          action: "setDraggingData",
-          payload: {
-            position: { x: imgX, y: imgY },
-            ribbonId: trapezoidSet.id,
-            sliceId: trapezoid.id,
-          },
+          action: "setRibbons",
+          payload: ribbonReducer().ribbons.map((t) =>
+            t.id === ribbon.id
+              ? {
+                  ...t,
+                  slices: t.slices.map((s) =>
+                    s.id === slice.id ? newSlice : s
+                  ),
+                  matchedPoints: [],
+                }
+              : t
+          ),
         });
-        const newTrapezoid = translateTrapezoid(trapezoid, dx, dy);
-        // if new trapezoid is touching the edge of the image, delete it
-        if (isOutOfBounds(newTrapezoid, canvasRef)) {
-          const newTrapezoids = trapezoidSet.slices.filter(
-            (t) => t.id !== trapezoid.id
-          );
+      } else {
+        // dragging a slice
+        const newSlice = translateTrapezoid(slice, dx, dy);
+        if (isOutOfBounds(newSlice, canvasRef)) {
+          const newSlices = ribbon.slices.filter((t) => t.id !== slice.id);
           ribbonDispatch({
             action: "setRibbons",
-            payload: ribbonReducer().ribbons.map((t) =>
-              t.slices === trapezoidSet.slices
-                ? { ...t, slices: newTrapezoids, matchedPoints: [] }
-                : t
+            payload: ribbonReducer().ribbons.map((r) =>
+              r.id === ribbon.id
+                ? { ...r, slices: newSlices, matchedPoints: [] }
+                : r
             ),
           });
           handleMouseUp();
           return;
+        } else {
+          const newSlices: Slice[] = ribbon.slices.map((t) =>
+            t.id === slice.id ? newSlice : t
+          );
+          ribbonDispatch(
+            {
+              action: "setDraggingData",
+              payload: {
+                position: { x: imgX, y: imgY },
+                ribbonId: ribbon.id,
+                sliceId: slice.id,
+              },
+            },
+            {
+              action: "setRibbons",
+              payload: ribbonReducer().ribbons.map((r) =>
+                r.id === ribbon.id
+                  ? { ...r, slices: newSlices, matchedPoints: [] }
+                  : r
+              ),
+            }
+          );
+          return;
         }
-        const newTrapezoids: Slice[] = trapezoidSet.slices.map((t) =>
-          t.id === trapezoid.id ? newTrapezoid : t
-        );
-        ribbonDispatch({
-          action: "setRibbons",
-          payload: ribbonReducer().ribbons.map((t) =>
-            t.slices === trapezoidSet.slices
-              ? { ...t, slices: newTrapezoids, matchedPoints: [] }
-              : t
-          ),
-        });
-        return;
       }
     }
-    // Dragging a vertex
-    if (nearestDistance < 3) return;
-    if (nearestVertex && nearestDistance < 15) {
-      const trapezoid = ribbonReducer()
-        .ribbons.map((t) => t.slices)
-        .flat()
-        .find(
-          (t) =>
-            (t.top.x1 === nearestVertex.x && t.top.y1 === nearestVertex.y) ||
-            (t.top.x2 === nearestVertex.x && t.top.y2 === nearestVertex.y) ||
-            (t.bottom.x1 === nearestVertex.x &&
-              t.bottom.y1 === nearestVertex.y) ||
-            (t.bottom.x2 === nearestVertex.x && t.bottom.y2 === nearestVertex.y)
-        );
-      if (!trapezoid) return;
-      const { trapezoidSet } = findTrapezoidSet(trapezoid);
-      if (trapezoidSet?.status === "saved") return;
-      const newTrapezoid = moveVertex(trapezoid, nearestVertex, imgX, imgY);
-      const newSet = trapezoidSet?.slices.map((t) =>
-        (t.top.x1 === nearestVertex.x && t.top.y1 === nearestVertex.y) ||
-        (t.top.x2 === nearestVertex.x && t.top.y2 === nearestVertex.y) ||
-        (t.bottom.x1 === nearestVertex.x && t.bottom.y1 === nearestVertex.y) ||
-        (t.bottom.x2 === nearestVertex.x && t.bottom.y2 === nearestVertex.y)
-          ? newTrapezoid
-          : t
-      );
-      if (!newSet) return;
-      const newTrapezoids = ribbonReducer().ribbons.map((t) =>
-        t.slices === trapezoidSet?.slices
-          ? { ...t, slices: newSet, matchedPoints: [] }
-          : t
-      );
-      ribbonDispatch({
-        action: "setRibbons",
-        payload: newTrapezoids,
-      }); //TODO double check
-    }
   }
 
-  function handleMouseUp() {
-    overlayCanvasRef.removeEventListener("mousemove", handleMouseMove);
-    overlayCanvasRef.removeEventListener("mouseup", handleMouseUp);
-
+  const handleMouseUp = () => {
     ribbonDispatch({
-      action: "setClickedPoint",
+      action: "setDraggingData",
       payload: null,
     });
-  }
+  };
 
   const handleRibbonDetection = async ([[imgX, imgY], ...points]: [
     number,
     number
   ][]) => {
-    console.log("detecting ribbon");
     const trapezoids = await detectRibbons({
       point: [imgX, imgY],
       edgeDataCanvasRef,
@@ -730,6 +686,12 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           }}
         ></canvas>
         <canvas
+          ref={debugCanvasRef}
+          width="1000"
+          height="1000"
+          class="w-[clamp(300px,_100%,_85vh)] mx-auto absolute top-0 left-[50%] translate-x-[-50%] z-[40]"
+        ></canvas>
+        <canvas
           ref={overlayCanvasRef}
           id="canvas"
           width="1000"
@@ -741,12 +703,9 @@ export const Canvas = (props: { samLoaded: boolean }) => {
               zoomState().status !== "picking-center" &&
               ribbonReducer().detection,
           }}
-        ></canvas>
-        <canvas
-          ref={debugCanvasRef}
-          width="1000"
-          height="1000"
-          class="w-[clamp(300px,_100%,_85vh)] mx-auto absolute top-0 left-[50%] translate-x-[-50%] z-[40]"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
         ></canvas>
         <ParameterPanel />
       </div>

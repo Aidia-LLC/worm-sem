@@ -29,8 +29,11 @@ export default function pointMatching(
       overlayCanvasRef.addEventListener("mouseup", handleMouseUp);
       if (nearestPoint)
         ribbonDispatch({
-          action: "setClickedPoint",
-          payload: nearestPoint,
+          action: "setDraggingData",
+          payload: {
+            position: nearestPoint,
+            ribbonId: trapezoidSet.id,
+          },
         });
       return;
     } else {
@@ -48,30 +51,30 @@ export default function pointMatching(
       });
     }
   }
-  const { trapezoid, inTrapezoid } = isPointInTrapezoid(x, y, trapezoids);
-  if (!inTrapezoid || !trapezoid) return;
+  const { slice, inTrapezoid } = isPointInTrapezoid(x, y, ribbonReducer.ribbons);
+  if (!inTrapezoid || !slice) return;
   const center = {
     x:
-      (trapezoid.top.x1 +
-        trapezoid.top.x2 +
-        trapezoid.bottom.x1 +
-        trapezoid.bottom.x2) /
+      (slice.top.x1 +
+        slice.top.x2 +
+        slice.bottom.x1 +
+        slice.bottom.x2) /
       4,
     y:
-      (trapezoid.top.y1 +
-        trapezoid.top.y2 +
-        trapezoid.bottom.y1 +
-        trapezoid.bottom.y2) /
+      (slice.top.y1 +
+        slice.top.y2 +
+        slice.bottom.y1 +
+        slice.bottom.y2) /
       4,
   };
   let angle1 = 0;
   // angle1 of the top line
-  if (trapezoid.top.x1 === trapezoid.top.x2) {
+  if (slice.top.x1 === slice.top.x2) {
     angle1 = Math.PI / 2;
   } else {
     angle1 = Math.atan(
-      (trapezoid.top.y2 - trapezoid.top.y1) /
-        (trapezoid.top.x2 - trapezoid.top.x1)
+      (slice.top.y2 - slice.top.y1) /
+        (slice.top.x2 - slice.top.x1)
     );
   }
 
@@ -84,7 +87,7 @@ export default function pointMatching(
     y,
   });
   for (const otherTrapezoid of trapezoids) {
-    if (otherTrapezoid === trapezoid) continue;
+    if (otherTrapezoid === slice) continue;
     let angle2 = 0;
     // angle2 of the top line
     if (otherTrapezoid.top.x1 === otherTrapezoid.top.x2) {

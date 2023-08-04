@@ -1,6 +1,6 @@
 import { sleep } from "@logic/finalImaging";
 import { computeStageCoordinates } from "@logic/semCoordinates";
-import { createEffect, createSignal, onMount, Show, untrack } from "solid-js";
+import { createEffect, createSignal, Show, untrack } from "solid-js";
 import {
   BRIGHTNESS_STEP,
   CONTRAST_STEP,
@@ -35,7 +35,11 @@ export const SliceConfigurationScreen = () => {
   const [contrast, setContrast] = createSignal<number | null>(null);
   const [focus, setFocus] = createSignal<number | null>(null);
 
-  onMount(async () => {
+  createEffect(async () => {
+    const focusedRibbonId = ribbonReducer().focusedRibbonId;
+    const focusedSliceIndex = ribbonReducer().focusedSliceIndex;
+    if (focusedRibbonId === null || focusedSliceIndex === -1) return;
+
     const brightness = await microscopeApi.getBrightness();
     const contrast = await microscopeApi.getContrast();
     const focus = await microscopeApi.getWorkingDistance();
@@ -64,7 +68,8 @@ export const SliceConfigurationScreen = () => {
   });
 
   createEffect(() => {
-    ribbonReducer().focusedSliceIndex;
+    const focusedSliceIndex = ribbonReducer().focusedSliceIndex;
+    if (focusedSliceIndex === -1) return;
     untrack(() => {
       handleMoveStageToSlice();
     });

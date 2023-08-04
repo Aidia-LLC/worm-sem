@@ -1,9 +1,9 @@
-import { RibbonData, Vertex } from "src/types/canvas";
+import { RibbonData } from "src/types/canvas";
 
 type DraggingData = {
   ribbonId: RibbonData["id"] | null;
-  sliceId: number;
-  vertexIndex?: number;
+  sliceId?: number;
+  vertexPosition?: "top1" | "top2" | "bottom1" | "bottom2";
   position: { x: number; y: number };
 };
 
@@ -14,7 +14,6 @@ export const ribbonReducerInitialState = {
   focusedSliceIndex: -1,
   grabbing: false,
   clickedPoints: [] as [number, number][],
-  clickedPoint: null as Vertex | null,
   detection: true,
   detectionLoading: false,
   masks: [] as ImageData[],
@@ -36,10 +35,6 @@ export type RibbonDispatchPayload =
   | {
       action: "setClickedPoints";
       payload: [number, number][];
-    }
-  | {
-      action: "setClickedPoint";
-      payload: Vertex | null;
     }
   | {
       action: "setDetection";
@@ -100,8 +95,17 @@ export type RibbonReducerState = typeof ribbonReducerInitialState;
 
 export const ribbonDispatcher = (
   state: typeof ribbonReducerInitialState,
-  event: RibbonDispatchPayload
+  ...events: RibbonDispatchPayload[]
 ): RibbonReducerState => {
+  let newState = state;
+  for (const event of events) newState = ribbonUpdater(newState, event);
+  return newState;
+};
+
+const ribbonUpdater = (
+  state: typeof ribbonReducerInitialState,
+  event: RibbonDispatchPayload
+) => {
   switch (event.action) {
     case "setDraggingData":
       return { ...state, draggingData: event.payload };
@@ -134,13 +138,12 @@ export const ribbonDispatcher = (
     case "setClickedPoints":
       console.log("setClickedPoints", event.payload);
       return { ...state, clickedPoints: event.payload };
-    case "setClickedPoint":
-      return { ...state, clickedPoint: event.payload };
     case "setDetection":
       return { ...state, detection: event.payload };
     case "setDetectionLoading":
       return { ...state, detectionLoading: event.payload };
     case "setMasks":
+      console.log("setting masks");
       return { ...state, masks: event.payload };
     case "resetImage":
       return {

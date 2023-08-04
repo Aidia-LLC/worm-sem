@@ -1,5 +1,5 @@
-import { PYTHON_PORT } from "@config";
 import { Mask } from "src/types/mask";
+import { PYTHON_PORT } from "../config";
 
 export const segmentImage = async ({
   filename,
