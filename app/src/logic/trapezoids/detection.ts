@@ -8,8 +8,10 @@ export function detectTrapezoid(
   ctx: CanvasRenderingContext2D,
   options: ProcessingOptions
 ) {
-  console.log(ctx)
-  ctx.lineWidth = 5;
+  ctx.lineWidth = 8;
+  // draw imageData
+  ctx.putImageData(imageData, 0, 0);
+
   const square = getSquare(imageData, x, y, options.squareSize);
   console.log("square", square);
   // draw square
@@ -25,8 +27,52 @@ export function detectTrapezoid(
   ctx.closePath();
 
   const lines = hough(square, options);
-  for (const line of lines) {
+  // for (const line of lines) {
+  //   ctx.beginPath();
+  //   ctx.moveTo(
+  //     line.x1 + x - options.squareSize / 2,
+  //     line.y1 + y - options.squareSize / 2
+  //   );
+  //   ctx.lineTo(
+  //     line.x2 + x - options.squareSize / 2,
+  //     line.y2 + y - options.squareSize / 2
+  //   );
+  //   ctx.strokeStyle = "green";
+  //   ctx.stroke();
+  //   ctx.closePath();
+  // }
+  console.log("lines", lines.length);
+  const mergedLines = Merge(lines, square, options);
+  console.log("mergedLines", mergedLines);
+
+  const goodLines = DirectSearchLineOptimization(
+    pixelsPerLine,
+    mergedLines,
+    square,
+    options
+  );
+  console.log("goodLines", goodLines);
+  for (const line of goodLines) {
     ctx.beginPath();
+    ctx.lineWidth = 8;
+    ctx.moveTo(
+      line.x1 + x - options.squareSize / 2,
+      line.y1 + y - options.squareSize / 2
+    );
+    ctx.lineTo(
+      line.x2 + x - options.squareSize / 2,
+      line.y2 + y - options.squareSize / 2
+    );
+    ctx.strokeStyle = "blue";
+    ctx.stroke();
+    ctx.closePath();
+  }
+
+  const shortLines = ShortenLines(goodLines, square, options);
+  console.log("shortLines", shortLines);
+  for (const line of shortLines) {
+    ctx.beginPath();
+    ctx.lineWidth = 8;
     ctx.moveTo(
       line.x1 + x - options.squareSize / 2,
       line.y1 + y - options.squareSize / 2
@@ -39,40 +85,24 @@ export function detectTrapezoid(
     ctx.stroke();
     ctx.closePath();
   }
-
-  const goodLines = pixelsPerLine(lines, square, options);
-  // for (const line of goodLines) {
-  //   ctx.beginPath();
-  //   ctx.moveTo(
-  //     line.x1 + x - options.squareSize / 2,
-  //     line.y1 + y - options.squareSize / 2
-  //   );
-  //   ctx.lineTo(
-  //     line.x2 + x - options.squareSize / 2,
-  //     line.y2 + y - options.squareSize / 2
-  //   );
-  //   ctx.strokeStyle = "red";
-  //   ctx.stroke();
-  //   ctx.closePath();
-  // }
-  const vertices = computeVertices(goodLines, options).map((vertex) => ({
+  const vertices = computeVertices(shortLines, options).map((vertex) => ({
     x: vertex.x + x - options.squareSize / 2,
     y: vertex.y + y - options.squareSize / 2,
   }));
-  // for (const vertex of vertices) {
-  //   ctx.beginPath();
-  //   ctx.arc(vertex.x, vertex.y, 15, 0, 2 * Math.PI);
-  //   ctx.fillStyle = "red";
-  //   ctx.fill();
-  //   ctx.closePath();
-  // }
+  for (const vertex of vertices) {
+    ctx.beginPath();
+    ctx.arc(vertex.x, vertex.y, 15, 0, 2 * Math.PI);
+    ctx.fillStyle = "red";
+    ctx.fill();
+    ctx.closePath();
+  }
 
   const trapezoid: Trapezoid | null = computeTrapezoid(vertices);
   // console.log("trapezoid", trapezoid);
   if (!trapezoid) {
     return { trapezoid: null, fit: null };
   }
-  // DrawTrapezoid(trapezoid, ctx, "green", 15);
+  // DrawTrapezoid(trapezoid, ctx, "yellow", 15);
 
   const { trapezoid: newTrapezoid, fit } = DirectSearchOptimization(
     getPointsOnTrapezoid,
@@ -85,6 +115,7 @@ export function detectTrapezoid(
   );
 
   if (!newTrapezoid) return { trapezoid: null, fit: null };
+  // DrawTrapezoid(newTrapezoid, ctx, "yellow", 15);
 
   return { trapezoid: permuteTrapezoid(newTrapezoid), fit };
 }
@@ -136,7 +167,7 @@ type Vertex = {
 function hough(
   data: Uint8ClampedArray,
   options: ProcessingOptions,
-  thetaStep = Math.PI / 180
+  thetaStep = Math.PI / 90
 ): LineSegment[] {
   // Calculate the maximum possible distance in the image
   const width = options.squareSize;
@@ -210,14 +241,13 @@ function hough(
       }
     }
   }
-  return CartesionLines(lines, width, height, options);
+  return CartesionLines(lines, width, height);
 }
 
 function CartesionLines(
   lines: IHoughLine[],
   width: number,
-  height: number,
-  options: ProcessingOptions
+  height: number
 ): LineSegment[] {
   const cartesionLines: LineSegment[] = [];
   for (let i = 0; i < lines.length; i++) {
@@ -252,53 +282,99 @@ function CartesionLines(
     }
     cartesionLines.push({ theta, r, x1, y1, x2, y2 });
   }
-  return Merge(cartesionLines, options);
+  return cartesionLines;
 }
 
 function Merge(
   lines: LineSegment[],
+  data: Uint8ClampedArray,
   options: ProcessingOptions
 ): LineSegment[] {
-  // add weighted average of lines with similar theta
-  const mergedLines: (LineSegment & { count: number })[] = [];
+  console.log("thresh", options.mergeLineThreshold);
+  let mergedLines: (LineSegment & { count: number })[] = [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     let merged = false;
-    for (let j = 0; j < mergedLines.length; j++) {
+    const l = mergedLines.length;
+    const linePixels = pixelsPerLine({ ...line }, data, options);
+    for (let j = 0; j < l; j++) {
       const mergedLine = mergedLines[j];
       if (
-        Math.sqrt(
+        (Math.sqrt(
           (line.x1 - mergedLine.x1) ** 2 + (line.y1 - mergedLine.y1) ** 2
         ) < options.mergeLineThreshold &&
-        Math.sqrt(
-          (line.x2 - mergedLine.x2) ** 2 + (line.y2 - mergedLine.y2) ** 2
-        ) < options.mergeLineThreshold
+          Math.sqrt(
+            (line.x2 - mergedLine.x2) ** 2 + (line.y2 - mergedLine.y2) ** 2
+          ) < options.mergeLineThreshold) ||
+        (Math.sqrt(
+          (line.x1 - mergedLine.x2) ** 2 + (line.y1 - mergedLine.y2) ** 2
+        ) < options.mergeLineThreshold &&
+          Math.sqrt(
+            (line.x2 - mergedLine.x1) ** 2 + (line.y2 - mergedLine.y1) ** 2
+          ) < options.mergeLineThreshold)
       ) {
-        const count = mergedLine.count || 1;
-        mergedLine.x1 = Math.round(
-          (line.x1 + mergedLine.x1 * count) / (1 + count)
-        );
-        mergedLine.y1 = Math.round(
-          (line.y1 + mergedLine.y1 * count) / (1 + count)
-        );
-        mergedLine.x2 = Math.round(
-          (line.x2 + mergedLine.x2 * count) / (1 + count)
-        );
-        mergedLine.y2 = Math.round(
-          (line.y2 + mergedLine.y2 * count) / (1 + count)
-        );
-        merged = true;
-        break;
+        const count = mergedLine.count;
+        if (count > linePixels) {
+          continue;
+        } else {
+          merged = true;
+          mergedLines[j] = {
+            ...line,
+            count: pixelsPerLine(line, data, options),
+          };
+          break;
+        }
       }
     }
     if (!merged) {
-      mergedLines.push({ ...line, count: 1 });
+      const betterLine = DirectSearchSingleLineOptimization(
+        pixelsPerLine,
+        line,
+        data,
+        options
+      );
+      mergedLines = [
+        ...mergedLines,
+        {
+          ...betterLine,
+          count: pixelsPerLine({ ...betterLine }, data, options),
+        },
+      ];
     }
   }
   return mergedLines;
 }
 
 function pixelsPerLine(
+  line: LineSegment,
+  data: Uint8ClampedArray,
+  options: ProcessingOptions
+) {
+  const dx = line.x2 - line.x1;
+  const dy = line.y2 - line.y1;
+  const length = Math.sqrt(dx * dx + dy * dy);
+  const xStep = dx / length;
+  const yStep = dy / length;
+  let x = line.x1;
+  let y = line.y1;
+  let pixels = 0;
+  for (let j = 0; j < length; j++) {
+    if (
+      data[Math.round(y) * options.squareSize + Math.round(x)] === 255 ||
+      data[Math.round(y) * options.squareSize + Math.round(x + 1)] === 255 ||
+      data[Math.round(y) * options.squareSize + Math.round(x - 1)] === 255 ||
+      data[Math.round(y + 1) * options.squareSize + Math.round(x)] === 255 ||
+      data[Math.round(y - 1) * options.squareSize + Math.round(x)] === 255
+    ) {
+      pixels++;
+    }
+    x += xStep;
+    y += yStep;
+  }
+  return pixels;
+}
+
+function ShortenLines(
   lines: LineSegment[],
   data: Uint8ClampedArray,
   options: ProcessingOptions
@@ -347,12 +423,12 @@ function pixelsPerLine(
       ),
     });
   }
-  const maxPixels = Math.max(...goodLines.map((line) => line.pixels));
+  // const maxPixels = Math.max(...goodLines.map((line) => line.pixels));
   return goodLines
     .filter(
       (line) =>
-        line.pixels > maxPixels * options.pixelThreshold &&
-        line.length > options.squareSize * 0.15
+        // line.pixels > maxPixels * options.pixelThreshold &&
+        line.length > options.squareSize * 0.2
     )
     .sort((a, b) => a.pixels - b.pixels)
     .slice(0, options.maxLines);
@@ -457,6 +533,111 @@ function intersectionPoint(
   return { x, y };
 }
 
+function DirectSearchSingleLineOptimization(
+  ft: (
+    line: LineSegment,
+    data: Uint8ClampedArray,
+    options: ProcessingOptions
+  ) => number,
+  line: LineSegment,
+  data: Uint8ClampedArray,
+  options: ProcessingOptions
+) {
+  let bestLine = line;
+  //Move each vertex in line by 5 pixels in 16 directions, take the best one
+  let vertices = [
+    { x: line.x1, y: line.y1 },
+    { x: line.x2, y: line.y2 },
+  ];
+  for (let l = 0; l < 32; l++) {
+    for (let i = 0; i < vertices.length; i++) {
+      for (let j = 0; j < 16; j++) {
+        const vertex = vertices[i];
+        // move the vertex by a varied amount in 16 directions, keep the best
+        const newVertex = {
+          x: (vertex.x + ((l % 4) + 6) * 3) * Math.cos((j * Math.PI) / 8),
+          y: (vertex.y + ((l % 4) + 6) * 3) * Math.sin((j * Math.PI) / 8),
+        };
+        const newLine = {
+          x1: i === 0 ? newVertex.x : line.x1,
+          y1: i === 0 ? newVertex.y : line.y1,
+          x2: i === 1 ? newVertex.x : line.x2,
+          y2: i === 1 ? newVertex.y : line.y2,
+          r: line.r,
+          theta: line.theta,
+        };
+        const newFT = ft(newLine, data, options);
+        if (newFT < ft(line, data, options)) {
+          vertices[i] = newVertex;
+        }
+      }
+    }
+  }
+  bestLine = {
+    x1: vertices[0].x,
+    y1: vertices[0].y,
+    x2: vertices[1].x,
+    y2: vertices[1].y,
+    r: line.r,
+    theta: line.theta,
+  };
+  return bestLine;
+}
+
+function DirectSearchLineOptimization(
+  ft: (
+    line: LineSegment,
+    data: Uint8ClampedArray,
+    options: ProcessingOptions
+  ) => number,
+  lines: LineSegment[],
+  data: Uint8ClampedArray,
+  options: ProcessingOptions
+) {
+  const bestLines = lines;
+  for (let k = 0; k < lines.length; k++) {
+    const line = lines[k];
+    //Move each vertex in line by 5 pixels in 16 directions, take the best one
+    let vertices = [
+      { x: line.x1, y: line.y1 },
+      { x: line.x2, y: line.y2 },
+    ];
+    for (let l = 0; l < 32; l++) {
+      for (let i = 0; i < vertices.length; i++) {
+        for (let j = 0; j < 16; j++) {
+          const vertex = vertices[i];
+          // move the vertex by a varied amount in 16 directions, keep the best
+          const newVertex = {
+            x: (vertex.x + ((l % 4) + 6) * 3) * Math.cos((j * Math.PI) / 8),
+            y: (vertex.y + ((l % 4) + 6) * 3) * Math.sin((j * Math.PI) / 8),
+          };
+          const newLine = {
+            x1: i === 0 ? newVertex.x : line.x1,
+            y1: i === 0 ? newVertex.y : line.y1,
+            x2: i === 1 ? newVertex.x : line.x2,
+            y2: i === 1 ? newVertex.y : line.y2,
+            r: line.r,
+            theta: line.theta,
+          };
+          const newFT = ft(newLine, data, options);
+          if (newFT < ft(line, data, options)) {
+            vertices[i] = newVertex;
+          }
+        }
+      }
+    }
+    bestLines[k] = {
+      x1: vertices[0].x,
+      y1: vertices[0].y,
+      x2: vertices[1].x,
+      y2: vertices[1].y,
+      r: line.r,
+      theta: line.theta,
+    };
+  }
+  return bestLines;
+}
+
 function DirectSearchOptimization(
   ft: (
     data: Uint8ClampedArray,
@@ -475,7 +656,7 @@ function DirectSearchOptimization(
   y: number,
   squareSize?: number
 ) {
-  // Move each vertex in trapezoid by 5 pixels in 16 directions, take the best one
+  // Move each vertex in trapezoid by a varied amount of pixels in 16 directions, take the best one
   let vertices = [
     { x: trapezoid.top.x1, y: trapezoid.top.y1 },
     { x: trapezoid.top.x2, y: trapezoid.top.y2 },

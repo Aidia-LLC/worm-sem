@@ -1,4 +1,3 @@
-
 export function edgeFilter(
   canvas: HTMLCanvasElement,
   imageData: ImageData,
@@ -7,11 +6,11 @@ export function edgeFilter(
   ctx.putImageData(imageData, 0, 0);
 
   const edgePixels = canny(imageData);
-  const edgeData = ConnectStrongEdges(edgePixels, imageData.width, imageData.height);
-  console.log({
-    Noisy: edgePixels,
-    edgeData,
-  });
+  const edgeData = ConnectStrongEdges(
+    edgePixels,
+    imageData.width,
+    imageData.height
+  );
   // convert edgeData from uint8clampedarray to imageData
   const newImageData = ctx.createImageData(canvas.width, canvas.height);
   const pixels = new Uint8ClampedArray(canvas.width * canvas.height * 4);
@@ -35,10 +34,6 @@ export function edgeFilter(
     betterStuff[i * 4 + 3] = 255;
   }
   newImageData.data.set(betterStuff);
-  console.log({
-    newImageData,
-    betterStuff,
-  });
   return newImageData;
 }
 
@@ -67,8 +62,8 @@ function canny(grayImageData: ImageData) {
 
   // Perform non-maximum suppression
   const suppressedData = new Float32Array(width * height);
-  for (let y = 3; y < height - 3; y++) {
-    for (let x = 3; x < width - 3; x++) {
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = 1; x < width - 1; x++) {
       const direction = directionData[y * width + x];
       let q, r; //neighbor pixels
       if (

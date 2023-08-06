@@ -40,6 +40,7 @@ export const detectRibbons = async ({
     options
   );
   console.log("trapezoid", trapezoid);
+  return trapezoid ? ([trapezoid] as Trapezoid[]) : [];
   const valid =
     trapezoid && trapezoidIsValid(trapezoid, imgX, imgY, options, fit);
   console.log("valid", valid);
