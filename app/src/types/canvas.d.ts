@@ -17,14 +17,19 @@ type Status = "editing" | "matching" | "saved";
 export type RibbonData = {
   id: number;
   name: string;
-  trapezoids: Trapezoid[];
+  slices: Slice[];
   color: string;
   thickness: number;
   status: Status;
   matchedPoints: Vertex[];
   phase: 1 | 2;
   clickedPoints: [number, number][];
+  configurations: SliceConfiguration[];
 };
+
+export type Slice = {
+  id: number;
+} & Trapezoid;
 
 export type Trapezoid = {
   top: Pick<LineSegment, "x1" | "x2" | "y1" | "y2">;

@@ -1,42 +1,37 @@
 import { ZoomState } from "@components/RibbonDetector/ZoomController";
-import { Trapezoid, Vertex } from "src/types/canvas";
+import { Slice, Trapezoid, Vertex } from "src/types/canvas";
 import { ProcessingOptions } from "src/types/ProcessingOptions";
 import { base64ToImageSrc } from "./image";
 import { linesIntersect } from "./intersection";
 
-export const setupCanvas = async (
-  canvas: HTMLCanvasElement,
-  src: string,
-  overlayCanvas: HTMLCanvasElement
-  // rotated: boolean
-): Promise<void> => {
-  console.log("here");
-  const ctx = canvas.getContext("2d")!;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const img = new Image();
-
-  return new Promise((resolve) => {
-    img.onload = function () {
-      if (!ctx) return;
-      canvas.width = img.width;
-      canvas.height = img.height;
-      overlayCanvas.width = img.width;
-      overlayCanvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-      resolve();
-    };
-    img.onerror = (e) => {
-      console.log("IMAGE ERROR", e);
-    };
-    img.src = base64ToImageSrc(src);
+export const setupCanvases = async (details: {
+  primaryCanvas: HTMLCanvasElement;
+  canvases: HTMLCanvasElement[];
+  src: string;
+}) => {
+  return new Promise<void>((res) => {
+    const image = new Image();
+    image.onload = () => {
+      const ctx = details.primaryCanvas.getContext("2d")!;
+      ctx.clearRect(0, 0, details.primaryCanvas.width, details.primaryCanvas.height);
+      details.primaryCanvas.width = image.width;
+      details.primaryCanvas.height = image.height;
+      ctx.drawImage(image, 0, 0);
+      details.canvases.forEach((canvas) => {
+        canvas.width = image.width;
+        canvas.height = image.height;
+      });
+      res();
+    }
+    image.src = base64ToImageSrc(details.src);
   });
-};
+}
 
 export function translateTrapezoid(
-  trapezoid: Trapezoid,
+  trapezoid: Slice,
   x: number,
   y: number
-): Trapezoid {
+): Slice {
   return {
     top: {
       x1: trapezoid.top.x1 + x,
@@ -62,7 +57,8 @@ export function translateTrapezoid(
       x2: trapezoid.right.x2 + x,
       y2: trapezoid.right.y2 + y,
     },
-  } as Trapezoid;
+    id: trapezoid.id,
+  } satisfies Slice;
 }
 
 export function DrawTrapezoid(
@@ -149,7 +145,7 @@ const permutator = <T>(input: T[]) => {
   })();
 };
 
-export const permuteTrapezoid = (trapezoid: Trapezoid) => {
+export const permuteTrapezoid = (trapezoid: Slice) => {
   const points: [number, number][] = [
     [trapezoid.top.x1, trapezoid.top.y1],
     [trapezoid.top.x2, trapezoid.top.y2],
@@ -157,8 +153,9 @@ export const permuteTrapezoid = (trapezoid: Trapezoid) => {
     [trapezoid.bottom.x2, trapezoid.bottom.y2],
   ];
   const permutations = permutator(points);
-  const trapezoids: Trapezoid[] = permutations.map((permutation) => {
+  const trapezoids: Slice[] = permutations.map((permutation) => {
     return {
+      id: trapezoid.id,
       top: {
         x1: permutation[0][0],
         y1: permutation[0][1],
@@ -183,7 +180,7 @@ export const permuteTrapezoid = (trapezoid: Trapezoid) => {
         x2: permutation[3][0],
         y2: permutation[3][1],
       },
-    } as Trapezoid;
+    } as Slice;
   });
   const data = trapezoids
     .filter(
@@ -235,7 +232,7 @@ export const permuteTrapezoid = (trapezoid: Trapezoid) => {
 };
 
 export function findConnectedTrapezoids(
-  trapezoid: Trapezoid,
+  trapezoid: Slice,
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
@@ -243,7 +240,7 @@ export function findConnectedTrapezoids(
   fit: number
 ) {
   const squareSize = options.squareSize + 10;
-  let trapezoids: Trapezoid[] = [];
+  let trapezoids: Slice[] = [];
   const yShift =
     Math.round(
       (trapezoid.top.y1 + trapezoid.top.y2) / 2 -
@@ -443,11 +440,11 @@ export function RANSAC(
   x: number,
   y: number,
   squareSize?: number
-): Trapezoid | undefined {
+): Slice | undefined {
   const areaThreshold = [trapezoidArea * 0.9, trapezoidArea * 1.1];
   const iterations = 25000;
   const size = squareSize ?? options.squareSize;
-  let bestTrapezoid: Trapezoid | undefined;
+  let bestTrapezoid: Slice | undefined;
   let bestFit: number | undefined;
   for (let i = 0; i < iterations; i++) {
     const sample: Vertex[] = getSemiRandomSample(
@@ -710,7 +707,7 @@ function RecurseDirectSearchOptimization(
   return computeTrapezoid(vertices);
 }
 
-function computeTrapezoid(vertices: Vertex[]): Trapezoid {
+function computeTrapezoid(vertices: Vertex[]): Slice {
   const pairs = [
     [vertices[0], vertices[1]],
     [vertices[1], vertices[3]],
@@ -772,6 +769,7 @@ function computeTrapezoid(vertices: Vertex[]): Trapezoid {
       x2: bottomRight.x,
       y2: bottomRight.y,
     },
+    id: Math.floor(Math.random() * 100000000),
   };
 }
 

@@ -2,7 +2,7 @@ import appRootDir from "app-root-dir";
 import { ChildProcess, exec } from "child_process";
 import { app } from "electron";
 import path from "path";
-import { PYTHON_PORT } from "../data/ports";
+import { PYTHON_PORT } from "../config";
 
 const isProduction = app.isPackaged;
 export const maskServerPath = isProduction

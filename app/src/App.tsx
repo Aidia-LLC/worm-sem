@@ -1,18 +1,25 @@
-import { Canvas } from "@components/RibbonDetector/Canvas";
 import { HistoryLog } from "@components/HistoryLog";
 import { GrabForm } from "@components/InitialGrab";
 import { Instructions } from "@components/Instructions";
+import { Canvas } from "@components/RibbonDetector/Canvas";
+import { SliceConfigurationScreen } from "@components/SliceConfigurationScreen";
 import { Unconnected } from "@components/Unconnected";
 import { createSignal, Match, onMount, Switch } from "solid-js";
-import { PYTHON_PORT } from "./data/ports";
-import { imageSrcSignal } from "./data/signals/globals";
+import { PYTHON_PORT } from "./config";
+import {
+  initialStageSignal,
+  primaryImageSignal,
+  ribbonState,
+} from "./data/signals/globals";
 
 const DELAY_TO_INITIALIZE_SAM = 10000;
 
 export const App = () => {
   const [connected, setConnected] = createSignal(false);
   const [samLoaded, setSamLoaded] = createSignal(false);
-  const [imageSrc] = imageSrcSignal;
+  const [primaryImage] = primaryImageSignal;
+  const [ribbonReducer] = ribbonState;
+  const [initialStage] = initialStageSignal;
 
   onMount(() => {
     setTimeout(() => {
@@ -38,10 +45,20 @@ export const App = () => {
         <Match when={!connected()}>
           <Unconnected onConnect={() => setConnected(true)} />
         </Match>
-        <Match when={connected() && !imageSrc()}>
+        <Match when={connected() && !primaryImage()}>
           <GrabForm />
         </Match>
-        <Match when={connected() && imageSrc()}>
+        <Match
+          when={
+            connected() &&
+            primaryImage() &&
+            ribbonReducer().focusedRibbonId &&
+            initialStage()
+          }
+        >
+          <SliceConfigurationScreen />
+        </Match>
+        <Match when={connected() && primaryImage()}>
           <Canvas samLoaded={samLoaded()} />
         </Match>
       </Switch>

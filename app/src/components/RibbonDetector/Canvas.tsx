@@ -1,57 +1,28 @@
 import {
   convertZoomedCoordinatesToFullImage,
   DrawTrapezoid,
-  lerp,
-  setupCanvas,
+  setupCanvases,
   translateTrapezoid,
 } from "@logic/canvas";
 import { detectRibbons } from "@logic/detectRibbons";
-import { handleFinalImaging, sleep } from "@logic/handleFinalImaging";
 import { base64ToImageSrc } from "@logic/image";
 import pointMatching from "@logic/pointMatching";
 import { segmentImage } from "@logic/segmentation";
-import { computeStageCoordinates } from "@logic/semCoordinates";
-import { getIndicesOfSlicesToConfigure } from "@logic/sliceConfiguration";
-import { findNearestPoint, isPointInTrapezoid } from "@logic/trapezoids/points";
-import { findNearestVertex, moveVertex } from "@logic/trapezoids/vertices";
+import { isOutOfBounds, isPointInTrapezoid } from "@logic/trapezoids/points";
 import {
-  createEffect,
-  createSignal,
-  For,
-  Match,
-  onMount,
-  Show,
-  Switch,
-} from "solid-js";
-import { getNextCommandId } from "src/data/signals/commandQueue";
-import {
-  imageSrcFilenameSignal,
-  imageSrcSignal,
-  initialStageSignal,
-  magnificationSignal,
-  optionsStore,
-  ribbonState,
-  scanSpeedSignal,
-  showOriginalImageSignal,
-  zoomStateSignal,
-} from "src/data/signals/globals";
-import { microscopeApi } from "src/microscopeApi";
-import type {
-  FinalSliceConfiguration,
-  RibbonData,
-  SliceConfiguration,
-  Trapezoid,
-} from "src/types/canvas";
+  findNearestVertex,
+  translateSliceVertex,
+} from "@logic/trapezoids/vertices";
+import { createEffect, createSignal, For, onMount, Show } from "solid-js";
+import * as signals from "src/data/signals/globals";
+import type { RibbonData, Slice } from "src/types/canvas";
 import { Button } from "../Button";
+import { SliderPicker } from "../SliderPicker";
+import { DetectionInstructions } from "./DetectionInstructions";
+import { MaskSelector } from "./MaskSelector";
 import { ParameterPanel } from "./ParameterPanel";
 import { availableColors, RibbonConfig } from "./RibbonConfig";
-import { MaskSelector } from "./MaskSelector";
-import {
-  DEFAULT_ZOOM_SCALE,
-  ZoomController,
-} from "./ZoomController";
-import { SliceConfigurationScreen } from "../SliceConfigurationScreen";
-import { SliderPicker } from "../SliderPicker";
+import { DEFAULT_ZOOM_SCALE, ZoomController } from "./ZoomController";
 
 export const Canvas = (props: { samLoaded: boolean }) => {
   let canvasRef!: HTMLCanvasElement;
@@ -60,23 +31,15 @@ export const Canvas = (props: { samLoaded: boolean }) => {
   let debugCanvasRef!: HTMLCanvasElement;
 
   const [nextId, setNextId] = createSignal(1);
-  const [zoomState, setZoomState] = zoomStateSignal;
-  const [magnification] = magnificationSignal;
-  const [scanSpeed] = scanSpeedSignal;
-  const [ribbonReducer, ribbonDispatch] = ribbonState;
-  const [showOriginalImage, setShowOriginalImage] = showOriginalImageSignal;
-  const [imageSrc, setImageSrc] = imageSrcSignal;
-  const [imageSrcFilename] = imageSrcFilenameSignal;
-  const [initialStage] = initialStageSignal;
-  const [focusedSlice, setFocusedSlice] = createSignal<number>(-1);
-  const [sliceConfiguration, setSliceConfiguration] = createSignal<
-    SliceConfiguration[]
-  >([]);
-  const [percentComplete, setPercentComplete] = createSignal(0);
+  const [zoomState, setZoomState] = signals.zoomStateSignal;
+  const [ribbonReducer, ribbonDispatch] = signals.ribbonState;
+  const [showOriginalImage, setShowOriginalImage] =
+    signals.showOriginalImageSignal;
+  const [primaryImage, setPrimaryImage] = signals.primaryImageSignal;
   const [cursorPosition, setCursorPosition] = createSignal<[number, number]>([
     0, 0,
   ]);
-  const [options] = optionsStore;
+  const [options] = signals.optionsStore;
 
   createEffect(() => {
     const [mask] = ribbonReducer().masks;
@@ -97,49 +60,26 @@ export const Canvas = (props: { samLoaded: boolean }) => {
 
   createEffect(() => {
     // re-draw the image canvas when zoom changes
-    imageSrc();
+    primaryImage();
     zoomState();
     draw();
   });
 
-  const handleClick = async (e: MouseEvent) => {
-    if (!ribbonReducer().detection) return;
-    const rect = canvasRef.getBoundingClientRect();
-    const rectWidth = rect.right - rect.left;
-    const rectHeight = rect.bottom - rect.top;
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const imgX = Math.round((x / rectWidth) * canvasRef.width);
-    const imgY = Math.round((y / rectHeight) * canvasRef.height);
-
+  const handleDetectionClick = async (position: { x: number; y: number }) =>
     ribbonDispatch({
       action: "setClickedPoints",
-      payload: [...ribbonReducer().clickedPoints, [imgX, imgY]],
+      payload: [...ribbonReducer().clickedPoints, [position.x, position.y]],
     });
-    console.log(ribbonReducer().clickedPoints);
-  };
 
   onMount(async () => {
-    overlayCanvasRef.addEventListener("mousedown", handleMouseDown);
-    setOriginalImage();
+    const imageData = primaryImage();
+    if (!imageData?.src) return;
+    await setupCanvases({
+      primaryCanvas: canvasRef,
+      src: imageData.src,
+      canvases: [overlayCanvasRef, edgeDataCanvasRef, debugCanvasRef],
+    });
   });
-
-  async function setOriginalImage() {
-    const src = imageSrc();
-    if (!src) return;
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      debugCanvasRef.width = img.width;
-      debugCanvasRef.height = img.height;
-      const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0);
-    };
-    img.src = base64ToImageSrc(src);
-    await setupCanvas(canvasRef, src, overlayCanvasRef);
-  }
 
   const drawOverlay = () => {
     const ctx = overlayCanvasRef.getContext("2d")!;
@@ -195,7 +135,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     }
 
     for (const trapezoidSet of ribbonReducer().ribbons) {
-      const { trapezoids, color, thickness } = trapezoidSet;
+      const { slices: trapezoids, color, thickness } = trapezoidSet;
       for (let i = 0; i < trapezoids.length; i++) {
         // render the first trapezoid distinctly
         const isFirstTrapezoid = i === 0;
@@ -223,87 +163,80 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     ctx.restore();
   };
 
-  function draw() {
+  const draw = () => {
     const ctx = canvasRef.getContext("2d")!;
     ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
-    const src = imageSrc();
+    const src = primaryImage()?.src;
     if (!src) return;
     const img = new Image();
     img.onload = () => {
-      ctx.canvas.width = img.width;
-      ctx.canvas.height = img.height;
-      overlayCanvasRef.width = img.width;
-      overlayCanvasRef.height = img.height;
-      edgeDataCanvasRef.width = img.width;
-      edgeDataCanvasRef.height = img.height;
-
       const zoom = zoomState();
-      if (zoom.status === "zoomed-in") {
-        const { x, y, scale } = zoom;
-        const viewportWidth = canvasRef.width / scale;
-        const viewportHeight = canvasRef.height / scale;
-        const viewportX = x - viewportWidth / 2;
-        const viewportY = y - viewportHeight / 2;
-        ctx.drawImage(
-          img,
-          viewportX,
-          viewportY,
-          viewportWidth,
-          viewportHeight,
-          0,
-          0,
-          canvasRef.width,
-          canvasRef.height
-        );
-      } else {
-        ctx.drawImage(img, 0, 0);
-      }
+      if (zoom.status !== "zoomed-in") return ctx.drawImage(img, 0, 0);
+      const { x, y, scale } = zoom;
+      const viewportWidth = canvasRef.width / scale;
+      const viewportHeight = canvasRef.height / scale;
+      const viewportX = x - viewportWidth / 2;
+      const viewportY = y - viewportHeight / 2;
+      ctx.drawImage(
+        img,
+        viewportX,
+        viewportY,
+        viewportWidth,
+        viewportHeight,
+        0,
+        0,
+        canvasRef.width,
+        canvasRef.height
+      );
     };
     img.src = base64ToImageSrc(src);
-  }
+  };
 
-  function handleMouseDown(e: MouseEvent) {
-    const vertexDist = options.options.squareSize / 5;
-    const rect = canvasRef.getBoundingClientRect();
-    const rectWidth = rect.right - rect.left;
-    const rectHeight = rect.bottom - rect.top;
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const imgX1 = Math.round((x / rectWidth) * canvasRef.width);
-    const imgY1 = Math.round((y / rectHeight) * canvasRef.height);
+  const handleMouseDown = (e: MouseEvent) => {
+    e.preventDefault();
+    const { x: imgX, y: imgY, unzoomed } = getImageCoordinatesFromMouseEvent(e);
 
     if (zoomState().status === "picking-center") {
       setZoomState({
         status: "zoomed-in",
         scale: DEFAULT_ZOOM_SCALE,
-        x: imgX1,
-        y: imgY1,
+        x: unzoomed.x,
+        y: unzoomed.y,
       });
       return;
     }
 
-    const { x: imgX, y: imgY } = convertZoomedCoordinatesToFullImage(
-      imgX1,
-      imgY1,
-      zoomState(),
-      canvasRef.width,
-      canvasRef.height
-    );
+    if (ribbonReducer().detection) {
+      handleDetectionClick({ x: imgX, y: imgY });
+      return;
+    }
 
-    const { inTrapezoid, trapezoid } = isPointInTrapezoid(
+    const dragVertexThreshold = canvasRef.width / 120;
+    const nearest = findNearestVertex(imgX, imgY, ribbonReducer().ribbons);
+    if (nearest.distance < dragVertexThreshold) {
+      ribbonDispatch({
+        action: "setDraggingData",
+        payload: {
+          position: { x: imgX, y: imgY },
+          ribbonId: nearest.ribbonId,
+          sliceId: nearest.slice.id,
+          vertexPosition: nearest.vertexPosition,
+        },
+      });
+      return;
+    }
+
+    const { inTrapezoid, slice, ribbon } = isPointInTrapezoid(
       imgX,
       imgY,
-      ribbonReducer()
-        .ribbons.map((t) => t.trapezoids)
-        .flat()
+      ribbonReducer().ribbons
     );
-    if (inTrapezoid && trapezoid) {
-      const { trapezoidSet } = findTrapezoidSet(trapezoid);
-      if (trapezoidSet && trapezoidSet.status === "matching") {
+    if (inTrapezoid && slice && ribbon) {
+      if (ribbon.status === "matching") {
         pointMatching(
           imgX,
           imgY,
-          trapezoidSet,
+          ribbon,
           ribbonDispatch,
           ribbonReducer(),
           overlayCanvasRef,
@@ -311,39 +244,24 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           handleMouseUp
         );
         return;
+      } else if (ribbon.status === "editing") {
+        ribbonDispatch({
+          action: "setDraggingData",
+          payload: {
+            position: { x: imgX, y: imgY },
+            ribbonId: ribbon.id,
+            sliceId: slice.id,
+          },
+        });
+        return;
       }
     }
-    const { nearestDistance } = findNearestVertex(
-      imgX,
-      imgY,
-      ribbonReducer()
-        .ribbons.map((t) => t.trapezoids)
-        .flat()
-    );
-    if (nearestDistance < vertexDist || inTrapezoid) {
-      ribbonDispatch({
-        action: "setClickedPoint",
-        payload: { x: imgX, y: imgY },
-      });
-      overlayCanvasRef.addEventListener("mousemove", handleMouseMove);
-      overlayCanvasRef.addEventListener("mouseup", handleMouseUp);
-      e.preventDefault();
-    } else {
-      handleClick(e);
-    }
-  }
+  };
 
-  function findTrapezoidSet(trapezoid: Trapezoid) {
-    for (const trapezoidSet of ribbonReducer().ribbons) {
-      if (trapezoidSet.trapezoids.includes(trapezoid)) return { trapezoidSet };
-    }
-    return { trapezoidSet: undefined };
-  }
-
-  //rewrite this to be smaller and rely less on guesswork
-  function handleMouseMove(e: MouseEvent) {
-    const vertexDist = options.options.squareSize / 5;
-    // calculate the new cursor position:
+  const getImageCoordinatesFromMouseEvent = (e: {
+    clientX: number;
+    clientY: number;
+  }) => {
     const rect = canvasRef.getBoundingClientRect();
     const rectWidth = rect.right - rect.left;
     const rectHeight = rect.bottom - rect.top;
@@ -351,260 +269,131 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     const y = e.clientY - rect.top;
     const imgX1 = Math.round((x / rectWidth) * canvasRef.width);
     const imgY1 = Math.round((y / rectHeight) * canvasRef.height);
+    return {
+      ...convertZoomedCoordinatesToFullImage(
+        imgX1,
+        imgY1,
+        zoomState(),
+        canvasRef.width,
+        canvasRef.height
+      ),
+      unzoomed: {
+        x: imgX1,
+        y: imgY1,
+      },
+    };
+  };
 
-    const { x: imgX, y: imgY } = convertZoomedCoordinatesToFullImage(
-      imgX1,
-      imgY1,
-      zoomState(),
-      canvasRef.width,
-      canvasRef.height
-    );
+  const handleMouseMove = (e: MouseEvent) => {
+    e.preventDefault();
+    const draggingData = ribbonReducer().draggingData;
+    const { x, y } = getImageCoordinatesFromMouseEvent(e);
+    setCursorPosition([x, y]);
+    if (!draggingData || !draggingData.sliceId) return;
 
-    // are they dragging a point?
-    const { inTrapezoid, trapezoid } = isPointInTrapezoid(
-      imgX,
-      imgY,
-      ribbonReducer()
-        .ribbons.map((t) => t.trapezoids)
-        .flat()
-    );
-    const { nearestVertex, nearestDistance } = findNearestVertex(
-      imgX,
-      imgY,
-      ribbonReducer()
-        .ribbons.map((t) => t.trapezoids)
-        .flat()
-    );
-    if (inTrapezoid && trapezoid) {
-      const { trapezoidSet } = findTrapezoidSet(trapezoid);
-      if (trapezoidSet?.status === "saved") return;
-      if (trapezoidSet && trapezoidSet.status === "matching") {
-        const { nearestPoint, nearestDistance: pointDistance } =
-          findNearestPoint(imgX, imgY, trapezoidSet.matchedPoints);
-        if (nearestPoint && pointDistance < 10) {
-          const newMatchedPoints = trapezoidSet.matchedPoints.map((point) => {
-            if (point.x === nearestPoint.x && point.y === nearestPoint.y) {
-              return { x: imgX, y: imgY };
-            }
-            return point;
-          });
-          ribbonDispatch({
-            action: "setRibbons",
-            payload: ribbonReducer().ribbons.map((t) => {
-              if (t.trapezoids === trapezoidSet.trapezoids) {
-                return {
-                  ...t,
-                  matchedPoints: newMatchedPoints,
-                };
-              }
-              return t;
-            }),
-          });
-          return;
-        }
-      }
-      // Dragging a trapezoid
-      else if (nearestVertex && nearestDistance > vertexDist && trapezoidSet) {
-        const dy = imgY - ribbonReducer().clickedPoint!.y ?? 0;
-        const dx = imgX - ribbonReducer().clickedPoint!.x ?? 0;
+    ribbonDispatch({
+      action: "setDraggingData",
+      payload: {
+        ...draggingData,
+        position: { x: x, y: y },
+      },
+    });
+
+    const dx = x - draggingData.position.x;
+    const dy = y - draggingData.position.y;
+
+    const ribbon = ribbonReducer().ribbons.find(
+      (r) => r.id === draggingData.ribbonId
+    )!;
+    if (ribbon.status === "matching") {
+      const newMatchedPoints = ribbon.matchedPoints.map((point, i) => {
+        if (ribbon.slices[i].id === draggingData.sliceId) return { x, y };
+        return point;
+      });
+      ribbonDispatch({
+        action: "setRibbons",
+        payload: ribbonReducer().ribbons.map((t) => {
+          if (t.id === ribbon.id)
+            return { ...t, matchedPoints: newMatchedPoints };
+          return t;
+        }),
+      });
+      return;
+    } else if (ribbon.status === "editing") {
+      const slice = ribbon.slices.find((t) => t.id === draggingData.sliceId);
+      if (!slice) return;
+      if (draggingData.vertexPosition) {
+        // dragging a vertex
+        const pos = draggingData.vertexPosition;
+        const newSlice = translateSliceVertex(slice, pos, { x: dx, y: dy });
         ribbonDispatch({
-          action: "setClickedPoint",
-          payload: { x: imgX, y: imgY },
+          action: "setRibbons",
+          payload: ribbonReducer().ribbons.map((t) =>
+            t.id === ribbon.id
+              ? {
+                  ...t,
+                  slices: t.slices.map((s) =>
+                    s.id === slice.id ? newSlice : s
+                  ),
+                  matchedPoints: [],
+                }
+              : t
+          ),
         });
-        const newTrapezoid = translateTrapezoid(trapezoid, dx, dy);
-        // if new trapezoid is touching the edge of the image, delete it
-        if (
-          newTrapezoid.left.x1 < 0 ||
-          newTrapezoid.right.x1 > canvasRef.width ||
-          newTrapezoid.left.x2 < 0 ||
-          newTrapezoid.right.x2 > canvasRef.width ||
-          newTrapezoid.top.y1 < 0 ||
-          newTrapezoid.top.y2 < 0 ||
-          newTrapezoid.bottom.y1 > canvasRef.height ||
-          newTrapezoid.bottom.y2 > canvasRef.height
-        ) {
-          const newTrapezoids = trapezoidSet.trapezoids.filter(
-            (t) =>
-              (t.top.x1 !== trapezoid.top.x1 &&
-                t.top.y1 !== trapezoid.top.y1) ||
-              (t.top.x2 !== trapezoid.top.x2 &&
-                t.top.y2 !== trapezoid.top.y2) ||
-              (t.bottom.x1 !== trapezoid.bottom.x1 &&
-                t.bottom.y1 !== trapezoid.bottom.y1) ||
-              (t.bottom.x2 !== trapezoid.bottom.x2 &&
-                t.bottom.y2 !== trapezoid.bottom.y2)
-          );
+      } else {
+        // dragging a slice
+        const newSlice = translateTrapezoid(slice, dx, dy);
+        if (isOutOfBounds(newSlice, canvasRef)) {
+          const newSlices = ribbon.slices.filter((t) => t.id !== slice.id);
           ribbonDispatch({
             action: "setRibbons",
-            payload: ribbonReducer().ribbons.map((t) =>
-              t.trapezoids === trapezoidSet.trapezoids
-                ? { ...t, trapezoids: newTrapezoids, matchedPoints: [] }
-                : t
+            payload: ribbonReducer().ribbons.map((r) =>
+              r.id === ribbon.id
+                ? { ...r, slices: newSlices, matchedPoints: [] }
+                : r
             ),
           });
           handleMouseUp();
           return;
+        } else {
+          const newSlices: Slice[] = ribbon.slices.map((t) =>
+            t.id === slice.id ? newSlice : t
+          );
+          ribbonDispatch(
+            {
+              action: "setDraggingData",
+              payload: {
+                position: { x, y },
+                ribbonId: ribbon.id,
+                sliceId: slice.id,
+              },
+            },
+            {
+              action: "setRibbons",
+              payload: ribbonReducer().ribbons.map((r) =>
+                r.id === ribbon.id
+                  ? { ...r, slices: newSlices, matchedPoints: [] }
+                  : r
+              ),
+            }
+          );
+          return;
         }
-        const newTrapezoids: Trapezoid[] = trapezoidSet.trapezoids.map((t) =>
-          (t.top.x1 === trapezoid.top.x1 && t.top.y1 === trapezoid.top.y1) ||
-          (t.top.x2 === trapezoid.top.x2 && t.top.y2 === trapezoid.top.y2) ||
-          (t.bottom.x1 === trapezoid.bottom.x1 &&
-            t.bottom.y1 === trapezoid.bottom.y1) ||
-          (t.bottom.x2 === trapezoid.bottom.x2 &&
-            t.bottom.y2 === trapezoid.bottom.y2)
-            ? newTrapezoid
-            : t
-        );
-        ribbonDispatch({
-          action: "setRibbons",
-          payload: ribbonReducer().ribbons.map((t) =>
-            t.trapezoids === trapezoidSet.trapezoids
-              ? { ...t, trapezoids: newTrapezoids, matchedPoints: [] }
-              : t
-          ),
-        });
-        return;
       }
     }
-    // Dragging a vertex
-    if (nearestDistance < 3) return;
-    if (nearestVertex && nearestDistance < 15) {
-      const trapezoid = ribbonReducer()
-        .ribbons.map((t) => t.trapezoids)
-        .flat()
-        .find(
-          (t) =>
-            (t.top.x1 === nearestVertex.x && t.top.y1 === nearestVertex.y) ||
-            (t.top.x2 === nearestVertex.x && t.top.y2 === nearestVertex.y) ||
-            (t.bottom.x1 === nearestVertex.x &&
-              t.bottom.y1 === nearestVertex.y) ||
-            (t.bottom.x2 === nearestVertex.x && t.bottom.y2 === nearestVertex.y)
-        );
-      if (!trapezoid) return;
-      const { trapezoidSet } = findTrapezoidSet(trapezoid);
-      if (trapezoidSet?.status === "saved") return;
-      const newTrapezoid = moveVertex(trapezoid, nearestVertex, imgX, imgY);
-      const newSet = trapezoidSet?.trapezoids.map((t) =>
-        (t.top.x1 === nearestVertex.x && t.top.y1 === nearestVertex.y) ||
-        (t.top.x2 === nearestVertex.x && t.top.y2 === nearestVertex.y) ||
-        (t.bottom.x1 === nearestVertex.x && t.bottom.y1 === nearestVertex.y) ||
-        (t.bottom.x2 === nearestVertex.x && t.bottom.y2 === nearestVertex.y)
-          ? newTrapezoid
-          : t
-      );
-      if (!newSet) return;
-      const newTrapezoids = ribbonReducer().ribbons.map((t) =>
-        t.trapezoids === trapezoidSet?.trapezoids
-          ? { ...t, trapezoids: newSet, matchedPoints: [] }
-          : t
-      );
-      ribbonDispatch({
-        action: "setRibbons",
-        payload: newTrapezoids,
-      }); //TODO double check
-    }
-  }
-
-  function handleMouseUp() {
-    overlayCanvasRef.removeEventListener("mousemove", handleMouseMove);
-    overlayCanvasRef.removeEventListener("mouseup", handleMouseUp);
-
-    ribbonDispatch({
-      action: "setClickedPoint",
-      payload: null,
-    });
-  }
-
-  const handleStartGrabbing = async () => {
-    setFocusedSlice(-1);
-    ribbonDispatch({ action: "setGrabbing", payload: true });
-    const userConfigurations = sliceConfiguration();
-    const ribbon = ribbonReducer().ribbons.find(
-      (r) => r.id === ribbonReducer().focusedRibbon
-    );
-    const stage = initialStage();
-    if (!ribbon || !stage) return;
-    const interpolatedConfigurations: SliceConfiguration[] = [];
-    for (let i = 0; i < userConfigurations.length; i++) {
-      const configA = userConfigurations[i];
-      interpolatedConfigurations.push(configA);
-      if (i === userConfigurations.length - 1) break;
-      const configB = userConfigurations[i + 1];
-      for (let j = configA.index + 1; j < configB.index; j++) {
-        const percent = (j - configA.index) / (configB.index - configA.index);
-        const brightness = lerp(
-          configA.brightness || 0,
-          configB.brightness || 0,
-          percent
-        );
-        const contrast = lerp(
-          configA.contrast || 0,
-          configB.contrast || 0,
-          percent
-        );
-        const focus = lerp(configA.focus || 0, configB.focus || 0, percent);
-        interpolatedConfigurations.push({
-          index: j,
-          brightness,
-          contrast,
-          focus,
-        });
-      }
-    }
-    const ribbonId = getNextCommandId();
-    const ribbonName = ribbon.name.replace(/[^a-z0-9]/gi, "-").toLowerCase();
-    const finalConfigurations: FinalSliceConfiguration[] =
-      interpolatedConfigurations.map((c) => {
-        const point = computeStageCoordinates({
-          point: ribbon.matchedPoints[c.index],
-          canvasConfiguration: canvasRef,
-          stageConfiguration: stage,
-        });
-        return {
-          magnification: magnification(),
-          brightness: c.brightness!,
-          contrast: c.contrast!,
-          focus: c.focus!,
-          label: `slice-${c.index + 1}`,
-          point,
-          ribbonId,
-          ribbonName,
-        };
-      });
-    console.log("final config");
-    console.log(finalConfigurations);
-    try {
-      await handleFinalImaging(
-        finalConfigurations,
-        setPercentComplete,
-        scanSpeed()
-      );
-      alert(`Done imaging for ${ribbon.name}!`);
-    } catch (err) {
-      console.error(err);
-      alert(`Error imaging ${ribbon.name}. ${(err as Error).message}`);
-    }
-    ribbonDispatch({
-      action: "setGrabbing",
-      payload: false,
-    });
-    ribbonDispatch({
-      action: "setFocusedRibbon",
-      payload: -1,
-    });
   };
 
-  createEffect(() => {
-    debugCanvasRef.getContext('2d')?.moveTo(0, 0);
-    debugCanvasRef.getContext('2d')?.lineTo(100, 100);
-    debugCanvasRef.getContext('2d')?.stroke();
-  })
+  const handleMouseUp = () => {
+    ribbonDispatch({
+      action: "setDraggingData",
+      payload: null,
+    });
+  };
 
   const handleRibbonDetection = async ([[imgX, imgY], ...points]: [
     number,
     number
   ][]) => {
-    console.log("detecting ribbon");
     const trapezoids = await detectRibbons({
       point: [imgX, imgY],
       edgeDataCanvasRef,
@@ -624,333 +413,130 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     ribbonDispatch({
       action: "addRibbon",
       payload: {
-        trapezoids,
+        slices: trapezoids,
         id,
         name: `Ribbon ${Math.ceil(id / 2)}`,
         color,
         thickness: 5,
         status: "editing",
         matchedPoints: [],
-        // reversed: false,
         phase: 2,
         clickedPoints: [[imgX, imgY], ...points],
+        configurations: [],
       } satisfies RibbonData,
     });
   };
 
-  const handleMoveStageToSlice = async () => {
-    const ribbon = ribbonReducer().ribbons.find(
-      (ribbon) => ribbon.id === ribbonReducer().focusedRibbon
-    )!;
-    const point = ribbon.matchedPoints[focusedSlice()];
-    const coordinates = computeStageCoordinates({
-      point,
-      canvasConfiguration: canvasRef,
-      stageConfiguration: initialStage()!,
+  const handleMask = async () => {
+    const points = ribbonReducer().clickedPoints;
+    ribbonDispatch(
+      { action: "setDetection", payload: false },
+      { action: "setDetectionLoading", payload: true }
+    );
+    const segmentedImageData = await segmentImage({
+      points,
+      canvasRef,
+      filename: primaryImage()?.filename ?? "",
     });
-    await sleep(200);
-    await microscopeApi.moveStageTo(coordinates);
+    setShowOriginalImage(false);
+    ribbonDispatch(
+      { action: "setDetectionLoading", payload: false },
+      { action: "setMasks", payload: segmentedImageData }
+    );
   };
 
   return (
     <div class="flex flex-col gap-3 text-xs">
-      <Show
-        when={ribbonReducer().grabbing}
-        fallback={
-          <Show when={focusedSlice() !== -1 && initialStage()}>
-            <SliceConfigurationScreen
-              stage={initialStage()!}
-              canvas={canvasRef}
-              configuration={
-                sliceConfiguration().find(
-                  ({ index }) => index === focusedSlice()
-                )!
-              }
-              setConfiguration={async (newConfiguration) => {
-                if (newConfiguration.brightness)
-                  await microscopeApi.setBrightness(
-                    newConfiguration.brightness
-                  );
-                if (newConfiguration.contrast)
-                  await microscopeApi.setContrast(newConfiguration.contrast);
-                if (newConfiguration.focus)
-                  await microscopeApi.setWorkingDistance(
-                    newConfiguration.focus
-                  );
-                setSliceConfiguration(
-                  sliceConfiguration().map((c) =>
-                    c.index === focusedSlice()
-                      ? { ...c, ...newConfiguration }
-                      : c
-                  )
-                );
-                console.log("newConfiguration", sliceConfiguration());
-              }}
-              onNext={() => {
-                const currentConfigIndex = sliceConfiguration().findIndex(
-                  (c) => c.index === focusedSlice()
-                );
-                if (currentConfigIndex === sliceConfiguration().length - 1) {
-                  handleStartGrabbing();
-                } else {
-                  setFocusedSlice(
-                    sliceConfiguration()[currentConfigIndex + 1].index
-                  );
-                  handleMoveStageToSlice();
-                }
-              }}
-              onPrevious={() => {
-                const currentConfigIndex = sliceConfiguration().findIndex(
-                  (c) => c.index === focusedSlice()
-                );
-                if (currentConfigIndex === 0) {
-                  return;
-                } else {
-                  setFocusedSlice(
-                    sliceConfiguration()[currentConfigIndex - 1].index
-                  );
-                  handleMoveStageToSlice();
-                }
-              }}
-              ribbon={
-                ribbonReducer().ribbons.find(
-                  (ribbon) => ribbon.id === ribbonReducer().focusedRibbon
-                )!
-              }
-            />
-          </Show>
-        }
-      >
-        <h2 class="text-xl font-bold">
-          Grabbing... {percentComplete()}% complete
-        </h2>
-      </Show>
-      <Show when={focusedSlice() === -1}>
-        <Show when={imageSrc()}>
-          <div class="grid grid-cols-5 gap-4 mt-1">
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setImageSrc(null);
-                ribbonDispatch({ action: "resetImage" });
-                setZoomState({ status: "zoomed-out", scale: 1 });
-              }}
-              tooltip="Erase the current image. You'll have to grab a new image to continue."
-            >
-              Clear Image
-            </Button>
-            <Show when={ribbonReducer().masks.length === 0}>
-              <Button
-                variant="primary-outline"
-                onClick={() => {
-                  const newState = !ribbonReducer().detection;
-                  if (!newState)
-                    ribbonDispatch({ action: "setClickedPoints", payload: [] });
-                  ribbonDispatch({ action: "setDetection", payload: newState });
-                }}
-                disabled={ribbonReducer().detectionLoading}
-                tooltip="Toggle ribbon detection. If enabled, click on the image to select a ribbon. If disabled, you won't be able to detect a new ribbon."
-              >
-                <Show when={ribbonReducer().detection} fallback="Enable">
-                  Disable
-                </Show>{" "}
-                Ribbon Detection
-              </Button>
-              <Show when={ribbonReducer().clickedPoints.length > 2}>
-                <Button
-                  onClick={async () => {
-                    const points = ribbonReducer().clickedPoints;
-                    ribbonDispatch({
-                      action: "setDetection",
-                      payload: false,
-                    });
-                    ribbonDispatch({
-                      action: "setDetectionLoading",
-                      payload: true,
-                    });
-                    const segmentedImageData = await segmentImage({
-                      points,
-                      canvasRef,
-                      filename: imageSrcFilename()!,
-                    });
-                    setShowOriginalImage(false);
-                    ribbonDispatch({
-                      action: "setDetectionLoading",
-                      payload: false,
-                    });
-                    ribbonDispatch({
-                      action: "setMasks",
-                      payload: segmentedImageData,
-                    });
-                  }}
-                  disabled={
-                    ribbonReducer().detectionLoading || !props.samLoaded
-                  }
-                  tooltip="Detect a ribbon from the clicked points. You'll be able to edit the ribbon manually after it's detected."
-                >
-                  Detect Ribbon
-                </Button>
-              </Show>
-            </Show>
-            <MaskSelector
-              edgeDataCanvasRef={() => edgeDataCanvasRef}
-              handleRibbonDetection={handleRibbonDetection}
-            />
-            <Show when={ribbonReducer().ribbons.length > 0}>
-              <Button
-                onClick={() =>
-                  ribbonDispatch({
-                    action: "setRibbons",
-                    payload: [],
-                  })
-                }
-              >
-                Remove All Ribbons
-              </Button>
-            </Show>
-            <Show when={ribbonReducer().masks.length > 0}>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setShowOriginalImage(!showOriginalImage());
-                }}
-                tooltip="Toggle between the image from the microscope and the edge data."
-              >
-                Show {showOriginalImage() ? "Edge Data" : "Original Image"}
-              </Button>
-              <ZoomController />
-            </Show>
-          </div>
-        </Show>
-        <For each={ribbonReducer().ribbons}>
-          {(trapezoidSet) => (
-            <RibbonConfig
-              grabbing={ribbonReducer().focusedRibbon === trapezoidSet.id}
-              onGrab={async (id) => {
-                ribbonDispatch({
-                  action: "setFocusedRibbon",
-                  payload: id,
-                });
-                const trapezoids = ribbonReducer().ribbons.find(
-                  (t) => t.id === id
-                )!.trapezoids;
-                const indicesToConfigure = getIndicesOfSlicesToConfigure(
-                  trapezoids.length
-                );
-                const brightness = await microscopeApi.getBrightness();
-                const contrast = await microscopeApi.getContrast();
-                const workingDistance =
-                  await microscopeApi.getWorkingDistance();
-                await microscopeApi.setMagnification(magnification());
-                setSliceConfiguration(
-                  trapezoids
-                    .map(
-                      (_, index) =>
-                        ({
-                          index,
-                          brightness,
-                          contrast,
-                          focus: workingDistance,
-                        } as SliceConfiguration)
-                    )
-                    .filter((_, index) => indicesToConfigure.includes(index))
-                );
-                setFocusedSlice(indicesToConfigure[0]);
-                handleMoveStageToSlice();
-              }}
-              canvasSize={canvasRef}
-              ribbon={trapezoidSet}
-              setTrapezoidSet={(newTrapezoidSet) => {
-                const newTrapezoidSets = ribbonReducer().ribbons.map((t) =>
-                  t.id === newTrapezoidSet.id ? { ...t, ...newTrapezoidSet } : t
-                );
-                ribbonDispatch({
-                  action: "setRibbons",
-                  payload: newTrapezoidSets,
-                });
-              }}
-              onDelete={({ id }) =>
-                ribbonDispatch({
-                  action: "setRibbons",
-                  payload: ribbonReducer().ribbons.filter((t) => t.id !== id),
-                })
-              }
-              ctx={canvasRef.getContext("2d")!}
-              onDetectAgain={() => {
-                ribbonDispatch({
-                  action: "setRibbons",
-                  payload: ribbonReducer().ribbons.filter(
-                    (t) => t.id !== trapezoidSet.id
-                  ),
-                });
-                const points = [...trapezoidSet.clickedPoints];
-                // move the first point to the end of the array
-                points.push(points.shift()!);
-                handleRibbonDetection(points);
-              }}
-            />
-          )}
-        </For>
-        <Show when={zoomState().status === "zoomed-in"}>
-          <SliderPicker
-            label="Zoom"
-            value={zoomState().scale}
-            setValue={(scale) => {
-              const zoom = zoomState();
-              if (zoom.status !== "zoomed-in") return;
-              setZoomState({ ...zoom, scale });
+      <div class="grid grid-cols-5 gap-4 mt-1">
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setPrimaryImage(null);
+            ribbonDispatch({ action: "resetImage" });
+            setZoomState({ status: "zoomed-out", scale: 1 });
+          }}
+          tooltip="Erase the current image. You'll have to grab a new image to continue."
+        >
+          Clear Image
+        </Button>
+        <Show when={ribbonReducer().masks.length === 0}>
+          <Button
+            variant="primary-outline"
+            onClick={() => {
+              const newState = !ribbonReducer().detection;
+              if (!newState)
+                ribbonDispatch({ action: "setClickedPoints", payload: [] });
+              ribbonDispatch({ action: "setDetection", payload: newState });
             }}
-            unit="x"
-            max={15}
-            min={1}
-            step={1}
+            disabled={ribbonReducer().detectionLoading}
+            tooltip="Toggle ribbon detection. If enabled, click on the image to select a ribbon. If disabled, you won't be able to detect a new ribbon."
+          >
+            <Show when={ribbonReducer().detection} fallback="Enable">
+              Disable
+            </Show>{" "}
+            Ribbon Detection
+          </Button>
+          <Show when={ribbonReducer().clickedPoints.length > 2}>
+            <Button
+              onClick={handleMask}
+              disabled={ribbonReducer().detectionLoading || !props.samLoaded}
+              tooltip="Detect a ribbon from the clicked points. You'll be able to edit the ribbon manually after it's detected."
+            >
+              Detect Ribbon
+            </Button>
+          </Show>
+        </Show>
+        <MaskSelector
+          edgeDataCanvasRef={() => edgeDataCanvasRef}
+          handleRibbonDetection={handleRibbonDetection}
+        />
+        <Show when={ribbonReducer().ribbons.length > 0}>
+          <Button
+            onClick={() =>
+              ribbonDispatch({ action: "setRibbons", payload: [] })
+            }
+          >
+            Remove All Ribbons
+          </Button>
+        </Show>
+        <Show when={ribbonReducer().masks.length > 0}>
+          <Button
+            variant="ghost"
+            onClick={() => setShowOriginalImage(!showOriginalImage())}
+            tooltip="Toggle between the image from the microscope and the edge data."
+          >
+            Show {showOriginalImage() ? "Edge Data" : "Original Image"}
+          </Button>
+          <ZoomController />
+        </Show>
+      </div>
+      <For each={ribbonReducer().ribbons}>
+        {(ribbon) => (
+          <RibbonConfig
+            canvasSize={canvasRef}
+            ribbon={ribbon}
+            ctx={canvasRef.getContext("2d")!}
+            handleRibbonDetection={handleRibbonDetection}
           />
-        </Show>
-        <Show when={ribbonReducer().detection}>
-          <span class="text-xl font-bold">
-            <Switch>
-              <Match when={ribbonReducer().clickedPoints.length === 0}>
-                Click the center point of a slice in the middle of the ribbon
-              </Match>
-              <Match when={ribbonReducer().clickedPoints.length === 1}>
-                Click the center point of a slice at the start of the ribbon
-              </Match>
-              <Match when={ribbonReducer().clickedPoints.length === 2}>
-                Click the center point of a slice at the end of the ribbon
-              </Match>
-              <Match when={ribbonReducer().clickedPoints.length === 3}>
-                Click any other points in the ribbon if desired, or click
-                "Detect Ribbon" to finish
-              </Match>
-            </Switch>
-          </span>
-        </Show>
+        )}
+      </For>
+      <Show when={zoomState().status === "zoomed-in"}>
+        <SliderPicker
+          label="Zoom"
+          value={zoomState().scale}
+          setValue={(scale) => {
+            const zoom = zoomState();
+            if (zoom.status !== "zoomed-in") return;
+            setZoomState({ ...zoom, scale });
+          }}
+          unit="x"
+          max={15}
+          min={1}
+          step={1}
+        />
       </Show>
-
-      <div
-        class="relative"
-        classList={{
-          hidden: focusedSlice() !== -1 || ribbonReducer().grabbing,
-        }}
-        onMouseMove={(e) => {
-          const rect = canvasRef.getBoundingClientRect();
-          const rectWidth = rect.right - rect.left;
-          const rectHeight = rect.bottom - rect.top;
-          const x = e.clientX - rect.left;
-          const y = e.clientY - rect.top;
-          const imgX1 = Math.round((x / rectWidth) * canvasRef.width);
-          const imgY1 = Math.round((y / rectHeight) * canvasRef.height);
-
-          const { x: imgX, y: imgY } = convertZoomedCoordinatesToFullImage(
-            imgX1,
-            imgY1,
-            zoomState(),
-            canvasRef.width,
-            canvasRef.height
-          );
-          setCursorPosition([imgX, imgY]);
-        }}
-      >
+      <DetectionInstructions />
+      <div class="relative">
         <canvas
           ref={canvasRef}
           id="canvas"
@@ -969,6 +555,12 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           }}
         ></canvas>
         <canvas
+          ref={debugCanvasRef}
+          width="1000"
+          height="1000"
+          class="w-[clamp(300px,_100%,_85vh)] mx-auto absolute top-0 left-[50%] translate-x-[-50%] z-[40]"
+        ></canvas>
+        <canvas
           ref={overlayCanvasRef}
           id="canvas"
           width="1000"
@@ -980,12 +572,9 @@ export const Canvas = (props: { samLoaded: boolean }) => {
               zoomState().status !== "picking-center" &&
               ribbonReducer().detection,
           }}
-        ></canvas>
-        <canvas
-          ref={debugCanvasRef}
-          width="1000"
-          height="1000"
-          class="w-[clamp(300px,_100%,_85vh)] mx-auto absolute top-0 left-[50%] translate-x-[-50%] z-[40]"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
         ></canvas>
         <ParameterPanel />
       </div>

@@ -42,7 +42,7 @@ export const ZoomController = () => {
   });
 
   return (
-    <Button onClick={handleZoomButtonPressed}>
+    <Button onClick={handleZoomButtonPressed} variant="primary-outline">
       <Switch>
         <Match when={zoomState().status === "picking-center"}>
           Click on image to zoom

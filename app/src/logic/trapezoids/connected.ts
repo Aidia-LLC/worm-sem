@@ -1,6 +1,6 @@
-import { Trapezoid } from "src/types/canvas";
+import { Slice } from "src/types/canvas";
 
-export const orderTrapezoids = (trapezoids: Trapezoid[]) => {
+export const orderTrapezoids = (trapezoids: Slice[]) => {
   // order with the top trapezoid being 1
   return trapezoids.sort((a, b) => {
     const aTop = Math.min(a.top.y1, a.top.y2);
