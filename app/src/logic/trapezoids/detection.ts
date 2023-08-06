@@ -1,4 +1,4 @@
-import { permuteTrapezoid } from "@logic/canvas";
+import { DrawTrapezoid, permuteTrapezoid } from "@logic/canvas";
 import { ProcessingOptions } from "src/types/ProcessingOptions";
 import { Slice } from "../../types/canvas";
 
@@ -43,19 +43,34 @@ export function detectTrapezoid(
   //   ctx.closePath();
   // }
   console.log("lines", lines);
-  const mergedLines = Merge(lines, square, options);
-  console.log("mergedLines", mergedLines);
+  const goodLines = Merge(lines, options);
+  // console.log("mergedLines", mergedLines);
+  // for (const line of mergedLines) {
+  //   ctx.beginPath();
+  //   ctx.lineWidth = 6;
+  //   ctx.moveTo(
+  //     line.x1 + x - options.squareSize / 2,
+  //     line.y1 + y - options.squareSize / 2
+  //   );
+  //   ctx.lineTo(
+  //     line.x2 + x - options.squareSize / 2,
+  //     line.y2 + y - options.squareSize / 2
+  //   );
+  //   ctx.strokeStyle = "green";
+  //   ctx.stroke();
+  //   ctx.closePath();
+  // }
 
-  const goodLines = DirectSearchLineOptimization(
-    pixelsPerLine,
-    mergedLines,
-    square,
-    options
-  );
+  // const goodLines = DirectSearchLineOptimization(
+  //   pixelsPerLine,
+  //   [...mergedLines],
+  //   square,
+  //   options
+  // );
   console.log("goodLines", goodLines);
   for (const line of goodLines) {
     ctx.beginPath();
-    ctx.lineWidth = 8;
+    ctx.lineWidth = 4;
     ctx.moveTo(
       line.x1 + x - options.squareSize / 2,
       line.y1 + y - options.squareSize / 2
@@ -86,19 +101,34 @@ export function detectTrapezoid(
     ctx.stroke();
     ctx.closePath();
   }
-  const vertices = computeVertices(shortLines, options).map((vertex) => ({
-    x: vertex.x + x - options.squareSize / 2,
-    y: vertex.y + y - options.squareSize / 2,
-  }));
-  for (const vertex of vertices) {
-    ctx.beginPath();
-    ctx.arc(vertex.x, vertex.y, 15, 0, 2 * Math.PI);
-    ctx.fillStyle = "red";
-    ctx.fill();
-    ctx.closePath();
-  }
+  const vertices = computeVertices(shortLines, options, goodLines, ctx).map(
+    (vertex) => ({
+      x: vertex.x + x - options.squareSize / 2,
+      y: vertex.y + y - options.squareSize / 2,
+    })
+  );
+  console.log("vertices", vertices);
 
-  const trapezoid: Slice | null = computeTrapezoid(vertices);
+  let trapezoid: Trapezoid | null = null;
+  if (vertices.length === 4) {
+    trapezoid = computeTrapezoid(vertices);
+    if (trapezoid) DrawTrapezoid(trapezoid, ctx, "green", 15);
+  } else {
+    // go through each combination of 4 vertices and find the best trapezoid, using getPointsOnTrapezoid
+    const combinations = Combinations(vertices, 4);
+    console.log("combinations", combinations);
+    let bestFit = 0;
+    for (const combination of combinations) {
+      const newTrapezoid = computeTrapezoid(combination);
+      if (!newTrapezoid) continue;
+      const fit = getPointsOnTrapezoid(square, newTrapezoid, options, x, y);
+      if (fit > bestFit) {
+        bestFit = fit;
+        trapezoid = newTrapezoid;
+      }
+      // DrawTrapezoid(newTrapezoid, ctx, "blue", 6);
+    }
+  }
   // console.log("trapezoid", trapezoid);
   if (!trapezoid) {
     return { trapezoid: null, fit: null };
@@ -119,6 +149,19 @@ export function detectTrapezoid(
   // DrawTrapezoid(newTrapezoid, ctx, "yellow", 15);
 
   return { trapezoid: permuteTrapezoid(newTrapezoid), fit };
+}
+
+function Combinations<T>(array: T[], size: number): T[][] {
+  if (size === 1) return array.map((item) => [item]);
+  const combinations: T[][] = [];
+  for (let i = 0; i < array.length - size + 1; i += 1) {
+    const first = array[i];
+    const rest = Combinations(array.slice(i + 1), size - 1);
+    for (const combination of rest) {
+      combinations.push([first, ...combination]);
+    }
+  }
+  return combinations;
 }
 
 function getSquare(fullImage: ImageData, x: number, y: number, size: number) {
@@ -288,66 +331,48 @@ function CartesionLines(
 
 function Merge(
   lines: LineSegment[],
-  data: Uint8ClampedArray,
   options: ProcessingOptions
 ): LineSegment[] {
-  console.log("thresh", options.mergeLineThreshold);
-  let mergedLines: (LineSegment & { count: number })[] = [];
+  // add weighted average of lines with similar theta
+  const mergedLines: (LineSegment & { count: number })[] = [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     let merged = false;
-    const l = mergedLines.length;
-    const linePixels = pixelsPerLine(line, data, options);
-    for (let j = 0; j < l; j++) {
+    for (let j = 0; j < mergedLines.length; j++) {
       const mergedLine = mergedLines[j];
-      const xDist = Math.sqrt(
-        Math.pow(line.x1 - mergedLine.x1, 2) +
-          Math.pow(line.y1 - mergedLine.y1, 2)
-      );
-      const yDist = Math.sqrt(
-        Math.pow(line.x2 - mergedLine.x2, 2) +
-          Math.pow(line.y2 - mergedLine.y2, 2)
-      );
-      console.log("dist", xDist, yDist);
       if (
-        xDist < options.mergeLineThreshold &&
-        yDist < options.mergeLineThreshold
-        // (Math.sqrt(
-        //   (line.x1 - mergedLine.x2) ** 2 + (line.y1 - mergedLine.y2) ** 2
-        // ) < options.mergeLineThreshold &&
-        //   Math.sqrt(
-        //     (line.x2 - mergedLine.x1) ** 2 + (line.y2 - mergedLine.y1) ** 2
-        //   ) < options.mergeLineThreshold)
+        (Math.sqrt(
+          (line.x1 - mergedLine.x1) ** 2 + (line.y1 - mergedLine.y1) ** 2
+        ) < options.mergeLineThreshold &&
+          Math.sqrt(
+            (line.x2 - mergedLine.x2) ** 2 + (line.y2 - mergedLine.y2) ** 2
+          ) < options.mergeLineThreshold) ||
+        (Math.sqrt(
+          (line.x1 - mergedLine.x2) ** 2 + (line.y1 - mergedLine.y2) ** 2
+        ) < options.mergeLineThreshold &&
+          Math.sqrt(
+            (line.x2 - mergedLine.x1) ** 2 + (line.y2 - mergedLine.y1) ** 2
+          ) < options.mergeLineThreshold)
       ) {
-        const count = mergedLine.count;
-        if (count > linePixels) {
-          continue;
-        } else {
-          console.log("merged");
-          merged = true;
-          mergedLines[j] = {
-            ...line,
-            count: pixelsPerLine(line, data, options),
-          };
-          break;
-        }
+        const count = mergedLine.count || 1;
+        mergedLine.x1 = Math.round(
+          (line.x1 + mergedLine.x1 * count) / (1 + count)
+        );
+        mergedLine.y1 = Math.round(
+          (line.y1 + mergedLine.y1 * count) / (1 + count)
+        );
+        mergedLine.x2 = Math.round(
+          (line.x2 + mergedLine.x2 * count) / (1 + count)
+        );
+        mergedLine.y2 = Math.round(
+          (line.y2 + mergedLine.y2 * count) / (1 + count)
+        );
+        merged = true;
+        break;
       }
     }
     if (!merged) {
-      console.log("not merged");
-      const betterLine = DirectSearchSingleLineOptimization(
-        pixelsPerLine,
-        line,
-        data,
-        options
-      );
-      mergedLines = [
-        ...mergedLines,
-        {
-          ...betterLine,
-          count: pixelsPerLine(betterLine, data, options),
-        },
-      ];
+      mergedLines.push({ ...line, count: 1 });
     }
   }
   return mergedLines;
@@ -400,7 +425,6 @@ function ShortenLines(
     let y = line.y1;
     let firstPixel: number[] = [];
     let lastPixel: number[] = [];
-    let pixels = 0;
     for (let j = 0; j < length; j++) {
       if (
         data[Math.round(y) * options.squareSize + Math.round(x)] === 255 ||
@@ -413,99 +437,122 @@ function ShortenLines(
           firstPixel = [x, y];
         }
         lastPixel = [x, y];
-        pixels++;
       }
       x += xStep;
       y += yStep;
     }
+    const l = Math.sqrt(
+      (lastPixel[0] - firstPixel[0]) ** 2 + (lastPixel[1] - firstPixel[1]) ** 2
+    );
+    console.log("adding", line, l);
     goodLines.push({
       ...line,
-      pixels,
       x1: firstPixel[0],
       y1: firstPixel[1],
       x2: lastPixel[0],
       y2: lastPixel[1],
-      length: Math.sqrt(
-        (lastPixel[0] - firstPixel[0]) ** 2 +
-          (lastPixel[1] - firstPixel[1]) ** 2
-      ),
+      length: l,
     });
   }
   // const maxPixels = Math.max(...goodLines.map((line) => line.pixels));
+  console.log("about to filter", goodLines);
   return goodLines
     .filter(
       (line) =>
         // line.pixels > maxPixels * options.pixelThreshold &&
-        line.length > options.squareSize * 0.2
+        line.length > options.squareSize * 0.1
     )
-    .sort((a, b) => a.pixels - b.pixels)
     .slice(0, options.maxLines);
   // return goodLines.filter(line => line.pixels > maxPixels * options.pixelThreshold).sort((a,b) => a.pixels - b.pixels).slice(0, options.maxLines);
 }
 
-function computeVertices(lines: LineSegment[], options: ProcessingOptions) {
+const vertexDistance = (v1: Vertex, v2: Vertex) =>
+  Math.sqrt((v1.x - v2.x) ** 2 + (v1.y - v2.y) ** 2);
+
+function computeVertices(
+  lines: LineSegment[],
+  options: ProcessingOptions,
+  longLines: LineSegment[],
+  ctx: CanvasRenderingContext2D
+) {
   let vertices: Vertex[] = [];
-  for (let i = 0; i < lines.length; i++) {
-    for (let j = i + 1; j < lines.length; j++) {
-      const intersection = intersectionPoint(lines[i], lines[j]);
-      if (intersection) {
-        if (
-          vertices.filter(
-            (vertex) =>
-              Math.abs(vertex.x - intersection.x) < options.squareSize / 5 &&
-              Math.abs(vertex.y - intersection.y) < options.squareSize / 5
-          ).length > 0
-        ) {
-          vertices.push(intersection);
-        }
+  for (let i = 0; i < longLines.length; i++) {
+    for (let j = i + 1; j < longLines.length; j++) {
+      const intersection = intersectionPoint(longLines[i], longLines[j]);
+      if (
+        intersection &&
+        intersection.x > 0 &&
+        intersection.y > 0 &&
+        intersection.x < options.squareSize &&
+        intersection.y < options.squareSize
+      ) {
+        vertices.push(intersection);
       }
     }
   }
-  // const filteredVertices = vertices.filter((vertex) => {
-  //   const similarVertices = vertices.filter(
-  //     (otherVertex) =>
-  //       Math.abs(vertex.x - otherVertex.x) < options.squareSize / 5 &&
-  //       Math.abs(vertex.y - otherVertex.y) < options.squareSize / 5
-  //   );
-  //   return similarVertices.length === 1;
-  // // });
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    // only push if not similar to other vertices
-    if (
-      vertices.filter(
-        (vertex) =>
-          Math.abs(vertex.x - line.x1) < options.squareSize / 5 &&
-          Math.abs(vertex.y - line.y1) < options.squareSize / 5
-      ).length === 0
-    ) {
-      vertices.push({ x: line.x1, y: line.y1 });
-    }
-    if (
-      vertices.filter(
-        (vertex) =>
-          Math.abs(vertex.x - line.x2) < options.squareSize / 5 &&
-          Math.abs(vertex.y - line.y2) < options.squareSize / 5
-      ).length === 0
-    ) {
-      vertices.push({ x: line.x2, y: line.y2 });
-    }
+  console.log("vertices", vertices);
+  for (const vertex of vertices) {
+    ctx.beginPath();
+    ctx.arc(vertex.x, vertex.y, 25, 0, 2 * Math.PI);
+    ctx.fillStyle = "red";
+    ctx.fill();
+    ctx.closePath();
   }
-  // Remove duplicates and similar points
-  // vertices = vertices.filter((vertex, index) => {
-  //   for (let i = 0; i < index; i++) {
-  //     if (Math.abs(vertex.x - vertices[i].x) < 15) {
-  //       if (Math.abs(vertex.y - vertices[i].y) < 15) {
-  //         return false;
-  //       }
-  //     }
-  //   }
-  //   return true;
-  // });
-  return vertices.map((vertex) => ({
-    x: Math.round(vertex.x),
-    y: Math.round(vertex.y),
-  }));
+  let endPoints: Vertex[] = lines
+    .map((line) => {
+      const first = { x: line.x1, y: line.y1 };
+      const last = { x: line.x2, y: line.y2 };
+      let good: Vertex[] = [];
+      for (let i = 0; i < vertices.length; i++) {
+        const vertex = vertices[i];
+        const d1 = vertexDistance(vertex, first);
+        const d2 = vertexDistance(vertex, last);
+        if (d1 > options.squareSize / 5) {
+          good.push(first);
+        }
+        if (d2 > options.squareSize / 5) {
+          good.push(last);
+        }
+      }
+      return good;
+    })
+    .flat();
+  let good: Vertex[] = [];
+  for (let i = 0; i < endPoints.length; i++) {
+    const p = endPoints[i];
+    let merged = false;
+    for (let j = 0; j < good.length; j++) {
+      const q = good[j];
+      if (vertexDistance(p, q) < options.squareSize / 5) {
+        merged = true;
+        vertices.push({
+          x: (p.x + q.x) / 2,
+          y: (p.y + q.y) / 2,
+        });
+        break;
+      }
+    }
+    if (!merged) good.push(p);
+  }
+  for (const vertex of good) {
+    ctx.beginPath();
+    ctx.arc(vertex.x, vertex.y, 20, 0, 2 * Math.PI);
+    ctx.fillStyle = "yellow";
+    ctx.fill();
+    ctx.closePath();
+  }
+  return [...good, ...vertices]
+    .map((vertex) => ({
+      x: Math.round(vertex.x),
+      y: Math.round(vertex.y),
+    }))
+    .filter(
+      (vertex) =>
+        vertex.x > 0 &&
+        vertex.y > 0 &&
+        vertex.x < options.squareSize &&
+        vertex.y < options.squareSize
+    );
 }
 
 function intersectionPoint(
@@ -541,57 +588,6 @@ function intersectionPoint(
   return { x, y };
 }
 
-function DirectSearchSingleLineOptimization(
-  ft: (
-    line: LineSegment,
-    data: Uint8ClampedArray,
-    options: ProcessingOptions
-  ) => number,
-  line: LineSegment,
-  data: Uint8ClampedArray,
-  options: ProcessingOptions
-) {
-  let bestLine = line;
-  //Move each vertex in line by 5 pixels in 16 directions, take the best one
-  let vertices = [
-    { x: line.x1, y: line.y1 },
-    { x: line.x2, y: line.y2 },
-  ];
-  for (let l = 0; l < 32; l++) {
-    for (let i = 0; i < vertices.length; i++) {
-      for (let j = 0; j < 16; j++) {
-        const vertex = vertices[i];
-        // move the vertex by a varied amount in 16 directions, keep the best
-        const newVertex = {
-          x: (vertex.x + ((l % 4) + 6) * 3) * Math.cos((j * Math.PI) / 8),
-          y: (vertex.y + ((l % 4) + 6) * 3) * Math.sin((j * Math.PI) / 8),
-        };
-        const newLine = {
-          x1: i === 0 ? newVertex.x : line.x1,
-          y1: i === 0 ? newVertex.y : line.y1,
-          x2: i === 1 ? newVertex.x : line.x2,
-          y2: i === 1 ? newVertex.y : line.y2,
-          r: line.r,
-          theta: line.theta,
-        };
-        const newFT = ft(newLine, data, options);
-        if (newFT < ft(line, data, options)) {
-          vertices[i] = newVertex;
-        }
-      }
-    }
-  }
-  bestLine = {
-    x1: vertices[0].x,
-    y1: vertices[0].y,
-    x2: vertices[1].x,
-    y2: vertices[1].y,
-    r: line.r,
-    theta: line.theta,
-  };
-  return bestLine;
-}
-
 function DirectSearchLineOptimization(
   ft: (
     line: LineSegment,
@@ -602,22 +598,27 @@ function DirectSearchLineOptimization(
   data: Uint8ClampedArray,
   options: ProcessingOptions
 ) {
-  const bestLines = lines;
+  const bestLines = [...lines];
   for (let k = 0; k < lines.length; k++) {
     const line = lines[k];
+    let fit = ft(line, data, options);
     //Move each vertex in line by 5 pixels in 16 directions, take the best one
     let vertices = [
       { x: line.x1, y: line.y1 },
       { x: line.x2, y: line.y2 },
     ];
-    for (let l = 0; l < 32; l++) {
+    for (let l = 0; l < 2; l++) {
       for (let i = 0; i < vertices.length; i++) {
         for (let j = 0; j < 16; j++) {
           const vertex = vertices[i];
           // move the vertex by a varied amount in 16 directions, keep the best
+          let x = (vertex.x + (l % 4)) * Math.cos((j * Math.PI) / 8);
+          x = Math.max(0, Math.min(x, options.squareSize));
+          let y = (vertex.y + (l % 4)) * Math.sin((j * Math.PI) / 8);
+          y = Math.max(0, Math.min(y, options.squareSize));
           const newVertex = {
-            x: (vertex.x + ((l % 4) + 6) * 3) * Math.cos((j * Math.PI) / 8),
-            y: (vertex.y + ((l % 4) + 6) * 3) * Math.sin((j * Math.PI) / 8),
+            x,
+            y,
           };
           const newLine = {
             x1: i === 0 ? newVertex.x : line.x1,
@@ -628,7 +629,8 @@ function DirectSearchLineOptimization(
             theta: line.theta,
           };
           const newFT = ft(newLine, data, options);
-          if (newFT < ft(line, data, options)) {
+          if (newFT > fit) {
+            fit = newFT;
             vertices[i] = newVertex;
           }
         }
