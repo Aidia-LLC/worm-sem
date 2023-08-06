@@ -9,15 +9,10 @@ export function detectTrapezoid(
   ctx: CanvasRenderingContext2D,
   options: ProcessingOptions
 ) {
-<<<<<<< HEAD
   ctx.lineWidth = 8;
   // draw imageData
   ctx.putImageData(imageData, 0, 0);
 
-=======
-  console.log(ctx);
-  ctx.lineWidth = 5;
->>>>>>> 4e42cf559798d51eda9d4624dc3adbf7f0b0762c
   const square = getSquare(imageData, x, y, options.squareSize);
   console.log("square", square);
   // draw square
@@ -47,7 +42,7 @@ export function detectTrapezoid(
   //   ctx.stroke();
   //   ctx.closePath();
   // }
-  console.log("lines", lines.length);
+  console.log("lines", lines);
   const mergedLines = Merge(lines, square, options);
   console.log("mergedLines", mergedLines);
 
@@ -173,7 +168,7 @@ type Vertex = {
 function hough(
   data: Uint8ClampedArray,
   options: ProcessingOptions,
-  thetaStep = Math.PI / 90
+  thetaStep = Math.PI / 180
 ): LineSegment[] {
   // Calculate the maximum possible distance in the image
   const width = options.squareSize;
@@ -302,27 +297,33 @@ function Merge(
     const line = lines[i];
     let merged = false;
     const l = mergedLines.length;
-    const linePixels = pixelsPerLine({ ...line }, data, options);
+    const linePixels = pixelsPerLine(line, data, options);
     for (let j = 0; j < l; j++) {
       const mergedLine = mergedLines[j];
+      const xDist = Math.sqrt(
+        Math.pow(line.x1 - mergedLine.x1, 2) +
+          Math.pow(line.y1 - mergedLine.y1, 2)
+      );
+      const yDist = Math.sqrt(
+        Math.pow(line.x2 - mergedLine.x2, 2) +
+          Math.pow(line.y2 - mergedLine.y2, 2)
+      );
+      console.log("dist", xDist, yDist);
       if (
-        (Math.sqrt(
-          (line.x1 - mergedLine.x1) ** 2 + (line.y1 - mergedLine.y1) ** 2
-        ) < options.mergeLineThreshold &&
-          Math.sqrt(
-            (line.x2 - mergedLine.x2) ** 2 + (line.y2 - mergedLine.y2) ** 2
-          ) < options.mergeLineThreshold) ||
-        (Math.sqrt(
-          (line.x1 - mergedLine.x2) ** 2 + (line.y1 - mergedLine.y2) ** 2
-        ) < options.mergeLineThreshold &&
-          Math.sqrt(
-            (line.x2 - mergedLine.x1) ** 2 + (line.y2 - mergedLine.y1) ** 2
-          ) < options.mergeLineThreshold)
+        xDist < options.mergeLineThreshold &&
+        yDist < options.mergeLineThreshold
+        // (Math.sqrt(
+        //   (line.x1 - mergedLine.x2) ** 2 + (line.y1 - mergedLine.y2) ** 2
+        // ) < options.mergeLineThreshold &&
+        //   Math.sqrt(
+        //     (line.x2 - mergedLine.x1) ** 2 + (line.y2 - mergedLine.y1) ** 2
+        //   ) < options.mergeLineThreshold)
       ) {
         const count = mergedLine.count;
         if (count > linePixels) {
           continue;
         } else {
+          console.log("merged");
           merged = true;
           mergedLines[j] = {
             ...line,
@@ -333,6 +334,7 @@ function Merge(
       }
     }
     if (!merged) {
+      console.log("not merged");
       const betterLine = DirectSearchSingleLineOptimization(
         pixelsPerLine,
         line,
@@ -343,7 +345,7 @@ function Merge(
         ...mergedLines,
         {
           ...betterLine,
-          count: pixelsPerLine({ ...betterLine }, data, options),
+          count: pixelsPerLine(betterLine, data, options),
         },
       ];
     }
