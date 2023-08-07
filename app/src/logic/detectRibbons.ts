@@ -10,7 +10,7 @@ import { orderTrapezoids } from "@logic/trapezoids/connected";
 import { detectTrapezoid } from "@logic/trapezoids/detection";
 import { trapezoidIsValid } from "@logic/trapezoids/valid";
 import { ProcessingOptions } from "src/types/ProcessingOptions";
-import { Slice } from "../types/canvas";
+import { Slice } from "../types/shapes";
 
 export const detectRibbons = async ({
   point: [imgX, imgY],

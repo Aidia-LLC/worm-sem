@@ -22,8 +22,8 @@ export type RibbonData = {
   thickness: number;
   status: Status;
   matchedPoints: Vertex[];
-  phase: 1 | 2;
   clickedPoints: [number, number][];
+  slicesToConfigure: Slice['id'][];
   configurations: SliceConfiguration[];
 };
 

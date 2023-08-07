@@ -1,5 +1,5 @@
+import { RibbonData, Trapezoid, Vertex } from "@data/shapes";
 import { calculateArea } from "@logic/canvas";
-import { RibbonData, Trapezoid, Vertex } from "src/types/canvas";
 
 export function isPointInTrapezoid(
   x: number,
@@ -72,14 +72,28 @@ export const isOutOfBounds = (
     height: number;
   }
 ) => {
-  return (
-    trapezoid.left.x1 < 0 ||
-    trapezoid.right.x1 > canvas.width ||
-    trapezoid.left.x2 < 0 ||
-    trapezoid.right.x2 > canvas.width ||
-    trapezoid.top.y1 < 0 ||
-    trapezoid.top.y2 < 0 ||
-    trapezoid.bottom.y1 > canvas.height ||
-    trapezoid.bottom.y2 > canvas.height
-  );
+  const xs = [
+    trapezoid.left.x1,
+    trapezoid.left.x2,
+    trapezoid.right.x1,
+    trapezoid.right.x2,
+    trapezoid.top.x1,
+    trapezoid.top.x2,
+    trapezoid.bottom.x1,
+    trapezoid.bottom.x2,
+  ];
+  const ys = [
+    trapezoid.top.y1,
+    trapezoid.top.y2,
+    trapezoid.bottom.y1,
+    trapezoid.bottom.y2,
+    trapezoid.left.y1,
+    trapezoid.left.y2,
+    trapezoid.right.y1,
+    trapezoid.right.y2,
+  ];
+  const low = Math.min(...xs, ...ys);
+  const highX = Math.max(...xs);
+  const highY = Math.max(...ys);
+  return low < 0 || highX > canvas.width || highY > canvas.height;
 };

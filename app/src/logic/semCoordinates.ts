@@ -39,16 +39,5 @@ export const computeStageCoordinates = ({
     Math.min(stageConfiguration.limits.y[1], translatedY)
   );
 
-  console.log({
-    point,
-    canvasConfiguration,
-    stageConfiguration,
-    scaleX,
-    scaleY,
-    translatedX,
-    translatedY,
-    limitedX,
-    limitedY,
-  });
   return { x: limitedX, y: limitedY };
 };

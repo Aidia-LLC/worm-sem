@@ -1,6 +1,6 @@
 import { permuteTrapezoid } from "@logic/canvas";
 import { ProcessingOptions } from "src/types/ProcessingOptions";
-import { Slice } from "../../types/canvas";
+import { Slice } from "../../types/shapes";
 
 export function detectTrapezoid(
   x: number,

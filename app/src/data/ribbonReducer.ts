@@ -1,4 +1,4 @@
-import { RibbonData } from "src/types/canvas";
+import { RibbonData, Slice } from "@data/shapes";
 
 type DraggingData = {
   ribbonId: RibbonData["id"] | null;
@@ -17,6 +17,7 @@ export const ribbonReducerInitialState = {
   detection: true,
   detectionLoading: false,
   masks: [] as ImageData[],
+  currentMaskIndex: -1,
 };
 
 export type RibbonDispatchPayload =
@@ -60,6 +61,12 @@ export type RibbonDispatchPayload =
       payload: number;
     }
   | {
+      action: "focusNextSlice";
+    }
+  | {
+      action: "focusPreviousSlice";
+    }
+  | {
       action: "clearFocusedSlice";
     }
   | {
@@ -89,6 +96,14 @@ export type RibbonDispatchPayload =
   | {
       action: "setDraggingData";
       payload: DraggingData | null;
+    }
+  | {
+      action: "changeMask";
+      payload: "next" | "previous";
+    }
+  | {
+      action: "setSlicesToConfigure";
+      payload: Slice["id"][];
     };
 
 export type RibbonReducerState = typeof ribbonReducerInitialState;
@@ -105,7 +120,7 @@ export const ribbonDispatcher = (
 const ribbonUpdater = (
   state: typeof ribbonReducerInitialState,
   event: RibbonDispatchPayload
-) => {
+): RibbonReducerState => {
   switch (event.action) {
     case "setDraggingData":
       return { ...state, draggingData: event.payload };
@@ -143,8 +158,20 @@ const ribbonUpdater = (
     case "setDetectionLoading":
       return { ...state, detectionLoading: event.payload };
     case "setMasks":
-      console.log("setting masks");
-      return { ...state, masks: event.payload };
+      return {
+        ...state,
+        masks: event.payload,
+        currentMaskIndex: event.payload.length > 0 ? 0 : -1,
+      };
+    case "changeMask":
+      let nextIndex =
+        state.currentMaskIndex + (event.payload === "next" ? 1 : -1);
+      if (nextIndex < 0) nextIndex = state.masks.length - 1;
+      if (nextIndex >= state.masks.length) nextIndex = 0;
+      return {
+        ...state,
+        currentMaskIndex: nextIndex,
+      };
     case "resetImage":
       return {
         ...state,
@@ -157,8 +184,48 @@ const ribbonUpdater = (
       };
     case "setFocusedSliceIndex":
       return { ...state, focusedSliceIndex: event.payload };
+    case "focusNextSlice": {
+      const { focusedRibbonId, focusedSliceIndex } = state;
+      if (focusedRibbonId === null) return state;
+      const ribbon = state.ribbons.find(
+        (ribbon) => ribbon.id === focusedRibbonId
+      );
+      if (!ribbon) return state;
+      for (let i = focusedSliceIndex + 1; i < ribbon.slices.length; i++) {
+        if (ribbon.slicesToConfigure.includes(ribbon.slices[i].id))
+          return { ...state, focusedSliceIndex: i };
+      }
+      return state;
+    }
+    case "focusPreviousSlice": {
+      const { focusedRibbonId, focusedSliceIndex } = state;
+      if (focusedRibbonId === null) return state;
+      const ribbon = state.ribbons.find(
+        (ribbon) => ribbon.id === focusedRibbonId
+      );
+      if (!ribbon) return state;
+      for (let i = focusedSliceIndex - 1; i >= 0; i--) {
+        if (ribbon.slicesToConfigure.includes(ribbon.slices[i].id))
+          return { ...state, focusedSliceIndex: i };
+      }
+      return state;
+    }
     case "clearFocusedSlice":
       return { ...state, focusedSliceIndex: -1 };
+    case "setSlicesToConfigure": {
+      const { focusedRibbonId } = state;
+      if (focusedRibbonId === null) return state;
+      return {
+        ...state,
+        ribbons: state.ribbons.map((ribbon) => {
+          if (ribbon.id !== focusedRibbonId) return ribbon;
+          return {
+            ...ribbon,
+            slicesToConfigure: event.payload,
+          };
+        }),
+      };
+    }
     case "resetSliceConfigurations":
       return {
         ...state,
@@ -175,7 +242,7 @@ const ribbonUpdater = (
           };
         }),
       };
-    case "updateSliceConfiguration":
+    case "updateSliceConfiguration": {
       const { brightness, contrast, focus } = event.payload;
       const { focusedRibbonId, focusedSliceIndex } = state;
       if (focusedRibbonId === null || focusedSliceIndex === -1) return state;
@@ -197,5 +264,6 @@ const ribbonUpdater = (
           };
         }),
       };
+    }
   }
 };

@@ -4,7 +4,13 @@ import { Tooltip } from "./Tooltip";
 export const Button = (props: {
   onClick: () => void;
   children: JSXElement;
-  variant?: "primary" | "secondary" | "ghost" | "primary-outline";
+  variant?:
+    | "primary"
+    | "secondary"
+    | "ghost"
+    | "primary-outline"
+    | "danger"
+    | "danger-outline";
   class?: string;
   disabled?: boolean;
   tooltip?: string;
@@ -26,6 +32,10 @@ export const Button = (props: {
             props.variant === "ghost",
           "bg-transparent hover:bg-blue-100 active:bg-blue-200 !text-blue-500 border border-blue-500":
             props.variant === "primary-outline",
+          "bg-red-500 hover:bg-red-700 active:bg-red-800":
+            props.variant === "danger",
+          "bg-transparent hover:bg-red-100 active:bg-red-200 !text-red-500 border border-red-500":
+            props.variant === "danger-outline",
           "cursor-not-allowed opacity-50": props.disabled,
         }}
         disabled={props.disabled}

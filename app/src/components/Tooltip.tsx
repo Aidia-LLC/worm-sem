@@ -6,7 +6,7 @@ export const Tooltip = (props: {
   position: "right" | "bottom";
 }) => {
   return (
-    <div class="relative flex flex-col items-center group">
+    <div class="relative flex flex-col items-center group w-full">
       {props.children}
       <Show when={props.message}>
         <Show

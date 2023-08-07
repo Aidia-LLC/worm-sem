@@ -21,6 +21,7 @@
     "paths": {
       "@components/*": ["src/components/*"],
       "@types/*": ["src/types/*"],
+      "@data/*": ["src/data/*"],
       "@logic/*": ["src/logic/*"],
       "@electron/*": ["src/electron/*"],
       "@microscopeApi/*": ["src/microscopeApi/*"]

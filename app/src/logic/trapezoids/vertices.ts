@@ -1,4 +1,4 @@
-import { RibbonData, Slice, Vertex } from "src/types/canvas";
+import { RibbonData, Slice, Vertex } from "@data/shapes";
 
 export function findNearestVertex(x: number, y: number, ribbons: RibbonData[]) {
   let nearestVertex: Vertex | undefined;

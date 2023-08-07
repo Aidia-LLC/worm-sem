@@ -1,4 +1,4 @@
-import { sleep } from "@logic/finalImaging";
+import { RibbonData } from "@data/shapes";
 import { computeStageCoordinates } from "@logic/semCoordinates";
 import { createEffect, createSignal, Show, untrack } from "solid-js";
 import {
@@ -22,6 +22,7 @@ import {
 import { microscopeApi } from "src/microscopeApi";
 import { Button } from "../Button";
 import { SliderPicker } from "../SliderPicker";
+import { SliceGrouper } from "./SliceGrouper";
 
 export const SliceConfigurationScreen = () => {
   const [magnification, setMagnification] = magnificationSignal;
@@ -29,24 +30,35 @@ export const SliceConfigurationScreen = () => {
   const [ribbonReducer, ribbonDispatch] = ribbonState;
   const [stage] = initialStageSignal;
   const [primaryImage] = primaryImageSignal;
-  const [initialStage] = initialStageSignal;
 
-  const [brightness, setBrightness] = createSignal<number | null>(null);
-  const [contrast, setContrast] = createSignal<number | null>(null);
-  const [focus, setFocus] = createSignal<number | null>(null);
+  const [initializedRibbonId, setInitializedRibbonId] = createSignal<
+    RibbonData["id"] | null
+  >(null);
 
   createEffect(async () => {
     const focusedRibbonId = ribbonReducer().focusedRibbonId;
     const focusedSliceIndex = ribbonReducer().focusedSliceIndex;
-    if (focusedRibbonId === null || focusedSliceIndex === -1) return;
+    if (
+      focusedRibbonId === null ||
+      focusedSliceIndex === -1 ||
+      initializedRibbonId() === focusedRibbonId
+    )
+      return;
+
+    setInitializedRibbonId(focusedRibbonId);
 
     const brightness = await microscopeApi.getBrightness();
     const contrast = await microscopeApi.getContrast();
     const focus = await microscopeApi.getWorkingDistance();
 
-    setBrightness(brightness);
-    setContrast(contrast);
-    setFocus(focus);
+    ribbonDispatch({
+      action: "updateSliceConfiguration",
+      payload: {
+        brightness,
+        contrast,
+        focus,
+      },
+    });
 
     const ribbon = ribbonReducer().ribbons.find(
       (ribbon) => ribbon.id === ribbonReducer().focusedRibbonId
@@ -59,7 +71,6 @@ export const SliceConfigurationScreen = () => {
       stageConfiguration: stage()!,
     });
 
-    await sleep(500);
     await microscopeApi.setDetectorType("ZOOMED_IN");
     await microscopeApi.moveStageTo(coordinates);
     await microscopeApi.setMagnification(magnification());
@@ -70,77 +81,67 @@ export const SliceConfigurationScreen = () => {
   createEffect(() => {
     const focusedSliceIndex = ribbonReducer().focusedSliceIndex;
     if (focusedSliceIndex === -1) return;
-    untrack(() => {
-      handleMoveStageToSlice();
+    untrack(async () => {
+      const ribbon = ribbonReducer().ribbons.find(
+        (ribbon) => ribbon.id === ribbonReducer().focusedRibbonId
+      )!;
+      const point = ribbon.matchedPoints[ribbonReducer().focusedSliceIndex];
+      const coordinates = computeStageCoordinates({
+        point,
+        canvasConfiguration: primaryImage()!.size!,
+        stageConfiguration: stage()!,
+      });
+      await microscopeApi.moveStageTo(coordinates);
     });
   });
 
-  const handleMoveStageToSlice = async () => {
-    const ribbon = ribbonReducer().ribbons.find(
-      (ribbon) => ribbon.id === ribbonReducer().focusedRibbonId
+  const configuration = () =>
+    ribbon().configurations[ribbonReducer().focusedSliceIndex]!;
+
+  const ribbon = () =>
+    ribbonReducer().ribbons.find(
+      (r) => r.id === ribbonReducer().focusedRibbonId
     )!;
-    const point = ribbon.matchedPoints[ribbonReducer().focusedSliceIndex];
-    const coordinates = computeStageCoordinates({
-      point,
-      canvasConfiguration: primaryImage()!.size!,
-      stageConfiguration: initialStage()!,
-    });
-    await sleep(200);
-    await microscopeApi.moveStageTo(coordinates);
-  };
 
   return (
     <div class="flex flex-col gap-2 items-center">
-      <div class="flex flex-row gap-2 items-center justify-between">
-        <div
-          classList={{
-            invisible: ribbonReducer().focusedSliceIndex === 0,
-          }}
-        >
+      <SliceGrouper />
+      <div class="flex flex-row gap-4 items-center justify-center w-full mt-12">
+        <div classList={{ invisible: ribbonReducer().focusedSliceIndex === 0 }}>
           <Button
-            onClick={() => {
-              if (ribbonReducer().focusedSliceIndex <= 0) return;
-              ribbonDispatch({
-                action: "setFocusedSliceIndex",
-                payload: ribbonReducer().focusedSliceIndex - 1,
-              });
-            }}
+            onClick={() => ribbonDispatch({ action: "focusPreviousSlice" })}
+            class="whitespace-nowrap"
           >
             Previous Slice
           </Button>
         </div>
-        <span>
+        <span class="font-bold text-xl">
           Configuring Slice {ribbonReducer().focusedSliceIndex + 1} of{" "}
-          {ribbonReducer().ribbons.length}
+          {ribbon().slices.length}
         </span>
-        <Button
-          onClick={() => {
-            if (
-              ribbonReducer().focusedSliceIndex >=
-              ribbonReducer().ribbons.length - 1
-            ) {
-              ribbonDispatch({
-                action: "setGrabbing",
-                payload: true,
-              });
-              return;
-            }
-            ribbonDispatch({
-              action: "setFocusedSliceIndex",
-              payload: ribbonReducer().focusedSliceIndex + 1,
-            });
-          }}
-        >
+        <div>
           <Show
             when={
-              ribbonReducer().focusedSliceIndex >=
-              ribbonReducer().ribbons.length - 1
+              ribbonReducer().focusedSliceIndex >= ribbon().slices.length - 1
             }
-            fallback="Next Slice"
+            fallback={
+              <Button
+                onClick={() => ribbonDispatch({ action: "focusNextSlice" })}
+                class="whitespace-nowrap"
+              >
+                Next Slice
+              </Button>
+            }
           >
-            Finish
+            <Button
+              onClick={() =>
+                ribbonDispatch({ action: "setGrabbing", payload: true })
+              }
+            >
+              Finish
+            </Button>
           </Show>
-        </Button>
+        </div>
       </div>
       <SliderPicker
         label="Magnification (applies to all slices)"
@@ -171,50 +172,47 @@ export const SliceConfigurationScreen = () => {
         </span>
         <SliderPicker
           label="Brightness"
-          value={brightness() || 0}
+          value={configuration()?.brightness || 0}
           min={0}
           max={100}
           step={BRIGHTNESS_STEP}
           setValue={async (value) => {
-            setBrightness(value);
-            await microscopeApi.setBrightness(value);
             ribbonDispatch({
               action: "updateSliceConfiguration",
               payload: { brightness: value },
             });
+            await microscopeApi.setBrightness(value);
           }}
           unit="%"
         />
         <SliderPicker
           label="Contrast"
           unit="%"
-          value={contrast() || 0}
+          value={configuration()?.contrast || 0}
           min={0}
           max={100}
           step={CONTRAST_STEP}
           setValue={async (value) => {
-            setContrast(value);
-            await microscopeApi.setContrast(value);
             ribbonDispatch({
               action: "updateSliceConfiguration",
               payload: { contrast: value },
             });
+            await microscopeApi.setContrast(value);
           }}
         />
         <SliderPicker
           label="Working Distance"
           unit="m"
-          value={focus() || 0}
+          value={configuration()?.focus || 0}
           min={MIN_WORKING_DISTANCE}
           max={MAX_WORKING_DISTANCE}
           step={WORKING_DISTANCE_STEP}
           setValue={async (value) => {
-            setFocus(value);
-            await microscopeApi.setWorkingDistance(value);
             ribbonDispatch({
               action: "updateSliceConfiguration",
               payload: { focus: value },
             });
+            await microscopeApi.setWorkingDistance(value);
           }}
         />
       </div>

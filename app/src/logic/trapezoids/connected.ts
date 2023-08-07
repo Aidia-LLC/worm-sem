@@ -1,4 +1,4 @@
-import { Slice } from "src/types/canvas";
+import { Slice } from "@data/shapes";
 
 export const orderTrapezoids = (trapezoids: Slice[]) => {
   // order with the top trapezoid being 1

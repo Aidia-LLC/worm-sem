@@ -1,6 +1,6 @@
 import { ZoomState } from "@components/RibbonDetector/ZoomController";
-import { Slice, Trapezoid, Vertex } from "src/types/canvas";
-import { ProcessingOptions } from "src/types/ProcessingOptions";
+import { ProcessingOptions } from "@data/ProcessingOptions";
+import { Slice, Trapezoid, Vertex } from "@data/shapes";
 import { base64ToImageSrc } from "./image";
 import { linesIntersect } from "./intersection";
 
@@ -8,8 +8,11 @@ export const setupCanvases = async (details: {
   primaryCanvas: HTMLCanvasElement;
   canvases: HTMLCanvasElement[];
   src: string;
-}) => {
-  return new Promise<void>((res) => {
+}): Promise<{
+  width: number;
+  height: number;
+}> => {
+  return new Promise((res) => {
     const image = new Image();
     image.onload = () => {
       const ctx = details.primaryCanvas.getContext("2d")!;
@@ -26,7 +29,10 @@ export const setupCanvases = async (details: {
         canvas.width = image.width;
         canvas.height = image.height;
       });
-      res();
+      res({
+        width: image.width,
+        height: image.height,
+      });
     };
     image.src = base64ToImageSrc(details.src);
   });

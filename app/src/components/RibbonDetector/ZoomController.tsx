@@ -1,5 +1,5 @@
-import { Match, onCleanup, onMount, Switch } from "solid-js";
-import { zoomStateSignal } from "src/data/signals/globals";
+import { Match, onCleanup, onMount, Show, Switch } from "solid-js";
+import { ribbonState, zoomStateSignal } from "src/data/signals/globals";
 import { Button } from "../Button";
 
 export const DEFAULT_ZOOM_SCALE = 10;
@@ -22,6 +22,7 @@ export type ZoomState =
 
 export const ZoomController = () => {
   const [zoomState, setZoomState] = zoomStateSignal;
+  const [ribbonReducer] = ribbonState;
 
   const handleKeyPress = (e: KeyboardEvent) => {
     if (e.key.toLowerCase() === "z") handleZoomButtonPressed();
@@ -42,14 +43,16 @@ export const ZoomController = () => {
   });
 
   return (
-    <Button onClick={handleZoomButtonPressed} variant="primary-outline">
-      <Switch>
-        <Match when={zoomState().status === "picking-center"}>
-          Click on image to zoom
-        </Match>
-        <Match when={zoomState().status === "zoomed-in"}>Zoom Out</Match>
-        <Match when={zoomState().status === "zoomed-out"}>Zoom In</Match>
-      </Switch>
-    </Button>
+    <Show when={ribbonReducer().masks.length === 0}>
+      <Button onClick={handleZoomButtonPressed} variant="secondary">
+        <Switch>
+          <Match when={zoomState().status === "picking-center"}>
+            Click on image to zoom
+          </Match>
+          <Match when={zoomState().status === "zoomed-in"}>Zoom Out</Match>
+          <Match when={zoomState().status === "zoomed-out"}>Zoom In</Match>
+        </Switch>
+      </Button>
+    </Show>
   );
 };

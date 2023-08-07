@@ -43,7 +43,7 @@ export const setSEMParam = (param: ParamName, value: any) => {
         if (message.type === "SUCCESS") {
           resolve();
         } else {
-          reject();
+          reject(message);
         }
       }
     });

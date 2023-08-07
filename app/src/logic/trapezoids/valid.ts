@@ -1,4 +1,4 @@
-import { Trapezoid } from "src/types/canvas";
+import { Trapezoid } from "@data/shapes";
 import { ProcessingOptions } from "src/types/ProcessingOptions";
 import { calculateArea } from "@logic/canvas";
 

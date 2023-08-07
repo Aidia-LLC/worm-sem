@@ -48,16 +48,16 @@ export abstract class MicroscopeCallingInterface {
         const mag = z.number().int().min(1).max(100000).parse(value);
         return this.setMagnification(mag);
       case "BRIGHTNESS":
-        const brightness = z.number().int().min(0).max(100).parse(value);
+        const brightness = z.number().min(0).max(100).parse(value);
         return this.setBrightness(brightness);
       case "CONTRAST":
-        const contrast = z.number().int().min(0).max(100).parse(value);
+        const contrast = z.number().min(0).max(100).parse(value);
         return this.setContrast(contrast);
       case "SCAN_SPEED":
         const scanSpeed = z.number().int().min(1).max(10).parse(value);
         return this.setScanSpeed(scanSpeed);
       case "WORKING_DISTANCE":
-        const wd = z.number().int().min(0).max(100).parse(value);
+        const wd = z.number().min(0).max(100).parse(value);
         return this.setWorkingDistance(wd);
       case "DETECTOR_TYPE":
         return this.setDetectorType(value);

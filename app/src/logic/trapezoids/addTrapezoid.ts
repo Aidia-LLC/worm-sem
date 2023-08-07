@@ -1,4 +1,4 @@
-import { RibbonData, Slice } from "../../types/canvas";
+import { RibbonData, Slice } from "@data/shapes";
 
 export const addTrapezoid = ({
   trapezoids,
@@ -8,7 +8,43 @@ export const addTrapezoid = ({
   trapezoids: RibbonData["slices"];
   id: number;
   top: boolean;
-}) => {
+}): Slice[] => {
+  if (trapezoids.length === 1) {
+    const dx = 30;
+    const dy = 30;
+    return [
+      ...(top ? [] : trapezoids),
+      {
+        id,
+        top: {
+          x1: trapezoids[0].top.x1 + dx,
+          x2: trapezoids[0].top.x2 + dx,
+          y1: trapezoids[0].top.y1 + dy,
+          y2: trapezoids[0].top.y2 + dy,
+        },
+        bottom: {
+          x1: trapezoids[0].bottom.x1 + dx,
+          x2: trapezoids[0].bottom.x2 + dx,
+          y1: trapezoids[0].bottom.y1 + dy,
+          y2: trapezoids[0].bottom.y2 + dy,
+        },
+        left: {
+          x1: trapezoids[0].left.x1 + dx,
+          x2: trapezoids[0].left.x2 + dx,
+          y1: trapezoids[0].left.y1 + dy,
+          y2: trapezoids[0].left.y2 + dy,
+        },
+        right: {
+          x1: trapezoids[0].right.x1 + dx,
+          x2: trapezoids[0].right.x2 + dx,
+          y1: trapezoids[0].right.y1 + dy,
+          y2: trapezoids[0].right.y2 + dy,
+        },
+      },
+      ...(top ? trapezoids : []),
+    ];
+  }
+
   // insert and identical trapezoid to either the beginning or end of the array
   const newTrapezoidSet = [...trapezoids];
   if (top) {

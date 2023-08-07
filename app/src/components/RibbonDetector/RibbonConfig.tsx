@@ -6,7 +6,7 @@ import {
   nextSliceIdSignal,
   ribbonState,
 } from "src/data/signals/globals";
-import { RibbonData } from "src/types/canvas";
+import { RibbonData } from "@data/shapes";
 import { Button } from "../Button";
 
 export const availableColors = [
@@ -49,20 +49,20 @@ export const RibbonConfig = (props: {
     setNextSliceId(nextSliceId() + 1);
   };
 
-  const handleDetectAgain = () => {
-    ribbonDispatch({
-      action: "deleteRibbon",
-      payload: props.ribbon,
-    });
-    const points = [...props.ribbon.clickedPoints];
-    // move the first point to the end of the array
-    points.push(points.shift()!);
-    props.handleRibbonDetection(points);
-  };
+  // const handleDetectAgain = () => {
+  //   ribbonDispatch({
+  //     action: "deleteRibbon",
+  //     payload: props.ribbon,
+  //   });
+  //   const points = [...props.ribbon.clickedPoints];
+  //   // move the first point to the end of the array
+  //   points.push(points.shift()!);
+  //   props.handleRibbonDetection(points);
+  // };
 
   return (
     <div
-      class="grid grid-cols-9 gap-3 border-2 p-2 rounded-md pr-4 bg-opacity-40"
+      class="grid grid-cols-7 gap-3 border-2 p-2 rounded-md pr-4 bg-opacity-40"
       classList={{
         "bg-red-300": props.ribbon.color === "red",
         "bg-blue-300": props.ribbon.color === "blue",
@@ -79,8 +79,8 @@ export const RibbonConfig = (props: {
           value={props.ribbon.name}
           onChange={(e) => setRibbon({ name: e.currentTarget.value })}
         />
-        <button
-          class="text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-red-500 hover:bg-red-700 active:bg-red-800"
+        <Button
+          variant="danger-outline"
           onClick={() =>
             ribbonDispatch({
               action: "deleteRibbon",
@@ -89,95 +89,101 @@ export const RibbonConfig = (props: {
           }
         >
           Remove
-        </button>
+        </Button>
       </div>
-      <Show when={props.ribbon.phase === 2}>
-        <div class="flex flex-col gap-1 col-span-2 my-auto">
-          <label class="font-bold">Color</label>
-          <select
-            class="p-2 rounded-md border border-gray-300"
-            value={props.ribbon.color}
-            onChange={(e) => setRibbon({ color: e.currentTarget.value })}
-          >
-            <For each={availableColors}>
-              {(color) => <option value={color}>{color}</option>}
-            </For>
-          </select>
-        </div>
-
-        <div
-          class="flex flex-col gap-2 justify-between my-auto"
-          classList={{
-            "col-span-4": props.ribbon.matchedPoints.length === 0,
-            "col-span-3": props.ribbon.matchedPoints.length > 0,
-          }}
+      <div class="flex flex-col gap-1 my-auto">
+        <label class="font-bold">Color</label>
+        <select
+          class="p-2 rounded-md border border-gray-300"
+          value={props.ribbon.color}
+          onChange={(e) => setRibbon({ color: e.currentTarget.value })}
         >
-          <label class="font-bold">Status</label>
-          <div class="flex flex-row gap-2 justify-between mb-2.5">
-            <div class="flex flex-col gap-2">
-              <label class="flex flex-row items-center gap-1">
-                <input
-                  type="radio"
-                  name={radioName()}
-                  value="editing"
-                  checked={props.ribbon.status === "editing"}
-                  onChange={(e) => {
-                    if (e.currentTarget.checked)
-                      setRibbon({ status: "editing" });
-                  }}
-                />
-                Editing
-              </label>
-              <Show when={props.ribbon.status === "editing"}>
-                <button
-                  class="text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-green-500 hover:bg-green-700 active:bg-green-800"
-                  onClick={() =>
-                    setRibbon({ slices: props.ribbon.slices.reverse() })
-                  }
-                >
-                  Reverse Direction
-                </button>
-                <Button onClick={() => handleAddTrapezoid({ top: true })}>
-                  Add slice to top of ribbon
-                </Button>
-                <Button onClick={() => handleAddTrapezoid({ top: false })}>
-                  Add slice to bottom of ribbon
-                </Button>
-                <Button onClick={handleDetectAgain}>Detect slices again</Button>
-              </Show>
-            </div>
+          <For each={availableColors}>
+            {(color) => <option value={color}>{color}</option>}
+          </For>
+        </select>
+      </div>
+
+      <div class="flex flex-col gap-2 justify-between my-auto">
+        <label class="font-bold">Status</label>
+        <div class="flex flex-col gap-2 justify-between mb-2.5">
+          <div class="flex flex-col gap-2">
             <label class="flex flex-row items-center gap-1">
               <input
                 type="radio"
                 name={radioName()}
-                value="matching"
-                checked={props.ribbon.status === "matching"}
+                value="editing"
+                checked={props.ribbon.status === "editing"}
                 onChange={(e) => {
-                  if (e.currentTarget.checked)
-                    setRibbon({ status: "matching" });
+                  if (e.currentTarget.checked) setRibbon({ status: "editing" });
                 }}
               />
-              Matching
-            </label>
-            <label class="flex flex-row items-center gap-1">
-              <input
-                type="radio"
-                name={radioName()}
-                value="saved"
-                checked={props.ribbon.status === "saved"}
-                onChange={(e) => {
-                  if (e.currentTarget.checked) setRibbon({ status: "saved" });
-                }}
-              />
-              Locked
+              Editing
             </label>
           </div>
+          <label class="flex flex-row items-center gap-1">
+            <input
+              type="radio"
+              name={radioName()}
+              value="matching"
+              checked={props.ribbon.status === "matching"}
+              onChange={(e) => {
+                if (e.currentTarget.checked) setRibbon({ status: "matching" });
+              }}
+            />
+            Matching
+          </label>
+          <label class="flex flex-row items-center gap-1">
+            <input
+              type="radio"
+              name={radioName()}
+              value="saved"
+              checked={props.ribbon.status === "saved"}
+              onChange={(e) => {
+                if (e.currentTarget.checked) setRibbon({ status: "saved" });
+              }}
+            />
+            Locked
+          </label>
+        </div>
+      </div>
+      <Show when={props.ribbon.status === "editing"}>
+        <div class="flex flex-col gap-1 items-center justify-evenly">
+          <Button
+            onClick={() => handleAddTrapezoid({ top: true })}
+            class="w-full"
+            variant="primary-outline"
+          >
+            Add slice to top
+          </Button>
+          <Button
+            onClick={() => handleAddTrapezoid({ top: false })}
+            class="w-full"
+            variant="primary-outline"
+          >
+            Add slice to bottom
+          </Button>
+        </div>
+        <div class="flex flex-col gap-1 items-center justify-evenly">
+          <Button
+            variant="ghost"
+            onClick={() => setRibbon({ slices: props.ribbon.slices.reverse() })}
+          >
+            Reverse Direction
+          </Button>
+          {/* <Button
+            onClick={handleDetectAgain}
+            class="w-full"
+            variant="secondary"
+          >
+            Detect slices again
+          </Button> */}
         </div>
       </Show>
       <Show when={props.ribbon.matchedPoints.length > 0}>
-        <div class="flex items-center justify-center">
-          <button
-            class="text-white font-bold py-1 px-2 text-xs rounded transition-colors bg-green-600 hover:bg-green-700 active:bg-green-800"
+        <div class="flex items-center justify-end">
+          <Button
+            tooltip="Configure brightness, contrast, and focus for each slice"
             onClick={async () => {
               const brightness = await microscopeApi.getBrightness();
               const contrast = await microscopeApi.getContrast();
@@ -200,7 +206,7 @@ export const RibbonConfig = (props: {
             }}
           >
             Configure Slices
-          </button>
+          </Button>
         </div>
       </Show>
     </div>

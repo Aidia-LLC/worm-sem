@@ -2,7 +2,7 @@ import {
   RibbonDispatchPayload,
   RibbonReducerState,
 } from "src/data/ribbonReducer";
-import { RibbonData, Vertex } from "src/types/canvas";
+import { RibbonData, Vertex } from "@data/shapes";
 import { findNearestPoint, isPointInTrapezoid } from "./trapezoids/points";
 
 export default function pointMatching(

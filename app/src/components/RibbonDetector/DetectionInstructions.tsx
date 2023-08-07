@@ -17,7 +17,7 @@ export const DetectionInstructions = () => {
           <Match when={ribbonReducer().clickedPoints.length === 2}>
             Click the center point of a slice at the end of the ribbon
           </Match>
-          <Match when={ribbonReducer().clickedPoints.length === 3}>
+          <Match when={ribbonReducer().clickedPoints.length > 2}>
             Click any other points in the ribbon if desired, or click "Detect
             Ribbon" to finish
           </Match>

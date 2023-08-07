@@ -1,3 +1,4 @@
+import type { RibbonData, Slice } from "@data/shapes";
 import {
   convertZoomedCoordinatesToFullImage,
   DrawTrapezoid,
@@ -15,7 +16,6 @@ import {
 } from "@logic/trapezoids/vertices";
 import { createEffect, createSignal, For, onMount, Show } from "solid-js";
 import * as signals from "src/data/signals/globals";
-import type { RibbonData, Slice } from "src/types/canvas";
 import { Button } from "../Button";
 import { SliderPicker } from "../SliderPicker";
 import { DetectionInstructions } from "./DetectionInstructions";
@@ -42,11 +42,11 @@ export const Canvas = (props: { samLoaded: boolean }) => {
   const [options] = signals.optionsStore;
 
   createEffect(() => {
-    const [mask] = ribbonReducer().masks;
-    if (!mask) return;
+    const state = ribbonReducer();
+    if (state.masks.length === 0 || state.currentMaskIndex === -1) return;
     const ctx = edgeDataCanvasRef.getContext("2d");
     if (!ctx) return;
-    ctx.putImageData(mask, 0, 0);
+    ctx.putImageData(state.masks[state.currentMaskIndex], 0, 0);
   });
 
   createEffect(() => {
@@ -74,11 +74,12 @@ export const Canvas = (props: { samLoaded: boolean }) => {
   onMount(async () => {
     const imageData = primaryImage();
     if (!imageData?.src) return;
-    await setupCanvases({
+    const size = await setupCanvases({
       primaryCanvas: canvasRef,
       src: imageData.src,
       canvases: [overlayCanvasRef, edgeDataCanvasRef, debugCanvasRef],
     });
+    setPrimaryImage({ ...imageData, size });
   });
 
   const drawOverlay = () => {
@@ -345,14 +346,18 @@ export const Canvas = (props: { samLoaded: boolean }) => {
         const newSlice = translateTrapezoid(slice, dx, dy);
         if (isOutOfBounds(newSlice, canvasRef)) {
           const newSlices = ribbon.slices.filter((t) => t.id !== slice.id);
-          ribbonDispatch({
-            action: "setRibbons",
-            payload: ribbonReducer().ribbons.map((r) =>
-              r.id === ribbon.id
-                ? { ...r, slices: newSlices, matchedPoints: [] }
-                : r
-            ),
-          });
+          if (newSlices.length === 0) {
+            ribbonDispatch({ action: "deleteRibbon", payload: ribbon });
+          } else {
+            ribbonDispatch({
+              action: "setRibbons",
+              payload: ribbonReducer().ribbons.map((r) =>
+                r.id === ribbon.id
+                  ? { ...r, slices: newSlices, matchedPoints: [] }
+                  : r
+              ),
+            });
+          }
           handleMouseUp();
           return;
         } else {
@@ -420,9 +425,9 @@ export const Canvas = (props: { samLoaded: boolean }) => {
         thickness: 5,
         status: "editing",
         matchedPoints: [],
-        phase: 2,
         clickedPoints: [[imgX, imgY], ...points],
         configurations: [],
+        slicesToConfigure: [],
       } satisfies RibbonData,
     });
   };
@@ -480,16 +485,16 @@ export const Canvas = (props: { samLoaded: boolean }) => {
             <Button
               onClick={handleMask}
               disabled={ribbonReducer().detectionLoading || !props.samLoaded}
-              tooltip="Detect a ribbon from the clicked points. You'll be able to edit the ribbon manually after it's detected."
+              tooltip={
+                props.samLoaded
+                  ? "Detect a ribbon from the clicked points. You'll be able to edit the ribbon manually after it's detected."
+                  : "Initializing mask detection... Please wait."
+              }
             >
               Detect Ribbon
             </Button>
           </Show>
         </Show>
-        <MaskSelector
-          edgeDataCanvasRef={() => edgeDataCanvasRef}
-          handleRibbonDetection={handleRibbonDetection}
-        />
         <Show when={ribbonReducer().ribbons.length > 0}>
           <Button
             onClick={() =>
@@ -510,6 +515,10 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           <ZoomController />
         </Show>
       </div>
+      <MaskSelector
+        edgeDataCanvasRef={() => edgeDataCanvasRef}
+        handleRibbonDetection={handleRibbonDetection}
+      />
       <For each={ribbonReducer().ribbons}>
         {(ribbon) => (
           <RibbonConfig

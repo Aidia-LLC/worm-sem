@@ -4,7 +4,7 @@ import {
   FinalSliceConfiguration,
   RibbonData,
   SliceConfiguration,
-} from "src/types/canvas";
+} from "@data/shapes";
 import { lerp } from "./canvas";
 import { computeStageCoordinates, StageConfiguration } from "./semCoordinates";
 
