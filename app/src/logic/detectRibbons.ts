@@ -38,7 +38,6 @@ export const detectRibbons = async ({
     overlayCanvasRef.getContext("2d")!,
     options
   );
-  console.log("trapezoid", trapezoid);
   // return trapezoid ? ([{ ...trapezoid, id: 0 }] as Slice[]) : [];
   const valid =
     trapezoid && trapezoidIsValid(trapezoid, imgX, imgY, options, fit);
@@ -59,7 +58,7 @@ export const detectRibbons = async ({
       imgX - options.squareSize / 2,
       imgY - options.squareSize / 2
     );
-    const { trapezoid: newTrapezoid } = DirectSearchOptimization(
+    const { trapezoid: newTrapezoid, fit: f } = DirectSearchOptimization(
       getPointsOnTrapezoid,
       trapezoid,
       square,
@@ -67,6 +66,7 @@ export const detectRibbons = async ({
       imgX - options.squareSize / 2,
       imgY - options.squareSize / 2
     );
+    fit = f;
     trapezoid = newTrapezoid;
   }
   if (!trapezoid) return [];
@@ -77,7 +77,7 @@ export const detectRibbons = async ({
     imgX,
     imgY,
     options,
-    options.minimumFit
+    fit ?? 1
   );
   const trapezoids = orderTrapezoids(
     [trapezoid, ...connectedTrapezoids].filter((t) => {

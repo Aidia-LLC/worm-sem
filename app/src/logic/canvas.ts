@@ -700,6 +700,7 @@ function RecurseDirectSearchOptimization(
       }
     }
   }
+  console.log(bestFt, fit, options.minimumFit);
   if (bestFt < fit * options.minimumFit) return null;
   return computeTrapezoid(vertices);
 }
