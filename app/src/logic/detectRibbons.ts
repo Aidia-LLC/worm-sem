@@ -3,7 +3,6 @@ import {
   findConnectedTrapezoids,
   getPointsOnTrapezoid,
   getSquare,
-  permuteTrapezoid,
   RANSAC,
   translateTrapezoid,
 } from "@logic/canvas";
@@ -40,7 +39,7 @@ export const detectRibbons = async ({
     options
   );
   console.log("trapezoid", trapezoid);
-  return trapezoid ? ([trapezoid] as Trapezoid[]) : [];
+  // return trapezoid ? ([{ ...trapezoid, id: 0 }] as Slice[]) : [];
   const valid =
     trapezoid && trapezoidIsValid(trapezoid, imgX, imgY, options, fit);
   console.log("valid", valid);
@@ -71,10 +70,10 @@ export const detectRibbons = async ({
     trapezoid = newTrapezoid;
   }
   if (!trapezoid) return [];
-  trapezoid = permuteTrapezoid(trapezoid);
+  // trapezoid = permuteTrapezoid(trapezoid);
   const connectedTrapezoids = findConnectedTrapezoids(
     trapezoid,
-    edgeContext,
+    overlayCanvasRef.getContext("2d")!,
     imgX,
     imgY,
     options,

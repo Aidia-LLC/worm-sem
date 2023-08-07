@@ -1,4 +1,4 @@
-import { DrawTrapezoid, permuteTrapezoid } from "@logic/canvas";
+import { permuteTrapezoid } from "@logic/canvas";
 import { ProcessingOptions } from "src/types/ProcessingOptions";
 import { Slice } from "../../types/canvas";
 
@@ -14,18 +14,17 @@ export function detectTrapezoid(
   ctx.putImageData(imageData, 0, 0);
 
   const square = getSquare(imageData, x, y, options.squareSize);
-  console.log("square", square);
   // draw square
-  ctx.beginPath();
-  ctx.rect(
-    x - options.squareSize / 2,
-    y - options.squareSize / 2,
-    options.squareSize,
-    options.squareSize
-  );
-  ctx.strokeStyle = "blue";
-  ctx.stroke();
-  ctx.closePath();
+  // ctx.beginPath();
+  // ctx.rect(
+  //   x - options.squareSize / 2,
+  //   y - options.squareSize / 2,
+  //   options.squareSize,
+  //   options.squareSize
+  // );
+  // ctx.strokeStyle = "blue";
+  // ctx.stroke();
+  // ctx.closePath();
 
   const lines = hough(square, options);
   // for (const line of lines) {
@@ -42,7 +41,7 @@ export function detectTrapezoid(
   //   ctx.stroke();
   //   ctx.closePath();
   // }
-  console.log("lines", lines);
+  // console.log("lines", lines);
   const goodLines = Merge(lines, options);
   // console.log("mergedLines", mergedLines);
   // for (const line of mergedLines) {
@@ -67,56 +66,53 @@ export function detectTrapezoid(
   //   square,
   //   options
   // );
-  console.log("goodLines", goodLines);
-  for (const line of goodLines) {
-    ctx.beginPath();
-    ctx.lineWidth = 4;
-    ctx.moveTo(
-      line.x1 + x - options.squareSize / 2,
-      line.y1 + y - options.squareSize / 2
-    );
-    ctx.lineTo(
-      line.x2 + x - options.squareSize / 2,
-      line.y2 + y - options.squareSize / 2
-    );
-    ctx.strokeStyle = "blue";
-    ctx.stroke();
-    ctx.closePath();
-  }
+  // console.log("goodLines", goodLines);
+  // for (const line of goodLines) {
+  //   ctx.beginPath();
+  //   ctx.lineWidth = 4;
+  //   ctx.moveTo(
+  //     line.x1 + x - options.squareSize / 2,
+  //     line.y1 + y - options.squareSize / 2
+  //   );
+  //   ctx.lineTo(
+  //     line.x2 + x - options.squareSize / 2,
+  //     line.y2 + y - options.squareSize / 2
+  //   );
+  //   ctx.strokeStyle = "blue";
+  //   ctx.stroke();
+  //   ctx.closePath();
+  // }
 
   const shortLines = ShortenLines(goodLines, square, options);
-  console.log("shortLines", shortLines);
-  for (const line of shortLines) {
-    ctx.beginPath();
-    ctx.lineWidth = 8;
-    ctx.moveTo(
-      line.x1 + x - options.squareSize / 2,
-      line.y1 + y - options.squareSize / 2
-    );
-    ctx.lineTo(
-      line.x2 + x - options.squareSize / 2,
-      line.y2 + y - options.squareSize / 2
-    );
-    ctx.strokeStyle = "green";
-    ctx.stroke();
-    ctx.closePath();
-  }
-  const vertices = computeVertices(shortLines, options, goodLines, ctx).map(
+  // console.log("shortLines", shortLines);
+  // for (const line of shortLines) {
+  //   ctx.beginPath();
+  //   ctx.lineWidth = 8;
+  //   ctx.moveTo(
+  //     line.x1 + x - options.squareSize / 2,
+  //     line.y1 + y - options.squareSize / 2
+  //   );
+  //   ctx.lineTo(
+  //     line.x2 + x - options.squareSize / 2,
+  //     line.y2 + y - options.squareSize / 2
+  //   );
+  //   ctx.strokeStyle = "green";
+  //   ctx.stroke();
+  //   ctx.closePath();
+  // }
+  const vertices = computeVertices(shortLines, options, goodLines).map(
     (vertex) => ({
       x: vertex.x + x - options.squareSize / 2,
       y: vertex.y + y - options.squareSize / 2,
     })
   );
-  console.log("vertices", vertices);
 
   let trapezoid: Trapezoid | null = null;
   if (vertices.length === 4) {
     trapezoid = computeTrapezoid(vertices);
-    if (trapezoid) DrawTrapezoid(trapezoid, ctx, "green", 15);
   } else {
     // go through each combination of 4 vertices and find the best trapezoid, using getPointsOnTrapezoid
     const combinations = Combinations(vertices, 4);
-    console.log("combinations", combinations);
     let bestFit = 0;
     for (const combination of combinations) {
       const newTrapezoid = computeTrapezoid(combination);
@@ -126,10 +122,8 @@ export function detectTrapezoid(
         bestFit = fit;
         trapezoid = newTrapezoid;
       }
-      // DrawTrapezoid(newTrapezoid, ctx, "blue", 6);
     }
   }
-  // console.log("trapezoid", trapezoid);
   if (!trapezoid) {
     return { trapezoid: null, fit: null };
   }
@@ -444,7 +438,6 @@ function ShortenLines(
     const l = Math.sqrt(
       (lastPixel[0] - firstPixel[0]) ** 2 + (lastPixel[1] - firstPixel[1]) ** 2
     );
-    console.log("adding", line, l);
     goodLines.push({
       ...line,
       x1: firstPixel[0],
@@ -455,7 +448,6 @@ function ShortenLines(
     });
   }
   // const maxPixels = Math.max(...goodLines.map((line) => line.pixels));
-  console.log("about to filter", goodLines);
   return goodLines
     .filter(
       (line) =>
@@ -472,8 +464,7 @@ const vertexDistance = (v1: Vertex, v2: Vertex) =>
 function computeVertices(
   lines: LineSegment[],
   options: ProcessingOptions,
-  longLines: LineSegment[],
-  ctx: CanvasRenderingContext2D
+  longLines: LineSegment[]
 ) {
   let vertices: Vertex[] = [];
   for (let i = 0; i < longLines.length; i++) {
@@ -486,34 +477,36 @@ function computeVertices(
         intersection.x < options.squareSize &&
         intersection.y < options.squareSize
       ) {
-        vertices.push(intersection);
+        if (
+          !vertices.some(
+            (v) => vertexDistance(v, intersection) < options.squareSize / 5
+          )
+        ) {
+          vertices.push(intersection);
+        }
       }
     }
-  }
-  console.log("vertices", vertices);
-  for (const vertex of vertices) {
-    ctx.beginPath();
-    ctx.arc(vertex.x, vertex.y, 25, 0, 2 * Math.PI);
-    ctx.fillStyle = "red";
-    ctx.fill();
-    ctx.closePath();
   }
   let endPoints: Vertex[] = lines
     .map((line) => {
       const first = { x: line.x1, y: line.y1 };
       const last = { x: line.x2, y: line.y2 };
       let good: Vertex[] = [];
+      let f = false;
+      let l = false;
       for (let i = 0; i < vertices.length; i++) {
         const vertex = vertices[i];
         const d1 = vertexDistance(vertex, first);
         const d2 = vertexDistance(vertex, last);
-        if (d1 > options.squareSize / 5) {
-          good.push(first);
+        if (d1 < options.squareSize / 5) {
+          f = true;
         }
-        if (d2 > options.squareSize / 5) {
-          good.push(last);
+        if (d2 < options.squareSize / 5) {
+          l = true;
         }
       }
+      if (!f) good.push(first);
+      if (!l) good.push(last);
       return good;
     })
     .flat();
@@ -525,7 +518,7 @@ function computeVertices(
       const q = good[j];
       if (vertexDistance(p, q) < options.squareSize / 5) {
         merged = true;
-        vertices.push({
+        good.push({
           x: (p.x + q.x) / 2,
           y: (p.y + q.y) / 2,
         });
@@ -533,13 +526,6 @@ function computeVertices(
       }
     }
     if (!merged) good.push(p);
-  }
-  for (const vertex of good) {
-    ctx.beginPath();
-    ctx.arc(vertex.x, vertex.y, 20, 0, 2 * Math.PI);
-    ctx.fillStyle = "yellow";
-    ctx.fill();
-    ctx.closePath();
   }
   return [...good, ...vertices]
     .map((vertex) => ({

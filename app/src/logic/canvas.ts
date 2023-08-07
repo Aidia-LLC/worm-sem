@@ -13,7 +13,12 @@ export const setupCanvases = async (details: {
     const image = new Image();
     image.onload = () => {
       const ctx = details.primaryCanvas.getContext("2d")!;
-      ctx.clearRect(0, 0, details.primaryCanvas.width, details.primaryCanvas.height);
+      ctx.clearRect(
+        0,
+        0,
+        details.primaryCanvas.width,
+        details.primaryCanvas.height
+      );
       details.primaryCanvas.width = image.width;
       details.primaryCanvas.height = image.height;
       ctx.drawImage(image, 0, 0);
@@ -22,10 +27,10 @@ export const setupCanvases = async (details: {
         canvas.height = image.height;
       });
       res();
-    }
+    };
     image.src = base64ToImageSrc(details.src);
   });
-}
+};
 
 export function translateTrapezoid(
   trapezoid: Slice,
@@ -183,6 +188,7 @@ export const permuteTrapezoid = (trapezoid: Slice) => {
     } as Slice;
   });
   const data = trapezoids
+    .filter((t) => t.top.x1 < t.top.x2 && t.bottom.x1 < t.bottom.x2)
     .filter(
       (t) =>
         !linesIntersect(
@@ -231,21 +237,7 @@ export const permuteTrapezoid = (trapezoid: Slice) => {
   return data.find((d) => d.area === maxArea)!.trapezoid;
 };
 
-export function findConnectedTrapezoids(
-  trapezoid: Slice,
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  options: ProcessingOptions,
-  fit: number
-) {
-  const squareSize = options.squareSize + 10;
-  let trapezoids: Slice[] = [];
-  const yShift =
-    Math.round(
-      (trapezoid.top.y1 + trapezoid.top.y2) / 2 -
-        (trapezoid.bottom.y1 + trapezoid.bottom.y2) / 2
-    ) - 5;
+const getXYShift = (trapezoid: Slice) => {
   const length = Math.round(
     Math.sqrt(
       (trapezoid.top.x1 - trapezoid.top.x2) ** 2 +
@@ -260,42 +252,60 @@ export function findConnectedTrapezoids(
   );
   const area = calculateArea(trapezoid);
   const height = Math.round((2 * area) / (length + bottomLength));
-  const xShift = Math.round(
-    ((trapezoid.top.y1 - trapezoid.top.y2) / length) * height
-  );
-  console.log({
+  const angle =
+    (Math.atan2(
+      trapezoid.top.y2 - trapezoid.top.y1,
+      trapezoid.top.x2 - trapezoid.top.x1
+    ) +
+      Math.atan2(
+        trapezoid.bottom.y2 - trapezoid.bottom.y1,
+        trapezoid.bottom.x2 - trapezoid.bottom.x1
+      )) /
+      2 -
+    Math.PI / 2;
+  const xShift = Math.round(Math.cos(angle) * height);
+  const yShift = Math.round(Math.sin(angle) * height);
+  return { xShift, yShift };
+};
+
+export function findConnectedTrapezoids(
+  trapezoid: Slice,
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  options: ProcessingOptions,
+  fit: number
+) {
+  const squareSize = options.squareSize + 10;
+  let trapezoids: Slice[] = [];
+  const { xShift, yShift } = getXYShift(trapezoid);
+  recurseSearchTrapezoid(
+    x,
+    y,
     xShift,
     yShift,
-    length,
-    bottomLength,
-    area,
-    height,
-  });
+    { ...trapezoid },
+    ctx,
+    options,
+    trapezoids,
+    0,
+    squareSize,
+    fit,
+    true
+  );
   recurseSearchTrapezoid(
     x,
     y,
     -xShift,
-    yShift,
-    trapezoid,
-    ctx,
-    options,
-    trapezoids,
-    0,
-    squareSize,
-    fit
-  );
-  recurseSearchTrapezoid(
-    x,
-    y,
-    xShift,
     -yShift,
-    trapezoid,
+    { ...trapezoid },
     ctx,
     options,
     trapezoids,
     0,
     squareSize,
-    fit
+    fit,
+    false
   );
   return trapezoids.map((t) => permuteTrapezoid(t));
 }
@@ -311,15 +321,17 @@ function recurseSearchTrapezoid(
   trapezoids: Trapezoid[],
   count: number,
   squareSize: number,
-  fit: number
+  fit: number,
+  up: boolean
 ): Trapezoid[] {
-  if (!trapezoid || count > 20) return trapezoids;
+  if (!trapezoid || count > 4) return trapezoids;
   const imageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
   const square = getSquare(imageData, x + deltaX, y + deltaY, squareSize);
   const shiftedTrapezoid = translateTrapezoid(trapezoid, deltaX, deltaY);
+  // DrawTrapezoid(shiftedTrapezoid, ctx, "yellow", 5 * (count + 2));
   const firstTest = FixedDirectSearchOptimization(
     getPointsOnTrapezoid,
-    shiftedTrapezoid,
+    { ...shiftedTrapezoid },
     square,
     options,
     x + deltaX - squareSize / 2,
@@ -329,9 +341,10 @@ function recurseSearchTrapezoid(
   if (!firstTest) {
     return trapezoids;
   }
+  // DrawTrapezoid(firstTest, ctx, "blue", 5 * (count + 2));
   const secondTest = RecurseDirectSearchOptimization(
     getPointsOnTrapezoid,
-    firstTest,
+    { ...firstTest },
     square,
     options,
     x + deltaX - squareSize / 2,
@@ -340,40 +353,24 @@ function recurseSearchTrapezoid(
     fit
   );
   if (secondTest) {
-    // DrawTrapezoid(secondTest, ctx);
+    // DrawTrapezoid(secondTest, ctx, "green", 5 * (count + 2));
     trapezoids.push(secondTest);
-    let xShift = Math.round(
-      ((trapezoid.top.x1 + trapezoid.top.x2) / 2 +
-        (trapezoid.bottom.x1 + trapezoid.bottom.x2) / 2) /
-        2 -
-        ((secondTest.top.x1 + secondTest.top.x2) / 2 +
-          (secondTest.bottom.x1 + secondTest.bottom.x2) / 2) /
-          2
-    );
-    let temp = Math.round(
-      (secondTest.top.y1 + secondTest.top.y2) / 2 -
-        (secondTest.bottom.y1 + secondTest.bottom.y2) / 2
-    );
-    let yShift = deltaY < 0 ? temp : -temp;
-    const yCenter = Math.round(
-      ((secondTest.top.y1 + secondTest.top.y2) / 2 +
-        (secondTest.bottom.y1 + secondTest.bottom.y2) / 2) /
-        2
-    );
-    yShift += yCenter - (y + deltaY);
-
+    let { xShift, yShift } = getXYShift(permuteTrapezoid({ ...secondTest }));
+    yShift = up ? yShift : -yShift;
+    xShift = up ? xShift : -xShift;
     return recurseSearchTrapezoid(
       x + deltaX,
       y + deltaY,
-      -xShift,
+      xShift,
       yShift,
-      secondTest,
+      { ...secondTest },
       ctx,
       options,
       trapezoids,
       count + 1,
       squareSize,
-      fit
+      fit,
+      up
     );
   }
   return trapezoids;
