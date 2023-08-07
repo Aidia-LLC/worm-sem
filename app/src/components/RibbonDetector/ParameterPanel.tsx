@@ -74,7 +74,7 @@ export const ParameterPanel = () => {
             }}
           />
           <Param
-            description="This merges all lines that are within this distance of each other."
+            description="This merges all lines that are within this distance of each other. Recommended around 1/4 of the square size."
             label="Merge Line Threshold"
             value={options.options.mergeLineThreshold}
             onChange={(value) => {

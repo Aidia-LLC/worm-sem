@@ -3,11 +3,11 @@ import { ProcessingOptions } from "src/types/ProcessingOptions";
 
 export const defaultOptions: ProcessingOptions = {
   squareSize: 420,
-  houghVoteThreshold: 0.5,
-  mergeLineThreshold: 12,
+  houghVoteThreshold: 0.4,
+  mergeLineThreshold: 120,
   pixelThreshold: 0.35,
   maxLines: 6,
-  minimumFit: 0.5,
+  minimumFit: 0.4,
   firstFit: 25,
 };
 

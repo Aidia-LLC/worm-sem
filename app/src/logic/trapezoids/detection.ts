@@ -66,40 +66,40 @@ export function detectTrapezoid(
   //   square,
   //   options
   // );
-  // console.log("goodLines", goodLines);
-  // for (const line of goodLines) {
-  //   ctx.beginPath();
-  //   ctx.lineWidth = 4;
-  //   ctx.moveTo(
-  //     line.x1 + x - options.squareSize / 2,
-  //     line.y1 + y - options.squareSize / 2
-  //   );
-  //   ctx.lineTo(
-  //     line.x2 + x - options.squareSize / 2,
-  //     line.y2 + y - options.squareSize / 2
-  //   );
-  //   ctx.strokeStyle = "blue";
-  //   ctx.stroke();
-  //   ctx.closePath();
-  // }
+  console.log("goodLines", goodLines);
+  for (const line of goodLines) {
+    ctx.beginPath();
+    ctx.lineWidth = 4;
+    ctx.moveTo(
+      line.x1 + x - options.squareSize / 2,
+      line.y1 + y - options.squareSize / 2
+    );
+    ctx.lineTo(
+      line.x2 + x - options.squareSize / 2,
+      line.y2 + y - options.squareSize / 2
+    );
+    ctx.strokeStyle = "blue";
+    ctx.stroke();
+    ctx.closePath();
+  }
 
   const shortLines = ShortenLines(goodLines, square, options);
-  // console.log("shortLines", shortLines);
-  // for (const line of shortLines) {
-  //   ctx.beginPath();
-  //   ctx.lineWidth = 8;
-  //   ctx.moveTo(
-  //     line.x1 + x - options.squareSize / 2,
-  //     line.y1 + y - options.squareSize / 2
-  //   );
-  //   ctx.lineTo(
-  //     line.x2 + x - options.squareSize / 2,
-  //     line.y2 + y - options.squareSize / 2
-  //   );
-  //   ctx.strokeStyle = "green";
-  //   ctx.stroke();
-  //   ctx.closePath();
-  // }
+  console.log("shortLines", shortLines);
+  for (const line of shortLines) {
+    ctx.beginPath();
+    ctx.lineWidth = 8;
+    ctx.moveTo(
+      line.x1 + x - options.squareSize / 2,
+      line.y1 + y - options.squareSize / 2
+    );
+    ctx.lineTo(
+      line.x2 + x - options.squareSize / 2,
+      line.y2 + y - options.squareSize / 2
+    );
+    ctx.strokeStyle = "green";
+    ctx.stroke();
+    ctx.closePath();
+  }
   const vertices = computeVertices(shortLines, options, goodLines).map(
     (vertex) => ({
       x: vertex.x + x - options.squareSize / 2,
@@ -141,6 +141,7 @@ export function detectTrapezoid(
 
   if (!newTrapezoid) return { trapezoid: null, fit: null };
   // DrawTrapezoid(newTrapezoid, ctx, "yellow", 15);
+  console.log("trapezoid", newTrapezoid);
 
   return { trapezoid: permuteTrapezoid(newTrapezoid), fit };
 }
@@ -372,34 +373,34 @@ function Merge(
   return mergedLines;
 }
 
-function pixelsPerLine(
-  line: LineSegment,
-  data: Uint8ClampedArray,
-  options: ProcessingOptions
-) {
-  const dx = line.x2 - line.x1;
-  const dy = line.y2 - line.y1;
-  const length = Math.sqrt(dx * dx + dy * dy);
-  const xStep = dx / length;
-  const yStep = dy / length;
-  let x = line.x1;
-  let y = line.y1;
-  let pixels = 0;
-  for (let j = 0; j < length; j++) {
-    if (
-      data[Math.round(y) * options.squareSize + Math.round(x)] === 255 ||
-      data[Math.round(y) * options.squareSize + Math.round(x + 1)] === 255 ||
-      data[Math.round(y) * options.squareSize + Math.round(x - 1)] === 255 ||
-      data[Math.round(y + 1) * options.squareSize + Math.round(x)] === 255 ||
-      data[Math.round(y - 1) * options.squareSize + Math.round(x)] === 255
-    ) {
-      pixels++;
-    }
-    x += xStep;
-    y += yStep;
-  }
-  return pixels;
-}
+// function pixelsPerLine(
+//   line: LineSegment,
+//   data: Uint8ClampedArray,
+//   options: ProcessingOptions
+// ) {
+//   const dx = line.x2 - line.x1;
+//   const dy = line.y2 - line.y1;
+//   const length = Math.sqrt(dx * dx + dy * dy);
+//   const xStep = dx / length;
+//   const yStep = dy / length;
+//   let x = line.x1;
+//   let y = line.y1;
+//   let pixels = 0;
+//   for (let j = 0; j < length; j++) {
+//     if (
+//       data[Math.round(y) * options.squareSize + Math.round(x)] === 255 ||
+//       data[Math.round(y) * options.squareSize + Math.round(x + 1)] === 255 ||
+//       data[Math.round(y) * options.squareSize + Math.round(x - 1)] === 255 ||
+//       data[Math.round(y + 1) * options.squareSize + Math.round(x)] === 255 ||
+//       data[Math.round(y - 1) * options.squareSize + Math.round(x)] === 255
+//     ) {
+//       pixels++;
+//     }
+//     x += xStep;
+//     y += yStep;
+//   }
+//   return pixels;
+// }
 
 function ShortenLines(
   lines: LineSegment[],
@@ -479,7 +480,7 @@ function computeVertices(
       ) {
         if (
           !vertices.some(
-            (v) => vertexDistance(v, intersection) < options.squareSize / 5
+            (v) => vertexDistance(v, intersection) < options.squareSize / 6
           )
         ) {
           vertices.push(intersection);
@@ -498,10 +499,10 @@ function computeVertices(
         const vertex = vertices[i];
         const d1 = vertexDistance(vertex, first);
         const d2 = vertexDistance(vertex, last);
-        if (d1 < options.squareSize / 5) {
+        if (d1 < options.squareSize / 6) {
           f = true;
         }
-        if (d2 < options.squareSize / 5) {
+        if (d2 < options.squareSize / 6) {
           l = true;
         }
       }
@@ -516,7 +517,7 @@ function computeVertices(
     let merged = false;
     for (let j = 0; j < good.length; j++) {
       const q = good[j];
-      if (vertexDistance(p, q) < options.squareSize / 5) {
+      if (vertexDistance(p, q) < options.squareSize / 6) {
         merged = true;
         good.push({
           x: (p.x + q.x) / 2,
@@ -574,65 +575,65 @@ function intersectionPoint(
   return { x, y };
 }
 
-function DirectSearchLineOptimization(
-  ft: (
-    line: LineSegment,
-    data: Uint8ClampedArray,
-    options: ProcessingOptions
-  ) => number,
-  lines: LineSegment[],
-  data: Uint8ClampedArray,
-  options: ProcessingOptions
-) {
-  const bestLines = [...lines];
-  for (let k = 0; k < lines.length; k++) {
-    const line = lines[k];
-    let fit = ft(line, data, options);
-    //Move each vertex in line by 5 pixels in 16 directions, take the best one
-    let vertices = [
-      { x: line.x1, y: line.y1 },
-      { x: line.x2, y: line.y2 },
-    ];
-    for (let l = 0; l < 2; l++) {
-      for (let i = 0; i < vertices.length; i++) {
-        for (let j = 0; j < 16; j++) {
-          const vertex = vertices[i];
-          // move the vertex by a varied amount in 16 directions, keep the best
-          let x = (vertex.x + (l % 4)) * Math.cos((j * Math.PI) / 8);
-          x = Math.max(0, Math.min(x, options.squareSize));
-          let y = (vertex.y + (l % 4)) * Math.sin((j * Math.PI) / 8);
-          y = Math.max(0, Math.min(y, options.squareSize));
-          const newVertex = {
-            x,
-            y,
-          };
-          const newLine = {
-            x1: i === 0 ? newVertex.x : line.x1,
-            y1: i === 0 ? newVertex.y : line.y1,
-            x2: i === 1 ? newVertex.x : line.x2,
-            y2: i === 1 ? newVertex.y : line.y2,
-            r: line.r,
-            theta: line.theta,
-          };
-          const newFT = ft(newLine, data, options);
-          if (newFT > fit) {
-            fit = newFT;
-            vertices[i] = newVertex;
-          }
-        }
-      }
-    }
-    bestLines[k] = {
-      x1: vertices[0].x,
-      y1: vertices[0].y,
-      x2: vertices[1].x,
-      y2: vertices[1].y,
-      r: line.r,
-      theta: line.theta,
-    };
-  }
-  return bestLines;
-}
+// function DirectSearchLineOptimization(
+//   ft: (
+//     line: LineSegment,
+//     data: Uint8ClampedArray,
+//     options: ProcessingOptions
+//   ) => number,
+//   lines: LineSegment[],
+//   data: Uint8ClampedArray,
+//   options: ProcessingOptions
+// ) {
+//   const bestLines = [...lines];
+//   for (let k = 0; k < lines.length; k++) {
+//     const line = lines[k];
+//     let fit = ft(line, data, options);
+//     //Move each vertex in line by 5 pixels in 16 directions, take the best one
+//     let vertices = [
+//       { x: line.x1, y: line.y1 },
+//       { x: line.x2, y: line.y2 },
+//     ];
+//     for (let l = 0; l < 2; l++) {
+//       for (let i = 0; i < vertices.length; i++) {
+//         for (let j = 0; j < 16; j++) {
+//           const vertex = vertices[i];
+//           // move the vertex by a varied amount in 16 directions, keep the best
+//           let x = (vertex.x + (l % 4)) * Math.cos((j * Math.PI) / 8);
+//           x = Math.max(0, Math.min(x, options.squareSize));
+//           let y = (vertex.y + (l % 4)) * Math.sin((j * Math.PI) / 8);
+//           y = Math.max(0, Math.min(y, options.squareSize));
+//           const newVertex = {
+//             x,
+//             y,
+//           };
+//           const newLine = {
+//             x1: i === 0 ? newVertex.x : line.x1,
+//             y1: i === 0 ? newVertex.y : line.y1,
+//             x2: i === 1 ? newVertex.x : line.x2,
+//             y2: i === 1 ? newVertex.y : line.y2,
+//             r: line.r,
+//             theta: line.theta,
+//           };
+//           const newFT = ft(newLine, data, options);
+//           if (newFT > fit) {
+//             fit = newFT;
+//             vertices[i] = newVertex;
+//           }
+//         }
+//       }
+//     }
+//     bestLines[k] = {
+//       x1: vertices[0].x,
+//       y1: vertices[0].y,
+//       x2: vertices[1].x,
+//       y2: vertices[1].y,
+//       r: line.r,
+//       theta: line.theta,
+//     };
+//   }
+//   return bestLines;
+// }
 
 function DirectSearchOptimization(
   ft: (

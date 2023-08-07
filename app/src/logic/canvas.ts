@@ -234,7 +234,9 @@ export const permuteTrapezoid = (trapezoid: Slice) => {
       semiPerimeter: calculateSemiPerimeter(t),
     }));
   const maxArea = Math.max(...data.map((d) => d.area));
-  return data.find((d) => d.area === maxArea)!.trapezoid;
+  const d = data.find((d) => d.area === maxArea);
+  if (!d) return trapezoid;
+  return d.trapezoid;
 };
 
 const getXYShift = (trapezoid: Slice) => {
@@ -324,7 +326,7 @@ function recurseSearchTrapezoid(
   fit: number,
   up: boolean
 ): Trapezoid[] {
-  if (!trapezoid || count > 4) return trapezoids;
+  if (!trapezoid || count > 15) return trapezoids;
   const imageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
   const square = getSquare(imageData, x + deltaX, y + deltaY, squareSize);
   const shiftedTrapezoid = translateTrapezoid(trapezoid, deltaX, deltaY);
@@ -355,7 +357,7 @@ function recurseSearchTrapezoid(
   if (secondTest) {
     // DrawTrapezoid(secondTest, ctx, "green", 5 * (count + 2));
     trapezoids.push(secondTest);
-    let { xShift, yShift } = getXYShift(permuteTrapezoid({ ...secondTest }));
+    let { xShift, yShift } = getXYShift(permuteTrapezoid({ ...secondTest })!);
     yShift = up ? yShift : -yShift;
     xShift = up ? xShift : -xShift;
     return recurseSearchTrapezoid(
