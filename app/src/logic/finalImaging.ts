@@ -1,10 +1,10 @@
-import { microscopeApi } from "src/microscopeApi";
-import { grabImageOnFrameEnd } from "src/microscopeApi/grabImageOnFrameEnd";
 import {
   FinalSliceConfiguration,
   RibbonData,
   SliceConfiguration,
 } from "@data/shapes";
+import { grabImageOnFrameEnd } from "@microscopeBridge/grabImageOnFrameEnd";
+import { microscopeBridge } from "@microscopeBridge/index";
 import { lerp } from "./canvas";
 import { computeStageCoordinates, StageConfiguration } from "./semCoordinates";
 
@@ -20,7 +20,7 @@ export const handleFinalImaging = async (details: {
   if (configurations.length === 0)
     return alert("No configurations received. Please try again.");
   onProgressUpdate(0);
-  await microscopeApi.grabFullFrame({
+  await microscopeBridge.grabFullFrame({
     temporary: false,
     ribbonId: configurations[0].ribbonId,
     ribbonName: configurations[0].ribbonName,
@@ -28,24 +28,24 @@ export const handleFinalImaging = async (details: {
     name: "setup",
   });
   await sleep(500);
-  await microscopeApi.setMagnification(configurations[0].magnification);
+  await microscopeBridge.setMagnification(configurations[0].magnification);
   await sleep(500);
-  await microscopeApi.setDetectorType("ZOOMED_IN");
+  await microscopeBridge.setDetectorType("ZOOMED_IN");
   await sleep(500);
-  await microscopeApi.setScanSpeed(scanSpeed);
+  await microscopeBridge.setScanSpeed(scanSpeed);
   await sleep(500);
-  await microscopeApi.setImageQuality("HIGH");
+  await microscopeBridge.setImageQuality("HIGH");
   await sleep(3000);
   for (let i = 0; i < configurations.length; i++) {
     onProgressUpdate(Math.round((i / configurations.length) * 10000) / 100);
     const config = configurations[i];
-    await microscopeApi.moveStageTo(config.point);
+    await microscopeBridge.moveStageTo(config.point);
     await sleep(500);
-    await microscopeApi.setBrightness(config.brightness);
+    await microscopeBridge.setBrightness(config.brightness);
     await sleep(500);
-    await microscopeApi.setContrast(config.contrast);
+    await microscopeBridge.setContrast(config.contrast);
     await sleep(500);
-    await microscopeApi.setWorkingDistance(config.focus);
+    await microscopeBridge.setWorkingDistance(config.focus);
     await sleep(5000);
     await grabImageOnFrameEnd(
       {

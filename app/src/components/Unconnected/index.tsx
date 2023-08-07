@@ -1,6 +1,6 @@
 import { Button } from "@components/Button";
+import { microscopeBridge } from "@microscopeBridge/index";
 import { createSignal } from "solid-js";
-import { microscopeApi } from "src/microscopeApi";
 
 export const Unconnected = (props: { onConnect: () => void }) => {
   const [acknowledged, setAcknowledged] = createSignal(false);
@@ -17,7 +17,7 @@ export const Unconnected = (props: { onConnect: () => void }) => {
       </label>
       <Button
         onClick={async () => {
-          await microscopeApi.connect();
+          await microscopeBridge.connect();
           props.onConnect();
         }}
         disabled={!acknowledged()}

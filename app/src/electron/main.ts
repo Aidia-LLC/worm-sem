@@ -2,11 +2,11 @@ import { ChildProcess } from "child_process";
 import { app, BrowserWindow, ipcMain } from "electron";
 import path from "path";
 import { platform } from "process";
-import { Command, GrabFullFrameCommand } from "../microscopeApi/types";
+import { Command, GrabFullFrameCommand } from "../microscopeBridge/types";
 import { getFilename } from "./filesystem";
 import { initializeMaskApi } from "./maskApi";
-import { MicroscopeCallingInterface } from "./microscope";
-import { ZeissInterface } from "./microscope/zeiss";
+import { MicroscopeCallingInterface } from "./microscopeCallingInterface";
+import { ZeissInterface } from "./microscopeCallingInterface/zeiss";
 import { ElectronMessage } from "./types";
 import { createWindow } from "./window";
 

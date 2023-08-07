@@ -58,6 +58,5 @@ export interface GetParamCommand extends BaseCommand {
 declare global {
   interface Window {
     semClient: SEMClient;
-    getInitialPath: () => Promise<string>;
   }
 }

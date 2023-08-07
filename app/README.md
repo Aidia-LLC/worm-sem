@@ -12,7 +12,6 @@ Any information passed through IPC must be JSON-serializable. This means that an
 
 - preload -> main
   - `SEMClient:Send` - send a JSON mesage to the C# API
-  - `GetInitialPath` - gets a relative path where the grabbed image could be saved
 - main -> preload
   - `SEMClient:Received` - notifies of a JSON message received from the C# API
 
@@ -24,4 +23,3 @@ Because this runs in the browser, the data sent need not be JSON-serializable. T
 
 - `window.semClient.send(command: Command)` - send a JSON message to the C# API
 - `window.semClient.subscribe(callback: (message: Message) => void)` - pass a callback function to be called when any JSON message is received from the C# API. All filtering of messages should be done in the callback function.
-- `window.getInitialPath(): Promise<string>` - gets a relative path where the grabbed image could be saved

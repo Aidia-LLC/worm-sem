@@ -7,7 +7,7 @@
  */
 
 import { contextBridge, ipcRenderer } from "electron";
-import { SEMClient } from "../microscopeApi/types";
+import { SEMClient } from "../microscopeBridge/types";
 import { ElectronMessage } from "./types";
 
 const subscribers: ((message: ElectronMessage) => void)[] = [];
@@ -30,7 +30,3 @@ ipcRenderer.on("SEMClient:Received", (_, data) => {
 });
 
 contextBridge.exposeInMainWorld("semClient", client);
-
-contextBridge.exposeInMainWorld("getInitialPath", () => {
-  return ipcRenderer.invoke("GetInitialPath");
-});

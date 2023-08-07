@@ -1,5 +1,6 @@
 import { RibbonData } from "@data/shapes";
 import { computeStageCoordinates } from "@logic/semCoordinates";
+import { microscopeBridge } from "@microscopeBridge/index";
 import { createEffect, createSignal, Show, untrack } from "solid-js";
 import {
   BRIGHTNESS_STEP,
@@ -19,7 +20,6 @@ import {
   ribbonState,
   scanSpeedSignal,
 } from "src/data/signals/globals";
-import { microscopeApi } from "src/microscopeApi";
 import { Button } from "../Button";
 import { SliderPicker } from "../SliderPicker";
 import { SliceGrouper } from "./SliceGrouper";
@@ -47,9 +47,9 @@ export const SliceConfigurationScreen = () => {
 
     setInitializedRibbonId(focusedRibbonId);
 
-    const brightness = await microscopeApi.getBrightness();
-    const contrast = await microscopeApi.getContrast();
-    const focus = await microscopeApi.getWorkingDistance();
+    const brightness = await microscopeBridge.getBrightness();
+    const contrast = await microscopeBridge.getContrast();
+    const focus = await microscopeBridge.getWorkingDistance();
 
     ribbonDispatch({
       action: "updateSliceConfiguration",
@@ -71,11 +71,11 @@ export const SliceConfigurationScreen = () => {
       stageConfiguration: stage()!,
     });
 
-    await microscopeApi.setDetectorType("ZOOMED_IN");
-    await microscopeApi.moveStageTo(coordinates);
-    await microscopeApi.setMagnification(magnification());
-    await microscopeApi.setScanSpeed(scanSpeed());
-    await microscopeApi.setFrozen(false);
+    await microscopeBridge.setDetectorType("ZOOMED_IN");
+    await microscopeBridge.moveStageTo(coordinates);
+    await microscopeBridge.setMagnification(magnification());
+    await microscopeBridge.setScanSpeed(scanSpeed());
+    await microscopeBridge.setFrozen(false);
   });
 
   createEffect(() => {
@@ -91,7 +91,7 @@ export const SliceConfigurationScreen = () => {
         canvasConfiguration: primaryImage()!.size!,
         stageConfiguration: stage()!,
       });
-      await microscopeApi.moveStageTo(coordinates);
+      await microscopeBridge.moveStageTo(coordinates);
     });
   });
 
@@ -152,7 +152,7 @@ export const SliceConfigurationScreen = () => {
         step={1}
         setValue={async (value) => {
           setMagnification(value);
-          await microscopeApi.setMagnification(value);
+          await microscopeBridge.setMagnification(value);
         }}
       />
       <SliderPicker
@@ -163,7 +163,7 @@ export const SliceConfigurationScreen = () => {
         step={1}
         setValue={async (value) => {
           setScanSpeed(value);
-          await microscopeApi.setScanSpeed(value);
+          await microscopeBridge.setScanSpeed(value);
         }}
       />
       <div class="flex flex-col my-2 ml-6">
@@ -181,7 +181,7 @@ export const SliceConfigurationScreen = () => {
               action: "updateSliceConfiguration",
               payload: { brightness: value },
             });
-            await microscopeApi.setBrightness(value);
+            await microscopeBridge.setBrightness(value);
           }}
           unit="%"
         />
@@ -197,7 +197,7 @@ export const SliceConfigurationScreen = () => {
               action: "updateSliceConfiguration",
               payload: { contrast: value },
             });
-            await microscopeApi.setContrast(value);
+            await microscopeBridge.setContrast(value);
           }}
         />
         <SliderPicker
@@ -212,7 +212,7 @@ export const SliceConfigurationScreen = () => {
               action: "updateSliceConfiguration",
               payload: { focus: value },
             });
-            await microscopeApi.setWorkingDistance(value);
+            await microscopeBridge.setWorkingDistance(value);
           }}
         />
       </div>

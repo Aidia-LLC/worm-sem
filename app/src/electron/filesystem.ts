@@ -1,5 +1,5 @@
 import { BrowserWindow, dialog } from "electron";
-import { GrabFullFrameCommand } from "../microscopeApi/types";
+import { GrabFullFrameCommand } from "../microscopeBridge/types";
 import { temporaryFile } from "tempy";
 
 const NUM_TEMP_FILES = 5;

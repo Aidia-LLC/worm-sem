@@ -1,11 +1,11 @@
 import { sleep } from "@logic/finalImaging";
+import { grabImageOnFrameEnd } from "@microscopeBridge/grabImageOnFrameEnd";
+import { microscopeBridge } from "@microscopeBridge/index";
 import { createSignal, Show } from "solid-js";
 import {
   initialStageSignal,
   primaryImageSignal,
 } from "src/data/signals/globals";
-import { microscopeApi } from "src/microscopeApi";
-import { grabImageOnFrameEnd } from "src/microscopeApi/grabImageOnFrameEnd";
 import { Button } from "../Button";
 
 const SCAN_SPEED = 5;
@@ -22,10 +22,10 @@ export const GrabForm = () => {
         onClick={async () => {
           try {
             setLoading(true);
-            await microscopeApi.setImageQuality("LOW");
-            await microscopeApi.setDetectorType("ZOOMED_OUT");
+            await microscopeBridge.setImageQuality("LOW");
+            await microscopeBridge.setDetectorType("ZOOMED_OUT");
             await sleep(1000);
-            await microscopeApi.setScanSpeed(SCAN_SPEED);
+            await microscopeBridge.setScanSpeed(SCAN_SPEED);
             await sleep(2000);
             console.log("grabbing image");
             const message = await grabImageOnFrameEnd(
@@ -41,9 +41,9 @@ export const GrabForm = () => {
               }
             );
             console.log("got image");
-            const stage = await microscopeApi.getStagePosition();
-            const limits = await microscopeApi.getStageBounds();
-            const fieldOfView = await microscopeApi.getFieldOfView();
+            const stage = await microscopeBridge.getStagePosition();
+            const limits = await microscopeBridge.getStageBounds();
+            const fieldOfView = await microscopeBridge.getFieldOfView();
             setPrimaryImage({
               filename: message.filename!,
               src: message.payload,

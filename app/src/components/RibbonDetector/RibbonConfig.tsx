@@ -1,12 +1,12 @@
+import { RibbonData } from "@data/shapes";
 import { addTrapezoid } from "@logic/trapezoids/addTrapezoid";
-import { microscopeApi } from "@microscopeApi/index";
+import { microscopeBridge } from "@microscopeBridge/index";
 import { For, Show } from "solid-js";
 import {
   magnificationSignal,
   nextSliceIdSignal,
   ribbonState,
 } from "src/data/signals/globals";
-import { RibbonData } from "@data/shapes";
 import { Button } from "../Button";
 
 export const availableColors = [
@@ -185,10 +185,10 @@ export const RibbonConfig = (props: {
           <Button
             tooltip="Configure brightness, contrast, and focus for each slice"
             onClick={async () => {
-              const brightness = await microscopeApi.getBrightness();
-              const contrast = await microscopeApi.getContrast();
-              const focus = await microscopeApi.getWorkingDistance();
-              await microscopeApi.setMagnification(magnification());
+              const brightness = await microscopeBridge.getBrightness();
+              const contrast = await microscopeBridge.getContrast();
+              const focus = await microscopeBridge.getWorkingDistance();
+              await microscopeBridge.setMagnification(magnification());
               ribbonDispatch(
                 {
                   action: "setFocusedRibbonId",

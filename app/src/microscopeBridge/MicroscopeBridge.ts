@@ -2,11 +2,11 @@ import {
   MicroscopeDetectorType,
   MicroscopeFreezeOn,
   MicroscopeImageQuality,
-} from "@electron/microscope/types";
+} from "@electron/microscopeCallingInterface/types";
 import { ElectronMessage } from "@electron/types";
-import { grabSEMImage } from "./semBridge";
 
-export interface MicroscopeApi {
+/// The bridge that connects the web app to the main process, which in turn connects to the microscope.
+export interface MicroscopeBridge {
   /// Connects to the microscope.
   connect(): Promise<void>;
 
@@ -68,7 +68,11 @@ export interface MicroscopeApi {
   setFreezeOn(freezeOn: MicroscopeFreezeOn): Promise<void>;
 
   /// Grabs a full frame image from the microscope and saves it to the specified file.
-  grabFullFrame(
-    props: Parameters<typeof grabSEMImage>[0]
-  ): Promise<ElectronMessage>;
+  grabFullFrame(props: {
+    name: string;
+    filename?: string;
+    temporary?: boolean;
+    ribbonId?: number;
+    ribbonName?: string;
+  }): Promise<ElectronMessage>;
 }
