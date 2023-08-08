@@ -460,7 +460,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
             ribbonDispatch({ action: "resetImage" });
             setZoomState({ status: "zoomed-out", scale: 1 });
           }}
-          tooltip="Erase the current image. You'll have to grab a new image to continue."
+          tooltip="Clear the current grabbed image. Do this when you've enqueued all of the ribbons in the current image."
         >
           Clear Image
         </Button>

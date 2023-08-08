@@ -15,15 +15,18 @@ export const Unconnected = (props: { onConnect: () => void }) => {
         />
         <span>I have disabled the data zone!</span>
       </label>
-      <Button
-        onClick={async () => {
-          await microscopeBridge.connect();
-          props.onConnect();
-        }}
-        disabled={!acknowledged()}
-      >
-        Connect
-      </Button>
+      <div class="w-min">
+        <Button
+          onClick={async () => {
+            await microscopeBridge.connect();
+            props.onConnect();
+          }}
+          disabled={!acknowledged()}
+          class="whitespace-nowrap"
+        >
+          Connect to microscope
+        </Button>
+      </div>
     </>
   );
 };

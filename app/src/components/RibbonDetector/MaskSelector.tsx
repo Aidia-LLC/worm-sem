@@ -46,7 +46,9 @@ export const MaskSelector = (props: {
         </Button>
         <Button
           onClick={() => {
-            const [mask] = ribbonReducer().masks;
+            const mask =
+              ribbonReducer().masks[ribbonReducer().currentMaskIndex];
+            if (!mask) return;
             const points = ribbonReducer().clickedPoints;
             ribbonDispatch(
               {

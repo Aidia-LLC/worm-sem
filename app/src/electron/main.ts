@@ -33,7 +33,7 @@ app.whenReady().then(async () => {
   await microscopeApi.initialize();
 
   ipcMain.handle("SEMClient:Send", async (_, command: Command) => {
-    console.log("Received message from renderer:", command);
+    console.log("Received message from renderer:", JSON.stringify(command));
     try {
       switch (command.type) {
         case "GRAB_FULL_FRAME": {

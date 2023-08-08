@@ -15,60 +15,66 @@ export const GrabForm = () => {
   const [_, setPrimaryImage] = primaryImageSignal;
   const [initialStage, setInitialStage] = initialStageSignal;
 
+  const handleGrab = async () => {
+    try {
+      setLoading(true);
+      await microscopeBridge.setImageQuality("LOW");
+      await microscopeBridge.setDetectorType("ZOOMED_OUT");
+      await sleep(1000);
+      await microscopeBridge.setScanSpeed(SCAN_SPEED);
+      await sleep(2000);
+      console.log("grabbing image");
+      const message = await grabImageOnFrameEnd(
+        {
+          name: "GRAB_FULL_FRAME",
+          temporary: true,
+        },
+        {
+          // minSleepMs: 15000,
+          // pollIntervalMs: 5000,
+          minSleepMs: 100,
+          pollIntervalMs: 100,
+        }
+      );
+      console.log("got image");
+      const stage = await microscopeBridge.getStagePosition();
+      const limits = await microscopeBridge.getStageBounds();
+      const fieldOfView = await microscopeBridge.getFieldOfView();
+      setPrimaryImage({
+        filename: message.filename!,
+        src: message.payload,
+      });
+      setInitialStage({
+        x: stage.x,
+        y: stage.y,
+        width: fieldOfView.width,
+        height: fieldOfView.height,
+        limits: {
+          x: [limits.x.min, limits.x.max],
+          y: [limits.y.min, limits.y.max],
+        },
+      });
+      console.log(initialStage());
+      setLoading(false);
+    } catch (err) {
+      alert(`Failed to grab initial image: ${err}`);
+    }
+  };
+
   return (
     <div class="flex flex-col gap-3">
-      <Button
-        disabled={loading()}
-        onClick={async () => {
-          try {
-            setLoading(true);
-            await microscopeBridge.setImageQuality("LOW");
-            await microscopeBridge.setDetectorType("ZOOMED_OUT");
-            await sleep(1000);
-            await microscopeBridge.setScanSpeed(SCAN_SPEED);
-            await sleep(2000);
-            console.log("grabbing image");
-            const message = await grabImageOnFrameEnd(
-              {
-                name: "GRAB_FULL_FRAME",
-                temporary: true,
-              },
-              {
-                // minSleepMs: 15000,
-                // pollIntervalMs: 5000,
-                minSleepMs: 100,
-                pollIntervalMs: 100,
-              }
-            );
-            console.log("got image");
-            const stage = await microscopeBridge.getStagePosition();
-            const limits = await microscopeBridge.getStageBounds();
-            const fieldOfView = await microscopeBridge.getFieldOfView();
-            setPrimaryImage({
-              filename: message.filename!,
-              src: message.payload,
-            });
-            setInitialStage({
-              x: stage.x,
-              y: stage.y,
-              width: fieldOfView.width,
-              height: fieldOfView.height,
-              limits: {
-                x: [limits.x.min, limits.x.max],
-                y: [limits.y.min, limits.y.max],
-              },
-            });
-            console.log(initialStage());
-            setLoading(false);
-          } catch (err) {
-            alert(`Failed to grab initial image: ${err}`);
-          }
-        }}
-      >
-        Grab Initial Image
-      </Button>
+      <p class="text-md">
+        No image has been grabbed yet. Please move the stage to the desired
+        position, set a magnification to see the entire sample, and click the
+        button below to grab an image.
+      </p>
+      <div class='w-min'>
+        <Button disabled={loading()} onClick={handleGrab} class='whitespace-nowrap'>
+          Grab Image
+        </Button>
+      </div>
       <Show when={loading()}>
-        <span>Getting initial image...</span>
+        <span>Grabbing image...</span>
       </Show>
     </div>
   );

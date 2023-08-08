@@ -39,6 +39,7 @@ export type Trapezoid = {
 };
 
 export type SliceConfiguration = {
+  id: number;
   index: number;
   contrast?: number;
   brightness?: number;

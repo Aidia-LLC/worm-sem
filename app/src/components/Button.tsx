@@ -14,7 +14,7 @@ export const Button = (props: {
   class?: string;
   disabled?: boolean;
   tooltip?: string;
-  tooltipPosition?: "right" | "bottom";
+  tooltipPosition?: "right" | "bottom" | "left";
 }) => {
   return (
     <Tooltip

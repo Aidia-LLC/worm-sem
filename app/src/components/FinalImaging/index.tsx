@@ -1,4 +1,7 @@
-import { handleFinalImaging, setupFinalConfigurations } from "@logic/finalImaging";
+import {
+  handleFinalImaging,
+  setupFinalConfigurations,
+} from "@logic/finalImaging";
 import { createSignal, onMount } from "solid-js";
 import {
   initialStageSignal,
@@ -19,13 +22,7 @@ export const FinalImaging = () => {
   const [scanSpeed] = scanSpeedSignal;
 
   onMount(async () => {
-    ribbonDispatch(
-      { action: "clearFocusedSlice" },
-      {
-        action: "setGrabbing",
-        payload: true,
-      }
-    );
+    ribbonDispatch({ action: "clearFocusedSlice" });
     const ribbon = ribbonReducer().ribbons.find(
       (r) => r.id === ribbonReducer().focusedRibbonId
     );
@@ -53,12 +50,8 @@ export const FinalImaging = () => {
       alert(`Error imaging ${ribbon.name}. ${(err as Error).message}`);
     }
     ribbonDispatch({
-      action: "setGrabbing",
-      payload: false,
-    });
-    ribbonDispatch({
-      action: "setFocusedRibbonId",
-      payload: -1,
+      action: "setPhase",
+      payload: "ribbon-detection",
     });
   });
 

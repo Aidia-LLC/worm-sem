@@ -1,5 +1,5 @@
 import { createStore, SetStoreFunction } from "solid-js/store";
-import { ProcessingOptions } from "src/types/ProcessingOptions";
+import { ProcessingOptions } from "@data/ProcessingOptions";
 
 export const defaultOptions: ProcessingOptions = {
   squareSize: 420,

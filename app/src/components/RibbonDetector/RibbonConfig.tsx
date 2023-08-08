@@ -24,7 +24,7 @@ export const RibbonConfig = (props: {
   ctx: CanvasRenderingContext2D;
   handleRibbonDetection: (points: [number, number][]) => void;
 }) => {
-  const [_, ribbonDispatch] = ribbonState;
+  const [ribbonReducer, ribbonDispatch] = ribbonState;
   const [nextSliceId, setNextSliceId] = nextSliceIdSignal;
   const [magnification] = magnificationSignal;
 
@@ -48,6 +48,11 @@ export const RibbonConfig = (props: {
     });
     setNextSliceId(nextSliceId() + 1);
   };
+
+  const enqueued = () =>
+    ribbonReducer()
+      .enqueuedRibbons.map((r) => r.ribbon.id)
+      .includes(props.ribbon.id);
 
   // const handleDetectAgain = () => {
   //   ribbonDispatch({
@@ -78,136 +83,153 @@ export const RibbonConfig = (props: {
           type="text"
           value={props.ribbon.name}
           onChange={(e) => setRibbon({ name: e.currentTarget.value })}
+          disabled={enqueued()}
         />
-        <Button
-          variant="danger-outline"
-          onClick={() =>
-            ribbonDispatch({
-              action: "deleteRibbon",
-              payload: props.ribbon,
-            })
-          }
-        >
-          Remove
-        </Button>
+        <Show when={!enqueued()}>
+          <Button
+            variant="danger-outline"
+            onClick={() =>
+              ribbonDispatch({
+                action: "deleteRibbon",
+                payload: props.ribbon,
+              })
+            }
+          >
+            Remove
+          </Button>
+        </Show>
       </div>
-      <div class="flex flex-col gap-1 my-auto">
-        <label class="font-bold">Color</label>
-        <select
-          class="p-2 rounded-md border border-gray-300"
-          value={props.ribbon.color}
-          onChange={(e) => setRibbon({ color: e.currentTarget.value })}
-        >
-          <For each={availableColors}>
-            {(color) => <option value={color}>{color}</option>}
-          </For>
-        </select>
-      </div>
+      <Show
+        when={!enqueued()}
+        fallback={
+          <span class='col-span-3 text-md'>
+            This ribbon has been enqueued for imaging. If you need to edit it,
+            you can do so in the final review step.
+          </span>
+        }
+      >
+        <div class="flex flex-col gap-1 my-auto">
+          <label class="font-bold">Color</label>
+          <select
+            class="p-2 rounded-md border border-gray-300"
+            value={props.ribbon.color}
+            onChange={(e) => setRibbon({ color: e.currentTarget.value })}
+          >
+            <For each={availableColors}>
+              {(color) => <option value={color}>{color}</option>}
+            </For>
+          </select>
+        </div>
 
-      <div class="flex flex-col gap-2 justify-between my-auto">
-        <label class="font-bold">Status</label>
-        <div class="flex flex-col gap-2 justify-between mb-2.5">
-          <div class="flex flex-col gap-2">
+        <div class="flex flex-col gap-2 justify-between my-auto">
+          <label class="font-bold">Status</label>
+          <div class="flex flex-col gap-2 justify-between mb-2.5">
+            <div class="flex flex-col gap-2">
+              <label class="flex flex-row items-center gap-1">
+                <input
+                  type="radio"
+                  name={radioName()}
+                  value="editing"
+                  checked={props.ribbon.status === "editing"}
+                  onChange={(e) => {
+                    if (e.currentTarget.checked)
+                      setRibbon({ status: "editing" });
+                  }}
+                />
+                Editing
+              </label>
+            </div>
             <label class="flex flex-row items-center gap-1">
               <input
                 type="radio"
                 name={radioName()}
-                value="editing"
-                checked={props.ribbon.status === "editing"}
+                value="matching"
+                checked={props.ribbon.status === "matching"}
                 onChange={(e) => {
-                  if (e.currentTarget.checked) setRibbon({ status: "editing" });
+                  if (e.currentTarget.checked)
+                    setRibbon({ status: "matching" });
                 }}
               />
-              Editing
+              Matching
+            </label>
+            <label class="flex flex-row items-center gap-1">
+              <input
+                type="radio"
+                name={radioName()}
+                value="saved"
+                checked={props.ribbon.status === "saved"}
+                onChange={(e) => {
+                  if (e.currentTarget.checked) setRibbon({ status: "saved" });
+                }}
+              />
+              Locked
             </label>
           </div>
-          <label class="flex flex-row items-center gap-1">
-            <input
-              type="radio"
-              name={radioName()}
-              value="matching"
-              checked={props.ribbon.status === "matching"}
-              onChange={(e) => {
-                if (e.currentTarget.checked) setRibbon({ status: "matching" });
+        </div>
+        <Show when={props.ribbon.status === "editing"}>
+          <div class="flex flex-col gap-1 items-center justify-evenly">
+            <Button
+              onClick={() => handleAddTrapezoid({ top: true })}
+              class="w-full"
+              variant="primary-outline"
+            >
+              Add slice to top
+            </Button>
+            <Button
+              onClick={() => handleAddTrapezoid({ top: false })}
+              class="w-full"
+              variant="primary-outline"
+            >
+              Add slice to bottom
+            </Button>
+          </div>
+          <div class="flex flex-col gap-1 items-center justify-evenly">
+            <Button
+              variant="ghost"
+              onClick={() =>
+                setRibbon({ slices: props.ribbon.slices.reverse() })
+              }
+            >
+              Reverse Direction
+            </Button>
+            {/* <Button
+              onClick={handleDetectAgain}
+              class="w-full"
+              variant="secondary"
+            >
+              Detect slices again
+            </Button> */}
+          </div>
+        </Show>
+        <Show when={props.ribbon.matchedPoints.length > 0}>
+          <div class="flex items-center justify-end">
+            <Button
+              tooltip="Configure brightness, contrast, and focus for each slice"
+              onClick={async () => {
+                const brightness = await microscopeBridge.getBrightness();
+                const contrast = await microscopeBridge.getContrast();
+                const focus = await microscopeBridge.getWorkingDistance();
+                await microscopeBridge.setMagnification(magnification());
+                ribbonDispatch(
+                  {
+                    action: "setFocusedRibbonId",
+                    payload: props.ribbon.id,
+                  },
+                  {
+                    action: "setFocusedSliceIndex",
+                    payload: 0,
+                  },
+                  {
+                    action: "resetSliceConfigurations",
+                    payload: { brightness, contrast, focus },
+                  }
+                );
               }}
-            />
-            Matching
-          </label>
-          <label class="flex flex-row items-center gap-1">
-            <input
-              type="radio"
-              name={radioName()}
-              value="saved"
-              checked={props.ribbon.status === "saved"}
-              onChange={(e) => {
-                if (e.currentTarget.checked) setRibbon({ status: "saved" });
-              }}
-            />
-            Locked
-          </label>
-        </div>
-      </div>
-      <Show when={props.ribbon.status === "editing"}>
-        <div class="flex flex-col gap-1 items-center justify-evenly">
-          <Button
-            onClick={() => handleAddTrapezoid({ top: true })}
-            class="w-full"
-            variant="primary-outline"
-          >
-            Add slice to top
-          </Button>
-          <Button
-            onClick={() => handleAddTrapezoid({ top: false })}
-            class="w-full"
-            variant="primary-outline"
-          >
-            Add slice to bottom
-          </Button>
-        </div>
-        <div class="flex flex-col gap-1 items-center justify-evenly">
-          <Button
-            variant="ghost"
-            onClick={() => setRibbon({ slices: props.ribbon.slices.reverse() })}
-          >
-            Reverse Direction
-          </Button>
-          {/* <Button
-            onClick={handleDetectAgain}
-            class="w-full"
-            variant="secondary"
-          >
-            Detect slices again
-          </Button> */}
-        </div>
-      </Show>
-      <Show when={props.ribbon.matchedPoints.length > 0}>
-        <div class="flex items-center justify-end">
-          <Button
-            tooltip="Configure brightness, contrast, and focus for each slice"
-            onClick={async () => {
-              const brightness = await microscopeBridge.getBrightness();
-              const contrast = await microscopeBridge.getContrast();
-              const focus = await microscopeBridge.getWorkingDistance();
-              await microscopeBridge.setMagnification(magnification());
-              ribbonDispatch(
-                {
-                  action: "setFocusedRibbonId",
-                  payload: props.ribbon.id,
-                },
-                {
-                  action: "setFocusedSliceIndex",
-                  payload: 0,
-                },
-                {
-                  action: "resetSliceConfigurations",
-                  payload: { brightness, contrast, focus },
-                }
-              );
-            }}
-          >
-            Configure Slices
-          </Button>
-        </div>
+            >
+              Configure Slices
+            </Button>
+          </div>
+        </Show>
       </Show>
     </div>
   );

@@ -22,6 +22,7 @@ import {
 } from "src/data/signals/globals";
 import { Button } from "../Button";
 import { SliderPicker } from "../SliderPicker";
+import { EnqueueRibbon } from "./EnqueueRibbon";
 import { SliceGrouper } from "./SliceGrouper";
 
 export const SliceConfigurationScreen = () => {
@@ -133,13 +134,7 @@ export const SliceConfigurationScreen = () => {
               </Button>
             }
           >
-            <Button
-              onClick={() =>
-                ribbonDispatch({ action: "setGrabbing", payload: true })
-              }
-            >
-              Finish
-            </Button>
+            <EnqueueRibbon />
           </Show>
         </div>
       </div>

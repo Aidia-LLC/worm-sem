@@ -56,8 +56,9 @@ export class ZeissInterface extends MicroscopeCallingInterface {
         "Attempted to send message to microscope before initialization"
       );
     return new Promise((res, rej) => {
-      console.log("Sending message", message);
-      child.stdin.write(JSON.stringify(message) + "\n");
+      const msg = JSON.stringify(message);
+      console.log("Sending message", msg);
+      child.stdin.write(msg + "\n");
       setTimeout(rej, RESPONSE_TIMEOUT);
       this.responseCallbacks.set(message.id, {
         onSuccess: res,
@@ -266,7 +267,10 @@ export class ZeissInterface extends MicroscopeCallingInterface {
             })
             .filter(Boolean);
           messages.forEach(async (message) => {
-            console.log("Received message from Zeiss interface:", message);
+            console.log(
+              "Received message from Zeiss interface:",
+              JSON.stringify(message)
+            );
             const callbacks = this.responseCallbacks.get(message.id);
             if (!callbacks) return;
             this.responseCallbacks.delete(message.id);

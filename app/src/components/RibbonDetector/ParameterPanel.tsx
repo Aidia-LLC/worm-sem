@@ -16,12 +16,13 @@ export const ParameterPanel = () => {
   return (
     <>
       <h3 class="font-bold text-xl mt-4">Options</h3>
-      <div class="grid grid-cols-2 gap-3">
+      <div class="grid grid-cols-2 gap-3 mb-12">
         <div class="flex flex-col gap-3">
           <Button
             variant="primary-outline"
             onClick={() => setParamsHidden(!paramsHidden())}
             tooltip="Allows fine tuning of other parameters."
+            tooltipPosition="bottom"
           >
             {paramsHidden() ? "Show" : "Hide"} Additional Parameters
           </Button>

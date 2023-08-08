@@ -1,10 +1,19 @@
-import { HistoryLog } from "@components/HistoryLog";
+import { Button } from "@components/Button";
+import { FinalImaging } from "@components/FinalImaging";
+import { FinalReview } from "@components/FinalReview";
 import { GrabForm } from "@components/InitialGrab";
 import { Instructions } from "@components/Instructions";
 import { Canvas } from "@components/RibbonDetector/Canvas";
 import { SliceConfigurationScreen } from "@components/SliceConfigurationScreen";
 import { Unconnected } from "@components/Unconnected";
-import { createSignal, Match, onMount, Switch } from "solid-js";
+import {
+  createEffect,
+  createSignal,
+  Match,
+  onMount,
+  Show,
+  Switch,
+} from "solid-js";
 import { PYTHON_PORT } from "./config";
 import {
   initialStageSignal,
@@ -18,7 +27,7 @@ export const App = () => {
   const [connected, setConnected] = createSignal(false);
   const [samLoaded, setSamLoaded] = createSignal(false);
   const [primaryImage] = primaryImageSignal;
-  const [ribbonReducer] = ribbonState;
+  const [ribbonReducer, dispatch] = ribbonState;
   const [initialStage] = initialStageSignal;
 
   onMount(() => {
@@ -38,12 +47,47 @@ export const App = () => {
     }, DELAY_TO_INITIALIZE_SAM);
   });
 
+  const reviewing = () => ribbonReducer().phase === "review";
+  const imaging = () => ribbonReducer().phase === "imaging";
+  const enqueuedRibbons = () => ribbonReducer().enqueuedRibbons;
+  const enqueuedSlices = () =>
+    ribbonReducer().enqueuedRibbons.reduce(
+      (sum, r) => sum + r.slices.length,
+      0
+    );
+
+  createEffect(() => {
+    ribbonReducer();
+  });
+
   return (
     <div class="flex flex-col gap-3 m-4">
       <Instructions />
+      <Show when={enqueuedRibbons().length > 0 && !reviewing() && !imaging()}>
+        <div class="rounded-lg my-4 p-4 bg-green-200 flex flex-row items-center justify-between">
+          <span>
+            {enqueuedRibbons().length} ribbons ({enqueuedSlices()} slices)
+            enqueued for imaging
+          </span>
+          <div>
+            <Button
+              onClick={() => {
+                dispatch({ action: "setPhase", payload: "review" });
+              }}
+              tooltipPosition="left"
+              tooltip="Once you've configured all of the ribbons you want to image, click here to review them all before imaging."
+            >
+              Review
+            </Button>
+          </div>
+        </div>
+      </Show>
       <Switch>
         <Match when={!connected()}>
           <Unconnected onConnect={() => setConnected(true)} />
+        </Match>
+        <Match when={reviewing()}>
+          <FinalReview />
         </Match>
         <Match when={connected() && !primaryImage()}>
           <GrabForm />
@@ -58,11 +102,13 @@ export const App = () => {
         >
           <SliceConfigurationScreen />
         </Match>
-        <Match when={connected() && primaryImage()}>
+        <Match when={connected() && primaryImage() && !imaging()}>
           <Canvas samLoaded={samLoaded()} />
         </Match>
+        <Match when={imaging()}>
+          <FinalImaging />
+        </Match>
       </Switch>
-      <HistoryLog />
     </div>
   );
 };

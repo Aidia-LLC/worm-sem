@@ -66,20 +66,12 @@ export const Param = (props: {
       />
       <Button
         onClick={() => props.onChange(currentValue())}
-        variant="primary-outline"
+        variant={
+          props.value !== currentValue() ? "danger-outline" : "primary-outline"
+        }
       >
         Set
       </Button>
-      {/* <button
-        onClick={() => props.onChange(currentValue())}
-        class="text-white font-bold py-2 px-4 rounded"
-        classList={{
-          "bg-orange-500 hover:bg-orange-700": props.value !== currentValue(),
-          "bg-blue-500 hover:bg-blue-700": props.value === currentValue(),
-        }}
-      >
-        Set
-      </button> */}
     </div>
   );
 };

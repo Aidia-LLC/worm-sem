@@ -1,6 +1,14 @@
+import { Button } from "@components/Button";
+import { getIndicesOfSlicesToConfigure } from "@logic/sliceConfiguration";
 import { For, Match, onMount, Switch } from "solid-js";
 import { ribbonState } from "src/data/signals/globals";
-import { DownArrow, TwoHeadedVerticalArrow, UpArrow } from "./Arrows";
+import {
+  DownArrow,
+  InterpolatedSymbol,
+  ManuallyConfigured,
+  TwoHeadedVerticalArrow,
+  UpArrow,
+} from "./SliceGrouperSymbols";
 
 export const SliceGrouper = () => {
   const [ribbonReducer, dispatch] = ribbonState;
@@ -11,22 +19,33 @@ export const SliceGrouper = () => {
     )!;
 
   onMount(() => {
-    if (ribbon().slicesToConfigure.length === 0)
+    if (ribbon().slicesToConfigure.length === 0) {
+      const indices = getIndicesOfSlicesToConfigure(ribbon().slices.length);
       dispatch({
         action: "setSlicesToConfigure",
         payload: ribbon()
-          .slices.filter((_, index, slices) => {
-            if (index === 0) return true;
-            if (index === slices.length - 1) return true;
-            return false;
-          })
+          .slices.filter((_, index) => indices.includes(index))
           .map((s) => s.id),
       });
+    }
   });
 
   return (
     <div class="flex flex-col gap-2 items-center max-w-lg">
-      <h2 class="text-xl font-bold">Select Slices</h2>
+      <div class="self-end">
+        <Button
+          variant="secondary"
+          onClick={() =>
+            dispatch({
+              action: "setFocusedRibbonId",
+              payload: null,
+            })
+          }
+        >
+          Cancel
+        </Button>
+      </div>
+      <h2 class="text-xl font-bold">Select slices to configure</h2>
       <p class="text-sm">
         You must configure at least the first and last slice. Any unselected
         slices will be interpolated. If there are any slices you want to exclude
@@ -61,9 +80,9 @@ export const SliceGrouper = () => {
                 <span>Slice {i() + 1}</span>
               </label>
               <span class="text-center flex items-center justify-center">
-                <Switch fallback="|">
+                <Switch fallback={<InterpolatedSymbol />}>
                   <Match when={ribbon().slicesToConfigure.includes(slice.id)}>
-                    ---
+                    <ManuallyConfigured />
                   </Match>
                   <Match
                     when={

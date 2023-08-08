@@ -1,4 +1,5 @@
-import { RibbonData, Slice } from "@data/shapes";
+import { FinalSliceConfiguration, RibbonData, Slice } from "@data/shapes";
+import { StageConfiguration } from "@logic/semCoordinates";
 
 type DraggingData = {
   ribbonId: RibbonData["id"] | null;
@@ -7,20 +8,34 @@ type DraggingData = {
   position: { x: number; y: number };
 };
 
+type FinalRibbonConfiguration = {
+  ribbon: Pick<RibbonData, "id" | "name">;
+  stage: StageConfiguration;
+  slices: FinalSliceConfiguration[];
+  scanSpeed: number;
+};
+
+type AppPhase = "ribbon-detection" | "review" | "imaging";
+
 export const ribbonReducerInitialState = {
   ribbons: [] as RibbonData[],
   focusedRibbonId: null as RibbonData["id"] | null,
   draggingData: null as DraggingData | null,
   focusedSliceIndex: -1,
-  grabbing: false,
   clickedPoints: [] as [number, number][],
   detection: true,
   detectionLoading: false,
   masks: [] as ImageData[],
   currentMaskIndex: -1,
+  enqueuedRibbons: [] as FinalRibbonConfiguration[],
+  phase: "ribbon-detection" as AppPhase,
 };
 
 export type RibbonDispatchPayload =
+  | {
+      action: "enqueueRibbon";
+      payload: FinalRibbonConfiguration;
+    }
   | {
       action: "setRibbons";
       payload: RibbonData[];
@@ -30,8 +45,8 @@ export type RibbonDispatchPayload =
       payload: number | null;
     }
   | {
-      action: "setGrabbing";
-      payload: boolean;
+      action: "setPhase";
+      payload: AppPhase;
     }
   | {
       action: "setClickedPoints";
@@ -122,6 +137,19 @@ const ribbonUpdater = (
   event: RibbonDispatchPayload
 ): RibbonReducerState => {
   switch (event.action) {
+    case "enqueueRibbon":
+      return {
+        ...state,
+        enqueuedRibbons: [...state.enqueuedRibbons, event.payload],
+        focusedRibbonId: null,
+        ribbons: state.ribbons.map((ribbon) => {
+          if (ribbon.id !== event.payload.ribbon.id) return ribbon;
+          return {
+            ...ribbon,
+            status: "saved",
+          };
+        }),
+      };
     case "setDraggingData":
       return { ...state, draggingData: event.payload };
     case "setRibbons":
@@ -148,8 +176,15 @@ const ribbonUpdater = (
       };
     case "setFocusedRibbonId":
       return { ...state, focusedRibbonId: event.payload };
-    case "setGrabbing":
-      return { ...state, grabbing: event.payload };
+    case "setPhase":
+      return {
+        ...state,
+        phase: event.payload,
+        enqueuedRibbons:
+          event.payload === "ribbon-detection" ? [] : state.enqueuedRibbons,
+        focusedRibbonId: null,
+        focusedSliceIndex: -1,
+      };
     case "setClickedPoints":
       console.log("setClickedPoints", event.payload);
       return { ...state, clickedPoints: event.payload };
@@ -233,7 +268,8 @@ const ribbonUpdater = (
           if (ribbon.id !== state.focusedRibbonId) return ribbon;
           return {
             ...ribbon,
-            configurations: ribbon.slices.map((_, index) => ({
+            configurations: ribbon.slices.map((slice, index) => ({
+              id: slice.id,
               index,
               brightness: event.payload.brightness,
               contrast: event.payload.contrast,

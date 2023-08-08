@@ -64,14 +64,18 @@ export const handleFinalImaging = async (details: {
 };
 
 const interpolateConfigurations = (
-  userConfigurations: SliceConfiguration[]
+  allConfigurations: SliceConfiguration[],
+  manualConfigurations: SliceConfiguration["id"][]
 ) => {
+  const anchorConfigurations = allConfigurations.filter((config) =>
+    manualConfigurations.includes(config.id)
+  );
   const interpolatedConfigurations: SliceConfiguration[] = [];
-  for (let i = 0; i < userConfigurations.length; i++) {
-    const configA = userConfigurations[i];
+  for (let i = 0; i < anchorConfigurations.length; i++) {
+    const configA = anchorConfigurations[i];
     interpolatedConfigurations.push(configA);
-    if (i === userConfigurations.length - 1) break;
-    const configB = userConfigurations[i + 1];
+    if (i === anchorConfigurations.length - 1) break;
+    const configB = anchorConfigurations[i + 1];
     for (let j = configA.index + 1; j < configB.index; j++) {
       const percent = (j - configA.index) / (configB.index - configA.index);
       const brightness = lerp(
@@ -86,6 +90,7 @@ const interpolateConfigurations = (
       );
       const focus = lerp(configA.focus || 0, configB.focus || 0, percent);
       interpolatedConfigurations.push({
+        id: allConfigurations[j].id,
         index: j,
         brightness,
         contrast,
@@ -107,7 +112,8 @@ export const setupFinalConfigurations = (details: {
   ribbonId: number;
 }): FinalSliceConfiguration[] => {
   const interpolatedConfigurations = interpolateConfigurations(
-    details.ribbon.configurations
+    details.ribbon.configurations,
+    details.ribbon.slicesToConfigure
   );
   const ribbonName = details.ribbon.name
     .replace(/[^a-z0-9]/gi, "-")
