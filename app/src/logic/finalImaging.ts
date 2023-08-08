@@ -5,7 +5,7 @@ import {
 } from "@data/shapes";
 import { grabImageOnFrameEnd } from "@microscopeBridge/grabImageOnFrameEnd";
 import { microscopeBridge } from "@microscopeBridge/index";
-import { lerp } from "./canvas";
+import { lerp } from "./interpolation";
 import { computeStageCoordinates, StageConfiguration } from "./semCoordinates";
 
 export const sleep = (ms: number) =>

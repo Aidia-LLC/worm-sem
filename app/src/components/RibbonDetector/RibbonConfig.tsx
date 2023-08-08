@@ -54,16 +54,16 @@ export const RibbonConfig = (props: {
       .enqueuedRibbons.map((r) => r.ribbon.id)
       .includes(props.ribbon.id);
 
-  // const handleDetectAgain = () => {
-  //   ribbonDispatch({
-  //     action: "deleteRibbon",
-  //     payload: props.ribbon,
-  //   });
-  //   const points = [...props.ribbon.clickedPoints];
-  //   // move the first point to the end of the array
-  //   points.push(points.shift()!);
-  //   props.handleRibbonDetection(points);
-  // };
+  const handleDetectAgain = () => {
+    ribbonDispatch({
+      action: "deleteRibbon",
+      payload: props.ribbon,
+    });
+    const points = [...props.ribbon.clickedPoints];
+    // move the first point to the end of the array
+    points.push(points.shift()!);
+    props.handleRibbonDetection(points);
+  };
 
   return (
     <div
@@ -102,7 +102,7 @@ export const RibbonConfig = (props: {
       <Show
         when={!enqueued()}
         fallback={
-          <span class='col-span-3 text-md'>
+          <span class="col-span-3 text-md">
             This ribbon has been enqueued for imaging. If you need to edit it,
             you can do so in the final review step.
           </span>
@@ -192,13 +192,13 @@ export const RibbonConfig = (props: {
             >
               Reverse Direction
             </Button>
-            {/* <Button
+            <Button
               onClick={handleDetectAgain}
               class="w-full"
               variant="secondary"
             >
-              Detect slices again
-            </Button> */}
+              Detect again
+            </Button>
           </div>
         </Show>
         <Show when={props.ribbon.matchedPoints.length > 0}>

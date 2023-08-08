@@ -24,6 +24,7 @@ export type RibbonData = {
   matchedPoints: Vertex[];
   clickedPoints: [number, number][];
   slicesToConfigure: Slice['id'][];
+  slicesToMove: Slice['id'][];
   configurations: SliceConfiguration[];
 };
 
@@ -44,6 +45,7 @@ export type SliceConfiguration = {
   contrast?: number;
   brightness?: number;
   focus?: number;
+  point?: Vertex;
 };
 
 export type FinalSliceConfiguration = {

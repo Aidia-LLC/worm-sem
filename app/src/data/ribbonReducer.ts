@@ -12,10 +12,9 @@ type FinalRibbonConfiguration = {
   ribbon: Pick<RibbonData, "id" | "name">;
   stage: StageConfiguration;
   slices: FinalSliceConfiguration[];
-  scanSpeed: number;
 };
 
-type AppPhase = "ribbon-detection" | "review" | "imaging";
+type AppPhase = "ribbon-detection" | "imaging";
 
 export const ribbonReducerInitialState = {
   ribbons: [] as RibbonData[],
@@ -118,6 +117,10 @@ export type RibbonDispatchPayload =
     }
   | {
       action: "setSlicesToConfigure";
+      payload: Slice["id"][];
+    }
+  | {
+      action: "setSlicesToMove";
       payload: Slice["id"][];
     };
 
@@ -257,6 +260,20 @@ const ribbonUpdater = (
           return {
             ...ribbon,
             slicesToConfigure: event.payload,
+          };
+        }),
+      };
+    }
+    case "setSlicesToMove": {
+      const { focusedRibbonId } = state;
+      if (focusedRibbonId === null) return state;
+      return {
+        ...state,
+        ribbons: state.ribbons.map((ribbon) => {
+          if (ribbon.id !== focusedRibbonId) return ribbon;
+          return {
+            ...ribbon,
+            slicesToMove: event.payload,
           };
         }),
       };

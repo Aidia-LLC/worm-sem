@@ -2,6 +2,7 @@ import { ZoomState } from "@components/RibbonDetector/ZoomController";
 import { ProcessingOptions } from "@data/ProcessingOptions";
 import { Slice, Trapezoid, Vertex } from "@data/shapes";
 import { base64ToImageSrc } from "./image";
+import { lerp } from "./interpolation";
 import { linesIntersect } from "./intersection";
 
 export const setupCanvases = async (details: {
@@ -72,7 +73,7 @@ export function translateTrapezoid(
   } satisfies Slice;
 }
 
-export function DrawTrapezoid(
+export function drawTrapezoid(
   trapezoid: Trapezoid,
   ctx: CanvasRenderingContext2D,
   color: string = "green",
@@ -830,5 +831,3 @@ export const convertZoomedCoordinatesToFullImage = (
 
   return { x: clickedX, y: clickedY };
 };
-
-export const lerp = (a: number, b: number, t: number) => a * (1 - t) + b * t;

@@ -1,0 +1,16 @@
+export const groupColors = [
+  "red",
+  "blue",
+  "green",
+  "yellow",
+  "purple",
+  "orange",
+  "pink",
+  "cyan",
+  "lime",
+  "indigo",
+  "teal",
+  "fuchsia",
+  "violet",
+  "magenta",
+];
