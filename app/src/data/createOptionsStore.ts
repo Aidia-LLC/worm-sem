@@ -1,5 +1,5 @@
-import { createStore, SetStoreFunction } from "solid-js/store";
 import { ProcessingOptions } from "@data/ProcessingOptions";
+import { createStore, SetStoreFunction } from "solid-js/store";
 
 export const defaultOptions: ProcessingOptions = {
   squareSize: 420,
@@ -7,8 +7,8 @@ export const defaultOptions: ProcessingOptions = {
   mergeLineThreshold: 120,
   pixelThreshold: 0.35,
   maxLines: 6,
-  minimumFit: 0.4,
-  firstFit: 25,
+  minimumFit: 0.5,
+  firstFit: 200,
 };
 
 export const createOptionsStore = (): [

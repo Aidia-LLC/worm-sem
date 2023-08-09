@@ -2,7 +2,6 @@ import { RibbonData } from "@data/shapes";
 import { addTrapezoid } from "@logic/trapezoids/addTrapezoid";
 import { microscopeBridge } from "@microscopeBridge/index";
 import { For, Show } from "solid-js";
-import * as signals from "src/data/signals/globals";
 import {
   magnificationSignal,
   nextSliceIdSignal,
@@ -30,7 +29,6 @@ export const RibbonConfig = (props: {
   const [ribbonReducer, ribbonDispatch] = ribbonState;
   const [nextSliceId, setNextSliceId] = nextSliceIdSignal;
   const [magnification] = magnificationSignal;
-  const [options] = signals.optionsStore;
 
   const radioName = () => `status-${props.ribbon.id}`;
 
@@ -42,18 +40,12 @@ export const RibbonConfig = (props: {
   };
 
   const handleAddTrapezoid = ({ top }: { top: boolean }) => {
-    const [imgX, imgY] = props.ribbon.clickedPoints[0];
     setRibbon({
       ...props.ribbon,
       slices: addTrapezoid({
         trapezoids: props.ribbon.slices,
         id: nextSliceId(),
         top,
-        edgeDataCanvasRef: props.edgeDataCanvasRef,
-        overlayCanvasRef: props.overlayCanvasRef,
-        imgX,
-        imgY,
-        options: options.options,
       }),
     });
     setNextSliceId(nextSliceId() + 1);

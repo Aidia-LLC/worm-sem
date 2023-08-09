@@ -1,58 +1,19 @@
-import { ProcessingOptions } from "@data/ProcessingOptions";
 import { RibbonData, Slice } from "@data/shapes";
-import {
-  DirectSearchOptimization,
-  DrawTrapezoid,
-  getPointsOnTrapezoid,
-  getSquare,
-  getXYShift,
-} from "@logic/canvas";
+import { getXYShift } from "@logic/canvas";
 
 export const addTrapezoid = ({
   trapezoids,
   id,
   top = false,
-  edgeDataCanvasRef,
-  overlayCanvasRef,
-  imgX,
-  imgY,
-  options,
 }: {
   trapezoids: RibbonData["slices"];
   id: number;
   top: boolean;
-  edgeDataCanvasRef: HTMLCanvasElement;
-  overlayCanvasRef: HTMLCanvasElement;
-  imgX: number;
-  imgY: number;
-  options: ProcessingOptions;
 }): Slice[] => {
-  console.log("addTrapezoid here");
-  const edgeData = edgeDataCanvasRef
-    .getContext("2d")!
-    .getImageData(0, 0, edgeDataCanvasRef.width, edgeDataCanvasRef.height);
   if (trapezoids.length === 1) {
     const { xShift, yShift } = getXYShift(trapezoids[0]);
-    const dx = top ? -xShift : xShift;
-    const dy = top ? -yShift : yShift;
-    const square = getSquare(
-      edgeData,
-      imgX + dx,
-      imgY + dy,
-      options.squareSize
-    );
-    const ctx = overlayCanvasRef.getContext("2d")!;
-    ctx.beginPath();
-    ctx.lineWidth = 8;
-    ctx.rect(
-      imgX + dx - options.squareSize / 2,
-      imgY + dy - options.squareSize / 2,
-      options.squareSize,
-      options.squareSize
-    );
-    ctx.strokeStyle = "blue";
-    ctx.stroke();
-    ctx.closePath();
+    const dx = top ? xShift : -xShift;
+    const dy = top ? yShift : -yShift;
     const trapezoid = {
       id,
       top: {
@@ -80,16 +41,8 @@ export const addTrapezoid = ({
         y2: trapezoids[0].right.y2 + dy,
       },
     };
-    const { fit: _, trapezoid: newTrapezoid } = DirectSearchOptimization(
-      getPointsOnTrapezoid,
-      trapezoid,
-      square,
-      options,
-      imgX + dx,
-      imgY + dy
-    );
     const slice = {
-      ...newTrapezoid,
+      ...trapezoid,
       id,
     } as Slice;
     return [...(top ? [] : trapezoids), slice, ...(top ? trapezoids : [])];
@@ -159,46 +112,8 @@ export const addTrapezoid = ({
           (newTrapezoid.right.y2 - referenceTrapezoid.right.y2),
       },
     };
-    const dx = topTrapezoid.top.x1 - trapezoids[0].top.x1;
-    const dy = topTrapezoid.top.y1 - trapezoids[0].top.y1;
-    const square = getSquare(
-      edgeData,
-      imgX + dx,
-      imgY + dy,
-      options.squareSize
-    );
-    const ctx = overlayCanvasRef.getContext("2d")!;
-    ctx.beginPath();
-    ctx.lineWidth = 8;
-    ctx.rect(
-      imgX + dx - options.squareSize / 2,
-      imgY + dy - options.squareSize / 2,
-      options.squareSize,
-      options.squareSize
-    );
-    ctx.strokeStyle = "blue";
-    ctx.stroke();
-    ctx.closePath();
-    DrawTrapezoid(
-      topTrapezoid,
-      overlayCanvasRef.getContext("2d")!,
-      "green",
-      15
-    );
-    const { fit: _, trapezoid: newSlice } = DirectSearchOptimization(
-      getPointsOnTrapezoid,
-      topTrapezoid,
-      square,
-      options,
-      imgX + dx,
-      imgY + dy
-    );
-    DrawTrapezoid(newSlice, overlayCanvasRef.getContext("2d")!, "blue", 10);
-    const slice = {
-      ...newSlice,
-      id,
-    } as Slice;
-    newTrapezoidSet.unshift(slice);
+
+    newTrapezoidSet.unshift(topTrapezoid);
   } else {
     const newTrapezoid = trapezoids[trapezoids.length - 1];
     const referenceTrapezoid = trapezoids[trapezoids.length - 2];
@@ -261,46 +176,8 @@ export const addTrapezoid = ({
           (newTrapezoid.right.y2 - referenceTrapezoid.right.y2),
       },
     };
-    const dx = bottomTrapezoid.bottom.x1 - trapezoids[0].bottom.x1;
-    const dy = bottomTrapezoid.bottom.y1 - trapezoids[0].bottom.y1;
-    const square = getSquare(
-      edgeData,
-      imgX + dx,
-      imgY + dy,
-      options.squareSize
-    );
-    const ctx = overlayCanvasRef.getContext("2d")!;
-    ctx.beginPath();
-    ctx.lineWidth = 8;
-    ctx.rect(
-      imgX + dx - options.squareSize / 2,
-      imgY + dy - options.squareSize / 2,
-      options.squareSize,
-      options.squareSize
-    );
-    ctx.strokeStyle = "blue";
-    ctx.stroke();
-    ctx.closePath();
-    DrawTrapezoid(
-      bottomTrapezoid,
-      overlayCanvasRef.getContext("2d")!,
-      "green",
-      15
-    );
-    const { fit: _, trapezoid: newSlice } = DirectSearchOptimization(
-      getPointsOnTrapezoid,
-      bottomTrapezoid,
-      square,
-      options,
-      imgX + dx,
-      imgY + dy
-    );
-    DrawTrapezoid(newSlice, overlayCanvasRef.getContext("2d")!, "blue", 10);
-    const slice = {
-      ...newSlice,
-      id,
-    } as Slice;
-    newTrapezoidSet.push(slice);
+
+    newTrapezoidSet.push(bottomTrapezoid);
   }
   return newTrapezoidSet;
 };

@@ -1,6 +1,11 @@
 import { ProcessingOptions } from "@data/ProcessingOptions";
 import { Slice } from "@data/shapes";
-import { DrawTrapezoid, permuteTrapezoid } from "@logic/canvas";
+import {
+  DirectSearchOptimization,
+  getPointsOnTrapezoid,
+  permuteTrapezoid,
+} from "@logic/canvas";
+import { trapezoidIsValid } from "./valid";
 
 export function detectTrapezoid(
   x: number,
@@ -118,7 +123,8 @@ export function detectTrapezoid(
       const newTrapezoid = computeTrapezoid(combination);
       if (!newTrapezoid) continue;
       const fit = getPointsOnTrapezoid(square, newTrapezoid, options, x, y);
-      if (fit > bestFit) {
+      const valid = trapezoidIsValid(newTrapezoid, x, y, options, fit);
+      if (valid && fit > bestFit) {
         bestFit = fit;
         trapezoid = newTrapezoid;
       }
@@ -127,20 +133,21 @@ export function detectTrapezoid(
   if (!trapezoid) {
     return { trapezoid: null, fit: null };
   }
-  // DrawTrapezoid(trapezoid, ctx, "yellow", 15);
+  // drawTrapezoid(trapezoid, ctx, "yellow", 15);
 
   const { trapezoid: newTrapezoid, fit } = DirectSearchOptimization(
     getPointsOnTrapezoid,
     trapezoid,
     square,
     options,
-    // ctx,
     x,
-    y
+    y,
+    options.squareSize,
+    ctx
   );
 
   if (!newTrapezoid) return { trapezoid: null, fit: null };
-  DrawTrapezoid(newTrapezoid, ctx, "yellow", 15);
+  // drawTrapezoid(newTrapezoid, ctx, "yellow", 15);
   console.log("trapezoid", newTrapezoid);
 
   return { trapezoid: permuteTrapezoid(newTrapezoid), fit };
@@ -499,10 +506,10 @@ function computeVertices(
         const vertex = vertices[i];
         const d1 = vertexDistance(vertex, first);
         const d2 = vertexDistance(vertex, last);
-        if (d1 < options.squareSize / 6) {
+        if (d1 < options.squareSize / 8) {
           f = true;
         }
-        if (d2 < options.squareSize / 6) {
+        if (d2 < options.squareSize / 8) {
           l = true;
         }
       }
@@ -517,7 +524,7 @@ function computeVertices(
     let merged = false;
     for (let j = 0; j < good.length; j++) {
       const q = good[j];
-      if (vertexDistance(p, q) < options.squareSize / 6) {
+      if (vertexDistance(p, q) < options.squareSize / 10) {
         merged = true;
         good.push({
           x: (p.x + q.x) / 2,
@@ -634,148 +641,6 @@ function intersectionPoint(
 //   }
 //   return bestLines;
 // }
-
-function DirectSearchOptimization(
-  ft: (
-    data: Uint8ClampedArray,
-    trapezoid: Trapezoid,
-    options: ProcessingOptions,
-    x: number,
-    y: number,
-    // ctx: CanvasRenderingContext2D,
-    squareSize?: number
-  ) => number,
-  trapezoid: Trapezoid,
-  data: Uint8ClampedArray,
-  options: ProcessingOptions,
-  // ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  squareSize?: number
-) {
-  // Move each vertex in trapezoid by a varied amount of pixels in 16 directions, take the best one
-  let vertices = [
-    { x: trapezoid.top.x1, y: trapezoid.top.y1 },
-    { x: trapezoid.top.x2, y: trapezoid.top.y2 },
-    { x: trapezoid.bottom.x1, y: trapezoid.bottom.y1 },
-    { x: trapezoid.bottom.x2, y: trapezoid.bottom.y2 },
-  ];
-  let bestFt: number = ft(data, trapezoid, options, x, y, squareSize);
-  // console.log("bestFt init", bestFt, trapezoid);
-  for (let k = 0; k < 16; k++) {
-    for (let i = 0; i < vertices.length; i++) {
-      let bestVertex: Vertex | undefined;
-      const vertex = vertices[i];
-      for (let j = 0; j < 16; j++) {
-        const direction = (j * Math.PI) / 8;
-        const dx = Math.cos(direction) * (((k % 4) + 1) * 2);
-        const dy = Math.sin(direction) * (((k % 4) + 1) * 2);
-        const newVertex: Vertex = {
-          x: Math.round(vertex.x + dx),
-          y: Math.round(vertex.y + dy),
-        };
-        if (
-          newVertex.x < x - (squareSize ?? options.squareSize) / 2 ||
-          newVertex.x >= (squareSize ?? options.squareSize) / 2 + x ||
-          newVertex.y < y - (squareSize ?? options.squareSize) / 2 ||
-          newVertex.y >= (squareSize ?? options.squareSize) / 2 + y
-        ) {
-          continue;
-        }
-        const newTrapezoid = computeTrapezoid(
-          vertices.map((v, index) =>
-            index === i ? newVertex : { x: Math.round(v.x), y: Math.round(v.y) }
-          )
-        );
-        if (!newTrapezoid) {
-          continue;
-        }
-        const newFt = ft(data, newTrapezoid, options, x, y, squareSize);
-        if (bestFt === undefined || newFt > bestFt) {
-          bestFt = newFt;
-          // console.log({newFt})
-          bestVertex = newVertex;
-        }
-      }
-      if (bestVertex) {
-        // @ts-ignore
-        vertices = vertices.map((v, index) =>
-          index === i ? bestVertex : { x: Math.round(v.x), y: Math.round(v.y) }
-        );
-      }
-    }
-  }
-  return { trapezoid: computeTrapezoid(vertices), fit: bestFt };
-}
-
-function getPointsOnTrapezoid(
-  data: Uint8ClampedArray,
-  trapezoid: Trapezoid,
-  options: ProcessingOptions,
-  xx: number,
-  yy: number,
-  // ctx: CanvasRenderingContext2D,
-  squareSize?: number
-): number {
-  // Find the actual number of edge pixels in each line
-  const lines = [
-    trapezoid.top,
-    trapezoid.bottom,
-    trapezoid.left,
-    trapezoid.right,
-  ];
-  let points = 0;
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const dx = line.x2 - line.x1;
-    const dy = line.y2 - line.y1;
-    const length = Math.sqrt(dx * dx + dy * dy);
-    const xStep = dx / length;
-    const yStep = dy / length;
-    let x = line.x1 - xx + (squareSize ?? options.squareSize) / 2;
-    let y = line.y1 - yy + (squareSize ?? options.squareSize) / 2;
-    for (let j = 0; j < length; j++) {
-      if (
-        !(
-          x + xStep * j > 0 &&
-          x + xStep * j < (squareSize ?? options.squareSize) &&
-          y + yStep * j > 0 &&
-          y + yStep * j < (squareSize ?? options.squareSize)
-        )
-      )
-        continue;
-      if (
-        data[
-          Math.round(y + yStep * j) * (squareSize ?? options.squareSize) +
-            Math.round(x + xStep * j)
-        ] === 255 ||
-        data[
-          Math.round(y + yStep * j) * (squareSize ?? options.squareSize) +
-            Math.round(x + xStep * j + 1)
-        ] === 255 ||
-        data[
-          Math.round(y + yStep * j) * (squareSize ?? options.squareSize) +
-            Math.round(x + xStep * j - 1)
-        ] === 255 ||
-        data[
-          Math.round(y + yStep * j + 1) * (squareSize ?? options.squareSize) +
-            Math.round(x + xStep * j)
-        ] === 255 ||
-        data[
-          Math.round(y + yStep * j - 1) * (squareSize ?? options.squareSize) +
-            Math.round(x + xStep * j)
-        ] === 255
-      ) {
-        points++;
-        // ctx.beginPath();
-        // ctx.rect(Math.round(x + xStep*j) + xx - options.squareSize / 2, Math.round(y + yStep*j) + yy - options.squareSize/2, 1, 1);
-        // ctx.strokeStyle = "red";
-        // ctx.stroke();
-      }
-    }
-  }
-  return points;
-}
 
 function computeTrapezoid(
   vertices: Vertex[]

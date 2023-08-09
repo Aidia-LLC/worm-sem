@@ -12,7 +12,7 @@ export function trapezoidIsValid(
   const angles = calculateAngles(trapezoid);
   const { squareSize } = options;
   const area = calculateArea(trapezoid);
-  const areaThreshold = squareSize ** 2 * 0.3;
+  const areaThreshold = squareSize ** 2 * 0.25;
   const areaValid = area > areaThreshold;
   console.log({ area, angles, areaValid, fit });
   const fitValid = fit && Math.abs(fit) > options.firstFit;

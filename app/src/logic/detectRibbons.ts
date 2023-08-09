@@ -63,8 +63,8 @@ export const detectRibbons = async ({
       trapezoid,
       square,
       options,
-      imgX - options.squareSize / 2,
-      imgY - options.squareSize / 2
+      imgX,
+      imgY
     );
     fit = f;
     trapezoid = newTrapezoid;
@@ -73,6 +73,7 @@ export const detectRibbons = async ({
   // trapezoid = permuteTrapezoid(trapezoid);
   const connectedTrapezoids = findConnectedTrapezoids(
     trapezoid,
+    edgeData,
     overlayCanvasRef.getContext("2d")!,
     imgX,
     imgY,
