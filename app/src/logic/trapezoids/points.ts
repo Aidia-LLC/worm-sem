@@ -1,4 +1,4 @@
-import { RibbonData, Trapezoid, Vertex } from "@data/shapes";
+import { RibbonData, Trapezoid } from "@data/shapes";
 import { calculateArea } from "@logic/canvas";
 
 export function isPointInTrapezoid(
@@ -48,21 +48,6 @@ export function isPointInTrapezoid(
   }
 
   return { inTrapezoid: false, slice: null, ribbon: null };
-}
-
-export function findNearestPoint(x: number, y: number, points: Vertex[]) {
-  let nearestPoint: Vertex | undefined;
-  let nearestDistance = Infinity;
-  for (const point of points) {
-    const distance = Math.sqrt(
-      Math.pow(point.x - x, 2) + Math.pow(point.y - y, 2)
-    );
-    if (distance < nearestDistance) {
-      nearestPoint = point;
-      nearestDistance = distance;
-    }
-  }
-  return { nearestDistance, nearestPoint };
 }
 
 export const isOutOfBounds = (

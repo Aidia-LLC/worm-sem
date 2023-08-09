@@ -73,7 +73,6 @@ const grabSEMImage = (props: {
       ribbonName: props.ribbonName,
     };
     const unsubscribe = window.semClient.subscribe((message) => {
-      console.log("got message", message, command);
       if (message.id === command.id) {
         unsubscribe();
         if (message.type === "SUCCESS") {

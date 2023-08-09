@@ -2,7 +2,11 @@ import { ZoomState } from "@components/RibbonDetector/ZoomController";
 import { StageConfiguration } from "@logic/semCoordinates";
 import { createReducer } from "@solid-primitives/reducer";
 import { createSignal } from "solid-js";
-import { DEFAULT_MAGNIFICATION, DEFAULT_SCAN_SPEED } from "src/config";
+import {
+  DEFAULT_MAGNIFICATION,
+  DEFAULT_SCAN_SPEED,
+  DEFAULT_ZOOM_SCALE,
+} from "src/config";
 import { createOptionsStore } from "../createOptionsStore";
 import {
   ribbonDispatcher,
@@ -20,6 +24,7 @@ export const zoomStateSignal = createSignal<ZoomState>({
   status: "zoomed-out",
   scale: 1,
 });
+export const defaultZoomScaleSignal = createSignal(DEFAULT_ZOOM_SCALE);
 
 export const primaryImageSignal = createSignal<{
   src: string;

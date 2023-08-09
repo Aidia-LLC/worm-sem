@@ -4,7 +4,6 @@ import {
   magnificationSignal,
   primaryImageSignal,
   ribbonState,
-  scanSpeedSignal,
 } from "@data/signals/globals";
 import { setupFinalConfigurations } from "@logic/finalImaging";
 import { createSignal, Show } from "solid-js";
@@ -14,7 +13,6 @@ export const EnqueueRibbon = () => {
   const [ribbonReducer, ribbonDispatch] = ribbonState;
   const [magnification] = magnificationSignal;
   const [primaryImage] = primaryImageSignal;
-  const [scanSpeed] = scanSpeedSignal;
   const [confirm, setConfirm] = createSignal(false);
 
   const ribbon = () =>
@@ -46,7 +44,6 @@ export const EnqueueRibbon = () => {
               name: r.name,
             },
             stage: s,
-            scanSpeed: scanSpeed(),
             slices: setupFinalConfigurations({
               canvasConfiguration: primaryImage()!.size!,
               ribbon: r,

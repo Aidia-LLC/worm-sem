@@ -95,6 +95,7 @@ const interpolateConfigurations = (
         brightness,
         contrast,
         focus,
+        point: allConfigurations[j].point,
       });
     }
   }

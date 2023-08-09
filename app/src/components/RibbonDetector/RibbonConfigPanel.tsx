@@ -3,8 +3,10 @@ import { addTrapezoid } from "@logic/trapezoids/addTrapezoid";
 import { microscopeBridge } from "@microscopeBridge/index";
 import { For, Show } from "solid-js";
 import {
+  initialStageSignal,
   magnificationSignal,
   nextSliceIdSignal,
+  primaryImageSignal,
   ribbonState,
 } from "src/data/signals/globals";
 import { Button } from "../Button";
@@ -18,19 +20,23 @@ export const availableColors = [
   "orange",
 ];
 
-export const RibbonConfig = (props: {
+export const RibbonConfigPanel = (props: {
   ribbon: RibbonData;
   canvasSize: { width: number; height: number };
   ctx: CanvasRenderingContext2D;
-  edgeDataCanvasRef: HTMLCanvasElement;
-  overlayCanvasRef: HTMLCanvasElement;
-  handleRibbonDetection: (points: [number, number][]) => void;
+  handleRibbonDetection: (
+    points: [number, number][],
+    clickedPointIndex: number
+  ) => void;
 }) => {
   const [ribbonReducer, ribbonDispatch] = ribbonState;
   const [nextSliceId, setNextSliceId] = nextSliceIdSignal;
   const [magnification] = magnificationSignal;
+  const [stage] = initialStageSignal;
+  const [image] = primaryImageSignal;
 
   const radioName = () => `status-${props.ribbon.id}`;
+  const matchingRadioName = () => `status-${props.ribbon.id}-matching`;
 
   const setRibbon = (ribbon: Partial<RibbonData>) => {
     ribbonDispatch({
@@ -64,7 +70,10 @@ export const RibbonConfig = (props: {
     const points = [...props.ribbon.clickedPoints];
     // move the first point to the end of the array
     points.push(points.shift()!);
-    props.handleRibbonDetection(points);
+    props.handleRibbonDetection(
+      points,
+      (props.ribbon.clickedPointIndex + 1) % props.ribbon.clickedPoints.length
+    );
   };
 
   return (
@@ -126,30 +135,30 @@ export const RibbonConfig = (props: {
         <div class="flex flex-col gap-2 justify-between my-auto">
           <label class="font-bold">Status</label>
           <div class="flex flex-col gap-2 justify-between mb-2.5">
-            <div class="flex flex-col gap-2">
-              <label class="flex flex-row items-center gap-1">
-                <input
-                  type="radio"
-                  name={radioName()}
-                  value="editing"
-                  checked={props.ribbon.status === "editing"}
-                  onChange={(e) => {
-                    if (e.currentTarget.checked)
-                      setRibbon({ status: "editing" });
-                  }}
-                />
-                Editing
-              </label>
-            </div>
+            <label class="flex flex-row items-center gap-1">
+              <input
+                type="radio"
+                name={radioName()}
+                value="editing"
+                checked={props.ribbon.status === "editing"}
+                onChange={(e) => {
+                  if (e.currentTarget.checked) setRibbon({ status: "editing" });
+                }}
+              />
+              Editing
+            </label>
             <label class="flex flex-row items-center gap-1">
               <input
                 type="radio"
                 name={radioName()}
                 value="matching"
-                checked={props.ribbon.status === "matching"}
+                checked={
+                  props.ribbon.status === "matching-one" ||
+                  props.ribbon.status === "matching-all"
+                }
                 onChange={(e) => {
                   if (e.currentTarget.checked)
-                    setRibbon({ status: "matching" });
+                    setRibbon({ status: "matching-all" });
                 }}
               />
               Matching
@@ -174,6 +183,7 @@ export const RibbonConfig = (props: {
               onClick={() => handleAddTrapezoid({ top: true })}
               class="w-full"
               variant="primary-outline"
+              tooltip="Add a new slice to the top of the ribbon. You may need to manually adjust the vertices."
             >
               Add slice to top
             </Button>
@@ -181,6 +191,7 @@ export const RibbonConfig = (props: {
               onClick={() => handleAddTrapezoid({ top: false })}
               class="w-full"
               variant="primary-outline"
+              tooltip="Add a new slice to the bottom of the ribbon. You may need to manually adjust the vertices."
             >
               Add slice to bottom
             </Button>
@@ -191,6 +202,7 @@ export const RibbonConfig = (props: {
               onClick={() =>
                 setRibbon({ slices: props.ribbon.slices.reverse() })
               }
+              tooltip="Reverse the label order of the slices."
             >
               Reverse Direction
             </Button>
@@ -198,9 +210,48 @@ export const RibbonConfig = (props: {
               onClick={handleDetectAgain}
               class="w-full"
               variant="secondary"
+              tooltip="Attempt to detect the slices again, starting from the next point clicked."
             >
-              Detect again
+              Detect again ({props.ribbon.clickedPointIndex + 1} /{" "}
+              {props.ribbon.clickedPoints.length} points)
             </Button>
+          </div>
+        </Show>
+        <Show
+          when={
+            props.ribbon.status === "matching-all" ||
+            props.ribbon.status === "matching-one"
+          }
+        >
+          <div class="flex flex-col gap-1 justify-center col-span-2">
+            <label class="flex flex-row items-center gap-1 whitespace-nowrap">
+              <input
+                type="radio"
+                name={matchingRadioName()}
+                value="matching-all"
+                checked={props.ribbon.status === "matching-all"}
+                onChange={(e) => {
+                  if (e.currentTarget.checked)
+                    setRibbon({ status: "matching-all" });
+                }}
+              />
+              Match Across All Slices
+            </label>
+            <div class="flex flex-col gap-2"></div>
+            <label class="flex flex-row items-center gap-1 whitespace-nowrap">
+              <input
+                type="radio"
+                name={matchingRadioName()}
+                value="matching-one"
+                checked={props.ribbon.status === "matching-one"}
+                onChange={(e) => {
+                  if (e.currentTarget.checked)
+                    setRibbon({ status: "matching-one" });
+                }}
+                disabled={props.ribbon.matchedPoints.length === 0}
+              />
+              Adjust Single Slice
+            </label>
           </div>
         </Show>
         <Show when={props.ribbon.matchedPoints.length > 0}>
@@ -208,6 +259,10 @@ export const RibbonConfig = (props: {
             <Button
               tooltip="Configure brightness, contrast, and focus for each slice"
               onClick={async () => {
+                const s = stage();
+                const img = image();
+                if (!s || !img?.size)
+                  return alert("Image or stage is not loaded");
                 const brightness = await microscopeBridge.getBrightness();
                 const contrast = await microscopeBridge.getContrast();
                 const focus = await microscopeBridge.getWorkingDistance();
@@ -223,7 +278,13 @@ export const RibbonConfig = (props: {
                   },
                   {
                     action: "resetSliceConfigurations",
-                    payload: { brightness, contrast, focus },
+                    payload: {
+                      brightness,
+                      contrast,
+                      focus,
+                      stage: s,
+                      canvas: img.size,
+                    },
                   }
                 );
               }}

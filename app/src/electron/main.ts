@@ -49,7 +49,7 @@ app.whenReady().then(async () => {
             return;
           }
           grabCommand.filename = filename;
-          console.log("Sending message to microscope api:", grabCommand);
+          console.log("Sending message to microscope api:", JSON.stringify(grabCommand));
           const response = await microscopeApi.grabFullFrame(
             grabCommand.name,
             grabCommand.filename

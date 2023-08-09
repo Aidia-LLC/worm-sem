@@ -12,7 +12,7 @@ export type Vertex = {
   y: number;
 };
 
-type Status = "editing" | "matching" | "saved";
+type Status = "editing" | "matching-all" | "matching-one" | "saved";
 
 export type RibbonData = {
   id: number;
@@ -23,8 +23,9 @@ export type RibbonData = {
   status: Status;
   matchedPoints: Vertex[];
   clickedPoints: [number, number][];
-  slicesToConfigure: Slice['id'][];
-  slicesToMove: Slice['id'][];
+  clickedPointIndex: number;
+  slicesToConfigure: Slice["id"][];
+  slicesToMove: Slice["id"][];
   configurations: SliceConfiguration[];
 };
 
@@ -45,7 +46,7 @@ export type SliceConfiguration = {
   contrast?: number;
   brightness?: number;
   focus?: number;
-  point?: Vertex;
+  point: Vertex;
 };
 
 export type FinalSliceConfiguration = {

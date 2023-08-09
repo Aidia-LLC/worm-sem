@@ -23,7 +23,6 @@ export const GrabForm = () => {
       await sleep(1000);
       await microscopeBridge.setScanSpeed(SCAN_SPEED);
       await sleep(2000);
-      console.log("grabbing image");
       const message = await grabImageOnFrameEnd(
         {
           name: "GRAB_FULL_FRAME",
@@ -54,7 +53,6 @@ export const GrabForm = () => {
           y: [limits.y.min, limits.y.max],
         },
       });
-      console.log(initialStage());
       setLoading(false);
     } catch (err) {
       alert(`Failed to grab initial image: ${err}`);

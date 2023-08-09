@@ -1,6 +1,7 @@
-import { createEffect, createSignal, untrack } from "solid-js";
-import { Button } from "../Button";
+import { createEffect, createSignal, onCleanup, untrack } from "solid-js";
 import { Tooltip } from "../Tooltip";
+
+const DEBOUNCE_TIME = 1000;
 
 export const Param = (props: {
   label: string;
@@ -19,11 +20,25 @@ export const Param = (props: {
   });
 
   let inputRef!: HTMLInputElement;
+  let timerRef: any;
+
+  const handleChange = () => {
+    const value = parseFloat(inputRef.value);
+    setCurrentValue(value);
+    if (timerRef) clearTimeout(timerRef);
+    timerRef = setTimeout(() => {
+      props.onChange(value);
+    }, DEBOUNCE_TIME);
+  };
+
+  onCleanup(() => {
+    if (timerRef) clearTimeout(timerRef);
+  });
 
   return (
     <div class="flex flex-row items-center gap-2">
-      <label class="font-bold flex flex-row">
-        {props.label}
+      <label class="font-bold flex flex-row gap-2 items-center">
+        <span class="min-w-[96px]">{props.label}</span>
         <Tooltip
           message={props.description}
           position={props.tooltipPosition || "bottom"}
@@ -62,16 +77,16 @@ export const Param = (props: {
         value={props.value}
         class="w-full"
         ref={inputRef}
-        onChange={(e) => setCurrentValue(parseFloat(e.currentTarget.value))}
+        onChange={handleChange}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            if (timerRef) clearTimeout(timerRef);
+            const value = parseFloat(inputRef.value);
+            setCurrentValue(value);
+            props.onChange(value);
+          }
+        }}
       />
-      <Button
-        onClick={() => props.onChange(currentValue())}
-        variant={
-          props.value !== currentValue() ? "danger-outline" : "primary-outline"
-        }
-      >
-        Set
-      </Button>
     </div>
   );
 };

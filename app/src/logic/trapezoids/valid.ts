@@ -14,7 +14,6 @@ export function trapezoidIsValid(
   const area = calculateArea(trapezoid);
   const areaThreshold = squareSize ** 2 * 0.25;
   const areaValid = area > areaThreshold;
-  console.log({ area, angles, areaValid, fit });
   const fitValid = fit && Math.abs(fit) > options.firstFit;
   // make sure each side is at least 1/3 of the square size
   const sideThresh = squareSize / 6;

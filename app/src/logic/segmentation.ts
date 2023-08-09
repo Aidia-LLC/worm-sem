@@ -24,9 +24,11 @@ export const segmentImage = async ({
     success: boolean;
     masks: Mask[];
   };
-  console.log(data);
   const ctx = canvasRef.getContext("2d")!;
-  return data.masks.map((mask) => maskToImageData(mask, ctx, canvasRef));
+  const masks = data.masks.map((mask) => maskToImageData(mask, ctx, canvasRef));
+  if (masks.length === 0) return [];
+  if (masks.length === 3) return [masks[1], masks[0], masks[2]]; // put them in order of good to bad
+  return masks;
 };
 
 const maskToImageData = (
@@ -34,7 +36,6 @@ const maskToImageData = (
   ctx: CanvasRenderingContext2D,
   canvasRef: HTMLCanvasElement
 ) => {
-  console.log("mask", mask);
   const maskImageData = ctx.createImageData(canvasRef.width, canvasRef.height);
   for (let i = 0; i < maskImageData.data.length; i += 4) {
     const x = (i / 4) % canvasRef.width;

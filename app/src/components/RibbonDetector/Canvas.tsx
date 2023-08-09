@@ -17,12 +17,13 @@ import {
 import { createEffect, createSignal, For, onMount, Show } from "solid-js";
 import * as signals from "src/data/signals/globals";
 import { Button } from "../Button";
-import { SliderPicker } from "../SliderPicker";
 import { DetectionInstructions } from "./DetectionInstructions";
 import { MaskSelector } from "./MaskSelector";
 import { ParameterPanel } from "./ParameterPanel";
-import { availableColors, RibbonConfig } from "./RibbonConfig";
-import { DEFAULT_ZOOM_SCALE, ZoomController } from "./ZoomController";
+import { RemoveRibbonsButton } from "./RemoveRibbonsButton";
+import { availableColors, RibbonConfigPanel } from "./RibbonConfigPanel";
+import { ZoomController } from "./ZoomController";
+import { ZoomSlider } from "./ZoomSlider";
 
 export const Canvas = (props: { samLoaded: boolean }) => {
   let canvasRef!: HTMLCanvasElement;
@@ -39,6 +40,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
   const [cursorPosition, setCursorPosition] = createSignal<[number, number]>([
     0, 0,
   ]);
+  const [defaultZoomScale] = signals.defaultZoomScaleSignal;
   const [options] = signals.optionsStore;
 
   createEffect(() => {
@@ -200,7 +202,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     if (zoomState().status === "picking-center") {
       setZoomState({
         status: "zoomed-in",
-        scale: DEFAULT_ZOOM_SCALE,
+        scale: defaultZoomScale(),
         x: unzoomed.x,
         y: unzoomed.y,
       });
@@ -233,29 +235,32 @@ export const Canvas = (props: { samLoaded: boolean }) => {
       ribbonReducer().ribbons
     );
     if (inTrapezoid && slice && ribbon) {
-      if (ribbon.status === "matching") {
-        pointMatching(
-          imgX,
-          imgY,
+      if (
+        ribbon.status === "matching-one" ||
+        ribbon.status === "matching-all"
+      ) {
+        const newPoints = pointMatching({
+          point: { x: imgX, y: imgY },
           ribbon,
-          ribbonDispatch,
-          ribbonReducer(),
-          overlayCanvasRef,
-          handleMouseMove,
-          handleMouseUp
-        );
-        return;
-      } else if (ribbon.status === "editing") {
-        ribbonDispatch({
-          action: "setDraggingData",
-          payload: {
-            position: { x: imgX, y: imgY },
-            ribbonId: ribbon.id,
-            sliceId: slice.id,
-          },
+          slice,
+          ribbons: ribbonReducer().ribbons,
         });
-        return;
+        ribbonDispatch({
+          action: "setRibbons",
+          payload: ribbonReducer().ribbons.map((r, i) => ({
+            ...r,
+            matchedPoints: newPoints[i],
+          })),
+        });
       }
+      ribbonDispatch({
+        action: "setDraggingData",
+        payload: {
+          position: { x: imgX, y: imgY },
+          ribbonId: ribbon.id,
+          sliceId: slice.id,
+        },
+      });
     }
   };
 
@@ -306,23 +311,23 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     const ribbon = ribbonReducer().ribbons.find(
       (r) => r.id === draggingData.ribbonId
     )!;
-    if (ribbon.status === "matching") {
-      const newMatchedPoints = ribbon.matchedPoints.map((point, i) => {
-        if (ribbon.slices[i].id === draggingData.sliceId) return { x, y };
-        return point;
+    const slice = ribbon.slices.find((t) => t.id === draggingData.sliceId);
+    if (!slice) return;
+    if (ribbon.status === "matching-all" || ribbon.status === "matching-one") {
+      const newPoints = pointMatching({
+        point: { x: x, y: y },
+        ribbon,
+        slice,
+        ribbons: ribbonReducer().ribbons,
       });
       ribbonDispatch({
         action: "setRibbons",
-        payload: ribbonReducer().ribbons.map((t) => {
-          if (t.id === ribbon.id)
-            return { ...t, matchedPoints: newMatchedPoints };
-          return t;
-        }),
+        payload: ribbonReducer().ribbons.map((r, i) => ({
+          ...r,
+          matchedPoints: newPoints[i],
+        })),
       });
-      return;
     } else if (ribbon.status === "editing") {
-      const slice = ribbon.slices.find((t) => t.id === draggingData.sliceId);
-      if (!slice) return;
       if (draggingData.vertexPosition) {
         // dragging a vertex
         const pos = draggingData.vertexPosition;
@@ -395,10 +400,10 @@ export const Canvas = (props: { samLoaded: boolean }) => {
     });
   };
 
-  const handleRibbonDetection = async ([[imgX, imgY], ...points]: [
-    number,
-    number
-  ][]) => {
+  const handleRibbonDetection = async (
+    [[imgX, imgY], ...points]: [number, number][],
+    clickedPointIndex: number
+  ) => {
     const trapezoids = await detectRibbons({
       point: [imgX, imgY],
       edgeDataCanvasRef,
@@ -426,6 +431,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
         status: "editing",
         matchedPoints: [],
         clickedPoints: [[imgX, imgY], ...points],
+        clickedPointIndex: clickedPointIndex || 0,
         configurations: [],
         slicesToConfigure: [],
         slicesToMove: [],
@@ -496,15 +502,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
             </Button>
           </Show>
         </Show>
-        <Show when={ribbonReducer().ribbons.length > 0}>
-          <Button
-            onClick={() =>
-              ribbonDispatch({ action: "setRibbons", payload: [] })
-            }
-          >
-            Remove All Ribbons
-          </Button>
-        </Show>
+        <RemoveRibbonsButton />
         <Show when={ribbonReducer().masks.length > 0}>
           <Button
             variant="ghost"
@@ -513,8 +511,8 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           >
             Show {showOriginalImage() ? "Edge Data" : "Original Image"}
           </Button>
-          <ZoomController />
         </Show>
+        <ZoomController />
       </div>
       <MaskSelector
         edgeDataCanvasRef={() => edgeDataCanvasRef}
@@ -522,7 +520,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
       />
       <For each={ribbonReducer().ribbons}>
         {(ribbon) => (
-          <RibbonConfig
+          <RibbonConfigPanel
             canvasSize={canvasRef}
             ribbon={ribbon}
             ctx={canvasRef.getContext("2d")!}
@@ -532,21 +530,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           />
         )}
       </For>
-      <Show when={zoomState().status === "zoomed-in"}>
-        <SliderPicker
-          label="Zoom"
-          value={zoomState().scale}
-          setValue={(scale) => {
-            const zoom = zoomState();
-            if (zoom.status !== "zoomed-in") return;
-            setZoomState({ ...zoom, scale });
-          }}
-          unit="x"
-          max={15}
-          min={1}
-          step={1}
-        />
-      </Show>
+      <ZoomSlider />
       <DetectionInstructions />
       <div class="relative">
         <canvas
@@ -570,7 +554,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
           ref={debugCanvasRef}
           width="1000"
           height="1000"
-          class="w-[clamp(300px,_100%,_85vh)] mx-auto absolute top-0 left-[50%] translate-x-[-50%] z-[40]"
+          class="w-[clamp(300px,_100%,_85vh)] mx-auto absolute top-0 left-[50%] translate-x-[-50%] z-[40] invisible"
         ></canvas>
         <canvas
           ref={overlayCanvasRef}

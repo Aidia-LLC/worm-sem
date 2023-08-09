@@ -72,39 +72,39 @@ export function detectTrapezoid(
   //   options
   // );
   console.log("goodLines", goodLines);
-  for (const line of goodLines) {
-    ctx.beginPath();
-    ctx.lineWidth = 4;
-    ctx.moveTo(
-      line.x1 + x - options.squareSize / 2,
-      line.y1 + y - options.squareSize / 2
-    );
-    ctx.lineTo(
-      line.x2 + x - options.squareSize / 2,
-      line.y2 + y - options.squareSize / 2
-    );
-    ctx.strokeStyle = "blue";
-    ctx.stroke();
-    ctx.closePath();
-  }
+  // for (const line of goodLines) {
+  //   ctx.beginPath();
+  //   ctx.lineWidth = 4;
+  //   ctx.moveTo(
+  //     line.x1 + x - options.squareSize / 2,
+  //     line.y1 + y - options.squareSize / 2
+  //   );
+  //   ctx.lineTo(
+  //     line.x2 + x - options.squareSize / 2,
+  //     line.y2 + y - options.squareSize / 2
+  //   );
+  //   ctx.strokeStyle = "blue";
+  //   ctx.stroke();
+  //   ctx.closePath();
+  // }
 
   const shortLines = ShortenLines(goodLines, square, options);
   console.log("shortLines", shortLines);
-  for (const line of shortLines) {
-    ctx.beginPath();
-    ctx.lineWidth = 8;
-    ctx.moveTo(
-      line.x1 + x - options.squareSize / 2,
-      line.y1 + y - options.squareSize / 2
-    );
-    ctx.lineTo(
-      line.x2 + x - options.squareSize / 2,
-      line.y2 + y - options.squareSize / 2
-    );
-    ctx.strokeStyle = "green";
-    ctx.stroke();
-    ctx.closePath();
-  }
+  // for (const line of shortLines) {
+  //   ctx.beginPath();
+  //   ctx.lineWidth = 8;
+  //   ctx.moveTo(
+  //     line.x1 + x - options.squareSize / 2,
+  //     line.y1 + y - options.squareSize / 2
+  //   );
+  //   ctx.lineTo(
+  //     line.x2 + x - options.squareSize / 2,
+  //     line.y2 + y - options.squareSize / 2
+  //   );
+  //   ctx.strokeStyle = "green";
+  //   ctx.stroke();
+  //   ctx.closePath();
+  // }
   const vertices = computeVertices(shortLines, options, goodLines).map(
     (vertex) => ({
       x: vertex.x + x - options.squareSize / 2,

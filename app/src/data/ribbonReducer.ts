@@ -1,5 +1,8 @@
 import { FinalSliceConfiguration, RibbonData, Slice } from "@data/shapes";
-import { StageConfiguration } from "@logic/semCoordinates";
+import {
+  computeStageCoordinates,
+  StageConfiguration,
+} from "@logic/semCoordinates";
 
 type DraggingData = {
   ribbonId: RibbonData["id"] | null;
@@ -89,6 +92,10 @@ export type RibbonDispatchPayload =
         brightness?: number;
         contrast?: number;
         focus?: number;
+        point?: {
+          x?: number;
+          y?: number;
+        };
       };
     }
   | {
@@ -97,6 +104,8 @@ export type RibbonDispatchPayload =
         brightness: number;
         contrast: number;
         focus: number;
+        canvas: { width: number; height: number };
+        stage: StageConfiguration;
       };
     }
   | {
@@ -230,7 +239,10 @@ const ribbonUpdater = (
       );
       if (!ribbon) return state;
       for (let i = focusedSliceIndex + 1; i < ribbon.slices.length; i++) {
-        if (ribbon.slicesToConfigure.includes(ribbon.slices[i].id))
+        if (
+          ribbon.slicesToConfigure.includes(ribbon.slices[i].id) ||
+          ribbon.slicesToMove.includes(ribbon.slices[i].id)
+        )
           return { ...state, focusedSliceIndex: i };
       }
       return state;
@@ -243,7 +255,10 @@ const ribbonUpdater = (
       );
       if (!ribbon) return state;
       for (let i = focusedSliceIndex - 1; i >= 0; i--) {
-        if (ribbon.slicesToConfigure.includes(ribbon.slices[i].id))
+        if (
+          ribbon.slicesToConfigure.includes(ribbon.slices[i].id) ||
+          ribbon.slicesToMove.includes(ribbon.slices[i].id)
+        )
           return { ...state, focusedSliceIndex: i };
       }
       return state;
@@ -291,12 +306,17 @@ const ribbonUpdater = (
               brightness: event.payload.brightness,
               contrast: event.payload.contrast,
               focus: event.payload.focus,
+              point: computeStageCoordinates({
+                point: ribbon.matchedPoints[index],
+                canvasConfiguration: event.payload.canvas,
+                stageConfiguration: event.payload.stage,
+              }),
             })),
           };
         }),
       };
     case "updateSliceConfiguration": {
-      const { brightness, contrast, focus } = event.payload;
+      const { brightness, contrast, focus, point } = event.payload;
       const { focusedRibbonId, focusedSliceIndex } = state;
       if (focusedRibbonId === null || focusedSliceIndex === -1) return state;
       return {
@@ -312,6 +332,10 @@ const ribbonUpdater = (
                 brightness: brightness ?? config.brightness,
                 contrast: contrast ?? config.contrast,
                 focus: focus ?? config.focus,
+                point: {
+                  x: point?.x ?? config.point.x,
+                  y: point?.y ?? config.point.y,
+                },
               };
             }),
           };

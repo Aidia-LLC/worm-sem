@@ -807,9 +807,6 @@ function RecurseDirectSearchOptimization(
       }
     }
   }
-  console.log(bestFt, fit, options.minimumFit);
-  // const bestTrapezoid = computeTrapezoid(vertices);
-  // if (ctx) drawTrapezoid(bestTrapezoid, ctx, "red", 15);
   if (bestFt < fit * options.minimumFit) return null;
   return computeTrapezoid(vertices);
 }

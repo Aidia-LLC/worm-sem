@@ -5,7 +5,10 @@ import { Button } from "../Button";
 
 export const MaskSelector = (props: {
   edgeDataCanvasRef: () => HTMLCanvasElement;
-  handleRibbonDetection: (points: [number, number][]) => void;
+  handleRibbonDetection: (
+    points: [number, number][],
+    clickedPointIndex: number
+  ) => void;
 }) => {
   const [ribbonReducer, ribbonDispatch] = ribbonState;
 
@@ -73,7 +76,7 @@ export const MaskSelector = (props: {
               edgeContext
             );
             edgeContext.putImageData(edgeData, 0, 0);
-            props.handleRibbonDetection(points);
+            props.handleRibbonDetection(points, 0);
           }}
           class="whitespace-nowrap"
         >

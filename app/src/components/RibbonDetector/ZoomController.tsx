@@ -2,8 +2,6 @@ import { Match, onCleanup, onMount, Show, Switch } from "solid-js";
 import { ribbonState, zoomStateSignal } from "src/data/signals/globals";
 import { Button } from "../Button";
 
-export const DEFAULT_ZOOM_SCALE = 10;
-
 export type ZoomState =
   | {
       status: "zoomed-in";

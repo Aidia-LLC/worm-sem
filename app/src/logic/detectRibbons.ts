@@ -25,7 +25,6 @@ export const detectRibbons = async ({
   overlayCanvasRef: HTMLCanvasElement;
   options: ProcessingOptions;
 }): Promise<Slice[]> => {
-  console.log("findTrapezoid");
   const edgeContext = edgeDataCanvasRef.getContext("2d")!;
   const edgeData = edgeContext.getImageData(
     0,
