@@ -525,6 +525,8 @@ export const Canvas = (props: { samLoaded: boolean }) => {
             canvasSize={canvasRef}
             ribbon={ribbon}
             ctx={canvasRef.getContext("2d")!}
+            edgeDataCanvasRef={edgeDataCanvasRef}
+            overlayCanvasRef={debugCanvasRef}
             handleRibbonDetection={handleRibbonDetection}
           />
         )}

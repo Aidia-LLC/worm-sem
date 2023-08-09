@@ -2,6 +2,7 @@ import { RibbonData } from "@data/shapes";
 import { addTrapezoid } from "@logic/trapezoids/addTrapezoid";
 import { microscopeBridge } from "@microscopeBridge/index";
 import { For, Show } from "solid-js";
+import * as signals from "src/data/signals/globals";
 import {
   magnificationSignal,
   nextSliceIdSignal,
@@ -22,11 +23,14 @@ export const RibbonConfig = (props: {
   ribbon: RibbonData;
   canvasSize: { width: number; height: number };
   ctx: CanvasRenderingContext2D;
+  edgeDataCanvasRef: HTMLCanvasElement;
+  overlayCanvasRef: HTMLCanvasElement;
   handleRibbonDetection: (points: [number, number][]) => void;
 }) => {
   const [ribbonReducer, ribbonDispatch] = ribbonState;
   const [nextSliceId, setNextSliceId] = nextSliceIdSignal;
   const [magnification] = magnificationSignal;
+  const [options] = signals.optionsStore;
 
   const radioName = () => `status-${props.ribbon.id}`;
 
@@ -38,12 +42,18 @@ export const RibbonConfig = (props: {
   };
 
   const handleAddTrapezoid = ({ top }: { top: boolean }) => {
+    const [imgX, imgY] = props.ribbon.clickedPoints[0];
     setRibbon({
       ...props.ribbon,
       slices: addTrapezoid({
         trapezoids: props.ribbon.slices,
         id: nextSliceId(),
         top,
+        edgeDataCanvasRef: props.edgeDataCanvasRef,
+        overlayCanvasRef: props.overlayCanvasRef,
+        imgX,
+        imgY,
+        options: options.options,
       }),
     });
     setNextSliceId(nextSliceId() + 1);
@@ -54,16 +64,16 @@ export const RibbonConfig = (props: {
       .enqueuedRibbons.map((r) => r.ribbon.id)
       .includes(props.ribbon.id);
 
-  // const handleDetectAgain = () => {
-  //   ribbonDispatch({
-  //     action: "deleteRibbon",
-  //     payload: props.ribbon,
-  //   });
-  //   const points = [...props.ribbon.clickedPoints];
-  //   // move the first point to the end of the array
-  //   points.push(points.shift()!);
-  //   props.handleRibbonDetection(points);
-  // };
+  const handleDetectAgain = () => {
+    ribbonDispatch({
+      action: "deleteRibbon",
+      payload: props.ribbon,
+    });
+    const points = [...props.ribbon.clickedPoints];
+    // move the first point to the end of the array
+    points.push(points.shift()!);
+    props.handleRibbonDetection(points);
+  };
 
   return (
     <div
@@ -102,7 +112,7 @@ export const RibbonConfig = (props: {
       <Show
         when={!enqueued()}
         fallback={
-          <span class='col-span-3 text-md'>
+          <span class="col-span-3 text-md">
             This ribbon has been enqueued for imaging. If you need to edit it,
             you can do so in the final review step.
           </span>
@@ -192,13 +202,13 @@ export const RibbonConfig = (props: {
             >
               Reverse Direction
             </Button>
-            {/* <Button
+            <Button
               onClick={handleDetectAgain}
               class="w-full"
               variant="secondary"
             >
               Detect slices again
-            </Button> */}
+            </Button>
           </div>
         </Show>
         <Show when={props.ribbon.matchedPoints.length > 0}>

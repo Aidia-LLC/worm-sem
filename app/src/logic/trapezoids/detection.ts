@@ -1,6 +1,6 @@
 import { ProcessingOptions } from "@data/ProcessingOptions";
 import { Slice } from "@data/shapes";
-import { permuteTrapezoid } from "@logic/canvas";
+import { DrawTrapezoid, permuteTrapezoid } from "@logic/canvas";
 
 export function detectTrapezoid(
   x: number,
@@ -140,7 +140,7 @@ export function detectTrapezoid(
   );
 
   if (!newTrapezoid) return { trapezoid: null, fit: null };
-  // DrawTrapezoid(newTrapezoid, ctx, "yellow", 15);
+  DrawTrapezoid(newTrapezoid, ctx, "yellow", 15);
   console.log("trapezoid", newTrapezoid);
 
   return { trapezoid: permuteTrapezoid(newTrapezoid), fit };
