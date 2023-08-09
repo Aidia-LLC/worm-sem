@@ -2,7 +2,7 @@ import {
   MicroscopeDetectorType,
   MicroscopeFreezeOn,
   MicroscopeImageQuality,
-} from "@electron/microscopeCallingInterface/types";
+} from "@electron/MicroscopeCallingInterface/types";
 import { ElectronMessage } from "@electron/types";
 
 /// The bridge that connects the web app to the main process, which in turn connects to the microscope.

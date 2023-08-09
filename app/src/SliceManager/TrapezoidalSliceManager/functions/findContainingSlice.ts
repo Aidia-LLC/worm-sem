@@ -1,15 +1,19 @@
-import { RibbonData, Trapezoid } from "@data/shapes";
-import { calculateArea } from "@logic/canvas";
+import { ShapeSet } from "src/SliceManager/types";
+import { TrapezoidalSlice } from "../types";
+import { calculateArea } from "./calculateArea";
 
-export function isPointInTrapezoid(
-  x: number,
-  y: number,
-  ribbons: RibbonData[]
-) {
-  for (const ribbon of ribbons) {
+export function findContainingSlice({
+  point,
+  sets,
+}: {
+  point: [number, number];
+  sets: ShapeSet[];
+}) {
+  const [x, y] = point;
+  for (const ribbon of sets) {
     for (const slice of ribbon.slices) {
       const { top, bottom, left, right } = slice;
-      const trapezoidArea = calculateArea(slice);
+      const trapezoidArea = calculateArea(slice as TrapezoidalSlice);
       let sum = 0;
       // sum up area of triangle between the point and each side of the trapezoid
       sum += Math.abs(
@@ -42,43 +46,10 @@ export function isPointInTrapezoid(
       );
       // if the sum of the areas of the triangles is equal to the area of the trapezoid, the point is inside the trapezoid
       if (sum < trapezoidArea * 1.05) {
-        return { inTrapezoid: true, slice, ribbon };
+        return { slice: slice as TrapezoidalSlice, set: ribbon };
       }
     }
   }
 
-  return { inTrapezoid: false, slice: null, ribbon: null };
+  return null;
 }
-
-export const isOutOfBounds = (
-  trapezoid: Trapezoid,
-  canvas: {
-    width: number;
-    height: number;
-  }
-) => {
-  const xs = [
-    trapezoid.left.x1,
-    trapezoid.left.x2,
-    trapezoid.right.x1,
-    trapezoid.right.x2,
-    trapezoid.top.x1,
-    trapezoid.top.x2,
-    trapezoid.bottom.x1,
-    trapezoid.bottom.x2,
-  ];
-  const ys = [
-    trapezoid.top.y1,
-    trapezoid.top.y2,
-    trapezoid.bottom.y1,
-    trapezoid.bottom.y2,
-    trapezoid.left.y1,
-    trapezoid.left.y2,
-    trapezoid.right.y1,
-    trapezoid.right.y2,
-  ];
-  const low = Math.min(...xs, ...ys);
-  const highX = Math.max(...xs);
-  const highY = Math.max(...ys);
-  return low < 0 || highX > canvas.width || highY > canvas.height;
-};

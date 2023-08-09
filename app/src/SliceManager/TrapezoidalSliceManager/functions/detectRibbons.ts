@@ -1,18 +1,15 @@
 import { ProcessingOptions } from "@data/ProcessingOptions";
-import { Slice } from "@data/shapes";
-import {
-  DirectSearchOptimization,
-  drawTrapezoid,
-  findConnectedTrapezoids,
-  getPointsOnTrapezoid,
-  getSquare,
-  permuteTrapezoid,
-  RANSAC,
-  translateTrapezoid,
-} from "@logic/canvas";
-import { orderTrapezoids } from "@logic/trapezoids/connected";
-import { detectTrapezoid } from "@logic/trapezoids/detection";
-import { trapezoidIsValid } from "@logic/trapezoids/valid";
+import { isTrapezoidValid } from "src/SliceManager/TrapezoidalSliceManager/functions/isTrapezoidValid";
+import { TrapezoidalSlice } from "../types";
+import { directSearchOptimization } from "./directSearchOptimization";
+import { translateSlice } from "./translateSlice";
+import { detectTrapezoid } from "./detectTrapezoid";
+import { orderTrapezoids } from "./orderTrapezoid";
+import { getSquare } from "./getSquare";
+import { RANSAC } from "./ransac";
+import { getPointsOnTrapezoid } from "./getPointsOnTrapezoid";
+import { permuteTrapezoid } from "./permuteTrapezoid";
+import { findConnectedTrapezoids } from "./findConnectedTrapezoids";
 
 export const detectRibbons = async ({
   point: [imgX, imgY],
@@ -22,9 +19,9 @@ export const detectRibbons = async ({
 }: {
   point: [number, number];
   edgeDataCanvasRef: HTMLCanvasElement;
-  overlayCanvasRef: HTMLCanvasElement;
+  overlayCanvasRef?: HTMLCanvasElement;
   options: ProcessingOptions;
-}): Promise<Slice[]> => {
+}): Promise<TrapezoidalSlice[]> => {
   const edgeContext = edgeDataCanvasRef.getContext("2d")!;
   const edgeData = edgeContext.getImageData(
     0,
@@ -36,12 +33,11 @@ export const detectRibbons = async ({
     imgX,
     imgY,
     edgeData,
-    overlayCanvasRef.getContext("2d")!,
+    overlayCanvasRef?.getContext("2d"),
     options
   );
-  // return trapezoid ? ([{ ...trapezoid, id: 0 }] as Slice[]) : [];
   const valid =
-    trapezoid && trapezoidIsValid(trapezoid, imgX, imgY, options, fit);
+    trapezoid && isTrapezoidValid(trapezoid, imgX, imgY, options, fit);
   console.log("valid", valid);
   if (!valid) {
     const square = getSquare(edgeData, imgX, imgY, options.squareSize);
@@ -59,13 +55,12 @@ export const detectRibbons = async ({
     )!;
     console.log("trapezoid ransac", trapezoid);
     if (!trapezoid) return [];
-    trapezoid = translateTrapezoid(
-      trapezoid,
-      imgX - options.squareSize / 2,
-      imgY - options.squareSize / 2
-    );
-    drawTrapezoid(trapezoid, overlayCanvasRef.getContext("2d")!, "yellow");
-    const { trapezoid: newTrapezoid, fit: f } = DirectSearchOptimization(
+    trapezoid = translateSlice({
+      slice: trapezoid,
+      dx: imgX - options.squareSize / 2,
+      dy: imgY - options.squareSize / 2,
+    });
+    const { trapezoid: newTrapezoid, fit: f } = directSearchOptimization(
       getPointsOnTrapezoid,
       trapezoid,
       square,
@@ -77,11 +72,10 @@ export const detectRibbons = async ({
     trapezoid = permuteTrapezoid(newTrapezoid);
   }
   if (!trapezoid) return [];
-  // trapezoid = permuteTrapezoid(trapezoid);
   const connectedTrapezoids = findConnectedTrapezoids(
     trapezoid,
     edgeData,
-    overlayCanvasRef.getContext("2d")!,
+    edgeDataCanvasRef.getContext("2d")!,
     imgX,
     imgY,
     options,

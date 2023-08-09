@@ -1,24 +1,18 @@
-import { RibbonData, Slice, Vertex } from "@data/shapes";
+import { Shape, ShapeSet } from "src/SliceManager/types";
 
-export default function pointMatching({
+export const matchPoints = ({
   point,
   ribbon,
   slice,
-  ribbons,
 }: {
-  point: { x: number; y: number };
-  ribbon: RibbonData;
-  slice: Slice;
-  ribbons: RibbonData[];
-}) {
+  point: [number, number];
+  ribbon: ShapeSet;
+  slice: Shape;
+}): ShapeSet["matchedPoints"] => {
   if (ribbon.matchedPoints.length > 0 && ribbon.status === "matching-one")
-    return ribbons.map((t) => {
-      if (t.id === ribbon.id)
-        return t.slices.map((s, i) => {
-          if (s.id !== slice.id) return t.matchedPoints[i];
-          return point;
-        });
-      return t.matchedPoints;
+    return ribbon.slices.map((s, i) => {
+      if (s.id !== slice.id) return ribbon.matchedPoints[i];
+      return point;
     });
 
   const center = {
@@ -35,10 +29,10 @@ export default function pointMatching({
     );
   }
 
-  const dx = point.x - center.x;
-  const dy = point.y - center.y;
+  const dx = point[0] - center.x;
+  const dy = point[1] - center.y;
 
-  const points: Vertex[] = [];
+  const points: [number, number][] = [];
   points.push(point);
   for (const otherSlice of ribbon.slices) {
     if (otherSlice === slice) continue;
@@ -72,13 +66,7 @@ export default function pointMatching({
     const otherDy = dx * Math.sin(angle) + dy * Math.cos(angle);
     const otherX = otherCenter.x + otherDx;
     const otherY = otherCenter.y + otherDy;
-    points.push({
-      x: otherX,
-      y: otherY,
-    });
+    points.push([otherX, otherY]);
   }
-  return ribbons.map((t) => {
-    if (t.id === ribbon.id) return points;
-    return t.matchedPoints;
-  });
-}
+  return points;
+};

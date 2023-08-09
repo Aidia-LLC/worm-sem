@@ -1,11 +1,11 @@
 import { sleep } from "@logic/finalImaging";
-import { grabImageOnFrameEnd } from "@microscopeBridge/grabImageOnFrameEnd";
-import { microscopeBridge } from "@microscopeBridge/index";
 import { createSignal, Show } from "solid-js";
 import {
   initialStageSignal,
   primaryImageSignal,
 } from "src/data/signals/globals";
+import { grabImageOnFrameEnd } from "src/MicroscopeBridge/grabImageOnFrameEnd";
+import { microscopeBridge } from "src/MicroscopeBridge/index";
 import { Button } from "../Button";
 
 const SCAN_SPEED = 5;
@@ -13,7 +13,7 @@ const SCAN_SPEED = 5;
 export const GrabForm = () => {
   const [loading, setLoading] = createSignal(false);
   const [_, setPrimaryImage] = primaryImageSignal;
-  const [initialStage, setInitialStage] = initialStageSignal;
+  const [__, setInitialStage] = initialStageSignal;
 
   const handleGrab = async () => {
     try {
@@ -66,8 +66,12 @@ export const GrabForm = () => {
         position, set a magnification to see the entire sample, and click the
         button below to grab an image.
       </p>
-      <div class='w-min'>
-        <Button disabled={loading()} onClick={handleGrab} class='whitespace-nowrap'>
+      <div class="w-min">
+        <Button
+          disabled={loading()}
+          onClick={handleGrab}
+          class="whitespace-nowrap"
+        >
           Grab Image
         </Button>
       </div>

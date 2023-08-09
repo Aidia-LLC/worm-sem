@@ -1,12 +1,15 @@
-import { Slice } from "@data/shapes";
 import { primaryImageSignal, ribbonState } from "@data/signals/globals";
-import { drawTrapezoid, setupCanvases } from "@logic/canvas";
+import { setupCanvases } from "@logic/setupCanvases";
 import { createEffect, onMount } from "solid-js";
+import { getSliceManager } from "src/SliceManager";
+import { Shape } from "src/SliceManager/types";
 import { groupColors } from "./colors";
 
 export const GrouperCanvas = (props: {
-  groups: Map<Slice["id"], Set<number>>;
+  groups: Map<Shape["id"], Set<number>>;
 }) => {
+  const sliceManager = getSliceManager();
+
   const [ribbons] = ribbonState;
   const [primaryImage] = primaryImageSignal;
 
@@ -36,7 +39,12 @@ export const GrouperCanvas = (props: {
       const sliceGroups = [...(groups.get(slice.id) || new Set<number>())];
       sliceGroups.forEach((group, i, groups) => {
         const color = groupColors[group % groupColors.length];
-        drawTrapezoid(slice, ctx, color, 6 * (groups.length - i + 1));
+        sliceManager.drawShape({
+          shape: slice,
+          color,
+          ctx,
+          thickness: 6 * (groups.length - i + 1),
+        });
       });
       ctx.fillStyle = "white";
       ctx.font = `56px Arial`;
@@ -47,9 +55,11 @@ export const GrouperCanvas = (props: {
     for (let i = 0; i < ribbon.slices.length; i++) {
       const slice = ribbon.slices[i];
       const point = ribbon.matchedPoints[i];
-      ctx.strokeStyle = ribbon.slicesToMove.includes(slice.id) ? 'black' : 'white';
+      ctx.strokeStyle = ribbon.slicesToMove.includes(slice.id)
+        ? "black"
+        : "white";
       ctx.beginPath();
-      ctx.arc(point.x, point.y, radius, 0, 2 * Math.PI);
+      ctx.arc(point[0], point[1], radius, 0, 2 * Math.PI);
       ctx.closePath();
       ctx.stroke();
     }

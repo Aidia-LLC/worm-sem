@@ -1,30 +1,34 @@
-import { FinalSliceConfiguration, RibbonData, Slice } from "@data/shapes";
 import {
   computeStageCoordinates,
   StageConfiguration,
 } from "@logic/semCoordinates";
+import {
+  FinalShapeConfiguration,
+  Shape,
+  ShapeSet,
+} from "src/SliceManager/types";
 
 type DraggingData = {
-  ribbonId: RibbonData["id"] | null;
+  ribbonId: ShapeSet["id"] | null;
   sliceId?: number;
-  vertexPosition?: "top1" | "top2" | "bottom1" | "bottom2";
-  position: { x: number; y: number };
+  vertexPosition?: string;
+  position: [number, number];
 };
 
 type FinalRibbonConfiguration = {
-  ribbon: Pick<RibbonData, "id" | "name">;
+  ribbon: Pick<ShapeSet, "id" | "name">;
   stage: StageConfiguration;
-  slices: FinalSliceConfiguration[];
+  slices: FinalShapeConfiguration[];
 };
 
 type AppPhase = "ribbon-detection" | "imaging";
 
 export const ribbonReducerInitialState = {
-  ribbons: [] as RibbonData[],
-  focusedRibbonId: null as RibbonData["id"] | null,
+  ribbons: [] as ShapeSet[],
+  focusedRibbonId: null as ShapeSet["id"] | null,
   draggingData: null as DraggingData | null,
   focusedSliceIndex: -1,
-  clickedPoints: [] as [number, number][],
+  referencePoints: [] as [number, number][],
   detection: true,
   detectionLoading: false,
   masks: [] as ImageData[],
@@ -40,7 +44,7 @@ export type RibbonDispatchPayload =
     }
   | {
       action: "setRibbons";
-      payload: RibbonData[];
+      payload: ShapeSet[];
     }
   | {
       action: "setFocusedRibbonId";
@@ -51,7 +55,7 @@ export type RibbonDispatchPayload =
       payload: AppPhase;
     }
   | {
-      action: "setClickedPoints";
+      action: "setReferencePoints";
       payload: [number, number][];
     }
   | {
@@ -71,7 +75,7 @@ export type RibbonDispatchPayload =
     }
   | {
       action: "addRibbon";
-      payload: RibbonData;
+      payload: ShapeSet;
     }
   | {
       action: "setFocusedSliceIndex";
@@ -110,11 +114,11 @@ export type RibbonDispatchPayload =
     }
   | {
       action: "updateRibbon";
-      payload: Pick<RibbonData, "id"> & Partial<RibbonData>;
+      payload: Pick<ShapeSet, "id"> & Partial<ShapeSet>;
     }
   | {
       action: "deleteRibbon";
-      payload: Pick<RibbonData, "id">;
+      payload: Pick<ShapeSet, "id">;
     }
   | {
       action: "setDraggingData";
@@ -126,11 +130,11 @@ export type RibbonDispatchPayload =
     }
   | {
       action: "setSlicesToConfigure";
-      payload: Slice["id"][];
+      payload: Shape["id"][];
     }
   | {
       action: "setSlicesToMove";
-      payload: Slice["id"][];
+      payload: Shape["id"][];
     };
 
 export type RibbonReducerState = typeof ribbonReducerInitialState;
@@ -197,9 +201,8 @@ const ribbonUpdater = (
         focusedRibbonId: null,
         focusedSliceIndex: -1,
       };
-    case "setClickedPoints":
-      console.log("setClickedPoints", event.payload);
-      return { ...state, clickedPoints: event.payload };
+    case "setReferencePoints":
+      return { ...state, referencePoints: event.payload };
     case "setDetection":
       return { ...state, detection: event.payload };
     case "setDetectionLoading":
@@ -224,7 +227,7 @@ const ribbonUpdater = (
         ...state,
         ribbons: [],
         masks: [],
-        clickedPoints: [],
+        referencePoints: [],
         focusedRibbonId: null,
         focusedSliceIndex: -1,
         draggingData: null,
@@ -332,10 +335,10 @@ const ribbonUpdater = (
                 brightness: brightness ?? config.brightness,
                 contrast: contrast ?? config.contrast,
                 focus: focus ?? config.focus,
-                point: {
-                  x: point?.x ?? config.point.x,
-                  y: point?.y ?? config.point.y,
-                },
+                point: [
+                  point?.x ?? config.point[0],
+                  point?.y ?? config.point[1],
+                ],
               };
             }),
           };

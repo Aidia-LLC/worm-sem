@@ -15,7 +15,7 @@ export const computeStageCoordinates = ({
   canvasConfiguration,
   stageConfiguration,
 }: {
-  point: { x: number; y: number };
+  point: [number, number];
   canvasConfiguration: {
     width: number;
     height: number;
@@ -26,9 +26,9 @@ export const computeStageCoordinates = ({
   const scaleY = stageConfiguration.height / canvasConfiguration.height;
 
   const translatedX =
-    -(point.x - canvasConfiguration.width / 2) * scaleX + stageConfiguration.x;
+    -(point[0] - canvasConfiguration.width / 2) * scaleX + stageConfiguration.x;
   const translatedY =
-    (point.y - canvasConfiguration.height / 2) * scaleY + stageConfiguration.y;
+    (point[1] - canvasConfiguration.height / 2) * scaleY + stageConfiguration.y;
 
   const limitedX = Math.max(
     stageConfiguration.limits.x[0],
@@ -39,5 +39,5 @@ export const computeStageCoordinates = ({
     Math.min(stageConfiguration.limits.y[1], translatedY)
   );
 
-  return { x: limitedX, y: limitedY };
+  return [limitedX, limitedY] as [number, number];
 };

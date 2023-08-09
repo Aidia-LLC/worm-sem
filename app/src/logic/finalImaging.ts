@@ -1,10 +1,10 @@
+import { grabImageOnFrameEnd } from "src/MicroscopeBridge/grabImageOnFrameEnd";
+import { microscopeBridge } from "src/MicroscopeBridge/index";
 import {
-  FinalSliceConfiguration,
-  RibbonData,
-  SliceConfiguration,
-} from "@data/shapes";
-import { grabImageOnFrameEnd } from "@microscopeBridge/grabImageOnFrameEnd";
-import { microscopeBridge } from "@microscopeBridge/index";
+  FinalShapeConfiguration,
+  ShapeConfiguration,
+  ShapeSet,
+} from "src/SliceManager/types";
 import { lerp } from "./interpolation";
 import { computeStageCoordinates, StageConfiguration } from "./semCoordinates";
 
@@ -12,7 +12,7 @@ export const sleep = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
 export const handleFinalImaging = async (details: {
-  configurations: FinalSliceConfiguration[];
+  configurations: FinalShapeConfiguration[];
   onProgressUpdate: (percentDone: number) => void;
   scanSpeed: number;
 }) => {
@@ -39,7 +39,10 @@ export const handleFinalImaging = async (details: {
   for (let i = 0; i < configurations.length; i++) {
     onProgressUpdate(Math.round((i / configurations.length) * 10000) / 100);
     const config = configurations[i];
-    await microscopeBridge.moveStageTo(config.point);
+    await microscopeBridge.moveStageTo({
+      x: config.point[0],
+      y: config.point[1],
+    });
     await sleep(500);
     await microscopeBridge.setBrightness(config.brightness);
     await sleep(500);
@@ -64,13 +67,13 @@ export const handleFinalImaging = async (details: {
 };
 
 const interpolateConfigurations = (
-  allConfigurations: SliceConfiguration[],
-  manualConfigurations: SliceConfiguration["id"][]
+  allConfigurations: ShapeConfiguration[],
+  manualConfigurations: ShapeConfiguration["id"][]
 ) => {
   const anchorConfigurations = allConfigurations.filter((config) =>
     manualConfigurations.includes(config.id)
   );
-  const interpolatedConfigurations: SliceConfiguration[] = [];
+  const interpolatedConfigurations: ShapeConfiguration[] = [];
   for (let i = 0; i < anchorConfigurations.length; i++) {
     const configA = anchorConfigurations[i];
     interpolatedConfigurations.push(configA);
@@ -104,14 +107,14 @@ const interpolateConfigurations = (
 
 export const setupFinalConfigurations = (details: {
   magnification: number;
-  ribbon: RibbonData;
+  ribbon: ShapeSet;
   canvasConfiguration: {
     width: number;
     height: number;
   };
   stageConfiguration: StageConfiguration;
   ribbonId: number;
-}): FinalSliceConfiguration[] => {
+}): FinalShapeConfiguration[] => {
   const interpolatedConfigurations = interpolateConfigurations(
     details.ribbon.configurations,
     details.ribbon.slicesToConfigure

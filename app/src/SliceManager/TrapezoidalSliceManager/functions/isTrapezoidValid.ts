@@ -1,9 +1,10 @@
 import { ProcessingOptions } from "@data/ProcessingOptions";
-import { Trapezoid } from "@data/shapes";
-import { calculateAngles, calculateArea } from "@logic/canvas";
+import { TrapezoidalSlice } from "../types";
+import { calculateAngles } from "./calculateAngles";
+import { calculateArea } from "./calculateArea";
 
-export function trapezoidIsValid(
-  trapezoid: Trapezoid,
+export function isTrapezoidValid(
+  trapezoid: TrapezoidalSlice,
   x: number,
   y: number,
   options: ProcessingOptions,

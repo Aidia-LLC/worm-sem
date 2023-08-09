@@ -1,15 +1,16 @@
-import { RibbonData, Slice } from "@data/shapes";
-import { getXYShift } from "@logic/canvas";
+import { TrapezoidalShapeSet, TrapezoidalSlice } from "../types";
+import { getXYShift } from "./getXYShift";
 
 export const addTrapezoid = ({
-  trapezoids,
+  shapes,
   id,
   top = false,
 }: {
-  trapezoids: RibbonData["slices"];
+  shapes: TrapezoidalShapeSet["slices"];
   id: number;
   top: boolean;
-}): Slice[] => {
+}): TrapezoidalSlice[] => {
+  const trapezoids = shapes;
   if (trapezoids.length === 1) {
     const { xShift, yShift } = getXYShift(trapezoids[0]);
     const dx = top ? xShift : -xShift;
@@ -44,7 +45,7 @@ export const addTrapezoid = ({
     const slice = {
       ...trapezoid,
       id,
-    } as Slice;
+    } as TrapezoidalSlice;
     return [...(top ? [] : trapezoids), slice, ...(top ? trapezoids : [])];
   }
 
@@ -53,7 +54,7 @@ export const addTrapezoid = ({
   if (top) {
     const newTrapezoid = trapezoids[0];
     const referenceTrapezoid = trapezoids[1];
-    const topTrapezoid: Slice = {
+    const topTrapezoid: TrapezoidalSlice = {
       id,
       top: {
         x1:
@@ -117,7 +118,7 @@ export const addTrapezoid = ({
   } else {
     const newTrapezoid = trapezoids[trapezoids.length - 1];
     const referenceTrapezoid = trapezoids[trapezoids.length - 2];
-    const bottomTrapezoid: Slice = {
+    const bottomTrapezoid: TrapezoidalSlice = {
       id,
       top: {
         x1:

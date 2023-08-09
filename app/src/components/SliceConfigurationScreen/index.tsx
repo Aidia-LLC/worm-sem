@@ -1,6 +1,4 @@
-import { RibbonData } from "@data/shapes";
 import { computeStageCoordinates } from "@logic/semCoordinates";
-import { microscopeBridge } from "@microscopeBridge/index";
 import { createEffect, createSignal, Show, untrack } from "solid-js";
 import {
   BRIGHTNESS_STEP,
@@ -21,6 +19,8 @@ import {
   ribbonState,
   scanSpeedSignal,
 } from "src/data/signals/globals";
+import { microscopeBridge } from "src/MicroscopeBridge/index";
+import { ShapeSet } from "src/SliceManager/types";
 import { Button } from "../Button";
 import { SliderPicker } from "../SliderPicker";
 import { EnqueueRibbon } from "./EnqueueRibbon";
@@ -34,7 +34,7 @@ export const SliceConfigurationScreen = () => {
   const [primaryImage] = primaryImageSignal;
 
   const [initializedRibbonId, setInitializedRibbonId] = createSignal<
-    RibbonData["id"] | null
+    ShapeSet["id"] | null
   >(null);
 
   createEffect(async () => {
@@ -74,7 +74,10 @@ export const SliceConfigurationScreen = () => {
     });
 
     await microscopeBridge.setDetectorType("ZOOMED_IN");
-    await microscopeBridge.moveStageTo(coordinates);
+    await microscopeBridge.moveStageTo({
+      x: coordinates[0],
+      y: coordinates[1],
+    });
     await microscopeBridge.setMagnification(magnification());
     await microscopeBridge.setScanSpeed(scanSpeed());
     await microscopeBridge.setFrozen(false);
@@ -93,7 +96,10 @@ export const SliceConfigurationScreen = () => {
         canvasConfiguration: primaryImage()!.size!,
         stageConfiguration: stage()!,
       });
-      await microscopeBridge.moveStageTo(coordinates);
+      await microscopeBridge.moveStageTo({
+        x: coordinates[0],
+        y: coordinates[1],
+      });
 
       if (!editingConfiguration()) return;
       const configuration = ribbon.configurations[focusedSliceIndex]!;
@@ -218,7 +224,7 @@ export const SliceConfigurationScreen = () => {
             <SliderPicker
               label="X"
               unit="m"
-              value={configuration()?.point.x || 0}
+              value={configuration()?.point[0] || 0}
               min={stage()?.limits.x[0] || 0}
               max={stage()?.limits.x[1] || 0}
               step={DISTANCE_STEP}
@@ -230,14 +236,14 @@ export const SliceConfigurationScreen = () => {
                 });
                 await microscopeBridge.moveStageTo({
                   x: value,
-                  y: configuration().point.y,
+                  y: configuration().point[1],
                 });
               }}
             />
             <SliderPicker
               label="Y"
               unit="m"
-              value={configuration()?.point.y || 0}
+              value={configuration()?.point[1] || 0}
               min={stage()?.limits.y[0] || 0}
               max={stage()?.limits.y[1] || 0}
               step={DISTANCE_STEP}
@@ -248,7 +254,7 @@ export const SliceConfigurationScreen = () => {
                   payload: { point: { y: value } },
                 });
                 await microscopeBridge.moveStageTo({
-                  x: configuration().point.x,
+                  x: configuration().point[0],
                   y: value,
                 });
               }}

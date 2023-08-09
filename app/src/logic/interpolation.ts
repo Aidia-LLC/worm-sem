@@ -1,9 +1,9 @@
-import { RibbonData, Slice } from "@data/shapes";
+import { Shape, ShapeSet } from "src/SliceManager/types";
 
 export const lerp = (a: number, b: number, t: number) => a * (1 - t) + b * t;
 
-export const getInterpolationGroups = (ribbon: RibbonData) => {
-  const groups = new Map<Slice["id"], Set<number>>();
+export const getInterpolationGroups = (ribbon: ShapeSet) => {
+  const groups = new Map<Shape["id"], Set<number>>();
   let groupIndex = 0;
   for (let i = 0; i < ribbon.slices.length; i++) {
     const sliceGroups = groups.get(ribbon.slices[i].id) || new Set();
@@ -12,7 +12,9 @@ export const getInterpolationGroups = (ribbon: RibbonData) => {
       sliceGroups.add(groupIndex);
       groups.set(ribbon.slices[i].id, sliceGroups);
 
-      const configureSlice = ribbon.slicesToConfigure.includes(ribbon.slices[i].id);
+      const configureSlice = ribbon.slicesToConfigure.includes(
+        ribbon.slices[i].id
+      );
       if (configureSlice && i !== 0) {
         i--;
       }

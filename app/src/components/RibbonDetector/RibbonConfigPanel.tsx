@@ -1,6 +1,3 @@
-import { RibbonData } from "@data/shapes";
-import { addTrapezoid } from "@logic/trapezoids/addTrapezoid";
-import { microscopeBridge } from "@microscopeBridge/index";
 import { For, Show } from "solid-js";
 import {
   initialStageSignal,
@@ -9,6 +6,9 @@ import {
   primaryImageSignal,
   ribbonState,
 } from "src/data/signals/globals";
+import { microscopeBridge } from "src/MicroscopeBridge/index";
+import { getSliceManager } from "src/SliceManager";
+import { ShapeSet } from "src/SliceManager/types";
 import { Button } from "../Button";
 
 export const availableColors = [
@@ -21,7 +21,7 @@ export const availableColors = [
 ];
 
 export const RibbonConfigPanel = (props: {
-  ribbon: RibbonData;
+  ribbon: ShapeSet;
   canvasSize: { width: number; height: number };
   ctx: CanvasRenderingContext2D;
   handleRibbonDetection: (
@@ -29,6 +29,8 @@ export const RibbonConfigPanel = (props: {
     clickedPointIndex: number
   ) => void;
 }) => {
+  const sliceManager = getSliceManager();
+
   const [ribbonReducer, ribbonDispatch] = ribbonState;
   const [nextSliceId, setNextSliceId] = nextSliceIdSignal;
   const [magnification] = magnificationSignal;
@@ -38,7 +40,7 @@ export const RibbonConfigPanel = (props: {
   const radioName = () => `status-${props.ribbon.id}`;
   const matchingRadioName = () => `status-${props.ribbon.id}-matching`;
 
-  const setRibbon = (ribbon: Partial<RibbonData>) => {
+  const setRibbon = (ribbon: Partial<ShapeSet>) => {
     ribbonDispatch({
       action: "updateRibbon",
       payload: { ...props.ribbon, ...ribbon },
@@ -48,8 +50,8 @@ export const RibbonConfigPanel = (props: {
   const handleAddTrapezoid = ({ top }: { top: boolean }) => {
     setRibbon({
       ...props.ribbon,
-      slices: addTrapezoid({
-        trapezoids: props.ribbon.slices,
+      slices: sliceManager.addSlice({
+        shapes: props.ribbon.slices,
         id: nextSliceId(),
         top,
       }),
@@ -67,12 +69,13 @@ export const RibbonConfigPanel = (props: {
       action: "deleteRibbon",
       payload: props.ribbon,
     });
-    const points = [...props.ribbon.clickedPoints];
+    const points = [...props.ribbon.referencePoints];
     // move the first point to the end of the array
     points.push(points.shift()!);
     props.handleRibbonDetection(
       points,
-      (props.ribbon.clickedPointIndex + 1) % props.ribbon.clickedPoints.length
+      (props.ribbon.referencePointIndex + 1) %
+        props.ribbon.referencePoints.length
     );
   };
 
@@ -212,8 +215,8 @@ export const RibbonConfigPanel = (props: {
               variant="secondary"
               tooltip="Attempt to detect the slices again, starting from the next point clicked."
             >
-              Detect again ({props.ribbon.clickedPointIndex + 1} /{" "}
-              {props.ribbon.clickedPoints.length} points)
+              Detect again ({props.ribbon.referencePointIndex + 1} /{" "}
+              {props.ribbon.referencePoints.length} points)
             </Button>
           </div>
         </Show>

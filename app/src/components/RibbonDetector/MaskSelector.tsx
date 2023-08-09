@@ -52,16 +52,10 @@ export const MaskSelector = (props: {
             const mask =
               ribbonReducer().masks[ribbonReducer().currentMaskIndex];
             if (!mask) return;
-            const points = ribbonReducer().clickedPoints;
+            const points = ribbonReducer().referencePoints;
             ribbonDispatch(
-              {
-                action: "setMasks",
-                payload: [],
-              },
-              {
-                action: "setClickedPoints",
-                payload: [],
-              }
+              { action: "setMasks", payload: [] },
+              { action: "setReferencePoints", payload: [] }
             );
             const edgeContext = props.edgeDataCanvasRef().getContext("2d")!;
             edgeContext.clearRect(

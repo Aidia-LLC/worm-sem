@@ -24,7 +24,7 @@
       "@data/*": ["src/data/*"],
       "@logic/*": ["src/logic/*"],
       "@electron/*": ["src/electron/*"],
-      "@microscopeBridge/*": ["src/microscopeBridge/*"]
+      "@microscopeBridge/*": ["src/MicroscopeBridge/*"]
     }
   }
 }

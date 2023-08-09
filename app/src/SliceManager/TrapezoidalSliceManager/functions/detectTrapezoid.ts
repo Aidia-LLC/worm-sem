@@ -1,22 +1,22 @@
 import { ProcessingOptions } from "@data/ProcessingOptions";
-import { Slice } from "@data/shapes";
-import {
-  DirectSearchOptimization,
-  getPointsOnTrapezoid,
-  permuteTrapezoid,
-} from "@logic/canvas";
-import { trapezoidIsValid } from "./valid";
+import { LineSegment, TrapezoidalSlice, Vertex } from "../types";
+import { directSearchOptimization } from "./directSearchOptimization";
+import { getPointsOnTrapezoid } from "./getPointsOnTrapezoid";
+import { isTrapezoidValid } from "./isTrapezoidValid";
+import { permuteTrapezoid } from "./permuteTrapezoid";
 
 export function detectTrapezoid(
   x: number,
   y: number,
   imageData: ImageData,
-  ctx: CanvasRenderingContext2D,
+  ctx: CanvasRenderingContext2D | null | undefined,
   options: ProcessingOptions
 ) {
-  ctx.lineWidth = 8;
-  // draw imageData
-  ctx.putImageData(imageData, 0, 0);
+  if (ctx) {
+    ctx.lineWidth = 8;
+    // draw imageData
+    ctx.putImageData(imageData, 0, 0);
+  }
 
   const square = getSquare(imageData, x, y, options.squareSize);
   // draw square
@@ -112,7 +112,7 @@ export function detectTrapezoid(
     })
   );
 
-  let trapezoid: Trapezoid | null = null;
+  let trapezoid: TrapezoidalSlice | null = null;
   if (vertices.length === 4) {
     trapezoid = computeTrapezoid(vertices);
   } else if (vertices.length < 4) {
@@ -125,7 +125,7 @@ export function detectTrapezoid(
       const newTrapezoid = computeTrapezoid(combination);
       if (!newTrapezoid) continue;
       const fit = getPointsOnTrapezoid(square, newTrapezoid, options, x, y);
-      const valid = trapezoidIsValid(newTrapezoid, x, y, options, fit);
+      const valid = isTrapezoidValid(newTrapezoid, x, y, options, fit);
       if (valid && fit > bestFit) {
         bestFit = fit;
         trapezoid = newTrapezoid;
@@ -137,15 +137,14 @@ export function detectTrapezoid(
   }
   // drawTrapezoid(trapezoid, ctx, "yellow", 15);
 
-  const { trapezoid: newTrapezoid, fit } = DirectSearchOptimization(
+  const { trapezoid: newTrapezoid, fit } = directSearchOptimization(
     getPointsOnTrapezoid,
     trapezoid,
     square,
     options,
     x,
     y,
-    options.squareSize,
-    ctx
+    options.squareSize
   );
 
   if (!newTrapezoid)
@@ -187,31 +186,10 @@ function getSquare(fullImage: ImageData, x: number, y: number, size: number) {
   return square as unknown as Uint8ClampedArray;
 }
 
-type Trapezoid = {
-  top: Pick<LineSegment, "x1" | "x2" | "y1" | "y2">;
-  right: Pick<LineSegment, "x1" | "x2" | "y1" | "y2">;
-  left: Pick<LineSegment, "x1" | "x2" | "y1" | "y2">;
-  bottom: Pick<LineSegment, "x1" | "x2" | "y1" | "y2">;
-};
-
 interface IHoughLine {
   theta: number;
   r: number;
 }
-
-type LineSegment = {
-  r: number;
-  theta: number;
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-};
-
-type Vertex = {
-  x: number;
-  y: number;
-};
 
 function hough(
   data: Uint8ClampedArray,
@@ -388,35 +366,6 @@ function Merge(
   });
 }
 
-// function pixelsPerLine(
-//   line: LineSegment,
-//   data: Uint8ClampedArray,
-//   options: ProcessingOptions
-// ) {
-//   const dx = line.x2 - line.x1;
-//   const dy = line.y2 - line.y1;
-//   const length = Math.sqrt(dx * dx + dy * dy);
-//   const xStep = dx / length;
-//   const yStep = dy / length;
-//   let x = line.x1;
-//   let y = line.y1;
-//   let pixels = 0;
-//   for (let j = 0; j < length; j++) {
-//     if (
-//       data[Math.round(y) * options.squareSize + Math.round(x)] === 255 ||
-//       data[Math.round(y) * options.squareSize + Math.round(x + 1)] === 255 ||
-//       data[Math.round(y) * options.squareSize + Math.round(x - 1)] === 255 ||
-//       data[Math.round(y + 1) * options.squareSize + Math.round(x)] === 255 ||
-//       data[Math.round(y - 1) * options.squareSize + Math.round(x)] === 255
-//     ) {
-//       pixels++;
-//     }
-//     x += xStep;
-//     y += yStep;
-//   }
-//   return pixels;
-// }
-
 function ShortenLines(
   lines: LineSegment[],
   data: Uint8ClampedArray,
@@ -463,15 +412,9 @@ function ShortenLines(
       length: l,
     });
   }
-  // const maxPixels = Math.max(...goodLines.map((line) => line.pixels));
   return goodLines
-    .filter(
-      (line) =>
-        // line.pixels > maxPixels * options.pixelThreshold &&
-        line.length > options.squareSize * 0.1
-    )
+    .filter((line) => line.length > options.squareSize * 0.1)
     .slice(0, options.maxLines);
-  // return goodLines.filter(line => line.pixels > maxPixels * options.pixelThreshold).sort((a,b) => a.pixels - b.pixels).slice(0, options.maxLines);
 }
 
 const vertexDistance = (v1: Vertex, v2: Vertex) =>
@@ -590,70 +533,10 @@ function intersectionPoint(
   return { x, y };
 }
 
-// function DirectSearchLineOptimization(
-//   ft: (
-//     line: LineSegment,
-//     data: Uint8ClampedArray,
-//     options: ProcessingOptions
-//   ) => number,
-//   lines: LineSegment[],
-//   data: Uint8ClampedArray,
-//   options: ProcessingOptions
-// ) {
-//   const bestLines = [...lines];
-//   for (let k = 0; k < lines.length; k++) {
-//     const line = lines[k];
-//     let fit = ft(line, data, options);
-//     //Move each vertex in line by 5 pixels in 16 directions, take the best one
-//     let vertices = [
-//       { x: line.x1, y: line.y1 },
-//       { x: line.x2, y: line.y2 },
-//     ];
-//     for (let l = 0; l < 2; l++) {
-//       for (let i = 0; i < vertices.length; i++) {
-//         for (let j = 0; j < 16; j++) {
-//           const vertex = vertices[i];
-//           // move the vertex by a varied amount in 16 directions, keep the best
-//           let x = (vertex.x + (l % 4)) * Math.cos((j * Math.PI) / 8);
-//           x = Math.max(0, Math.min(x, options.squareSize));
-//           let y = (vertex.y + (l % 4)) * Math.sin((j * Math.PI) / 8);
-//           y = Math.max(0, Math.min(y, options.squareSize));
-//           const newVertex = {
-//             x,
-//             y,
-//           };
-//           const newLine = {
-//             x1: i === 0 ? newVertex.x : line.x1,
-//             y1: i === 0 ? newVertex.y : line.y1,
-//             x2: i === 1 ? newVertex.x : line.x2,
-//             y2: i === 1 ? newVertex.y : line.y2,
-//             r: line.r,
-//             theta: line.theta,
-//           };
-//           const newFT = ft(newLine, data, options);
-//           if (newFT > fit) {
-//             fit = newFT;
-//             vertices[i] = newVertex;
-//           }
-//         }
-//       }
-//     }
-//     bestLines[k] = {
-//       x1: vertices[0].x,
-//       y1: vertices[0].y,
-//       x2: vertices[1].x,
-//       y2: vertices[1].y,
-//       r: line.r,
-//       theta: line.theta,
-//     };
-//   }
-//   return bestLines;
-// }
-
 function computeTrapezoid(
   vertices: Vertex[]
   // ctx?: CanvasRenderingContext2D
-): Slice | null {
+): TrapezoidalSlice | null {
   if (vertices.length < 4) return null;
   //  the shortest edge is the bottom edge
   const pairs = [
