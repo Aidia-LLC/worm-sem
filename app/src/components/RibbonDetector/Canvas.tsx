@@ -1,7 +1,7 @@
 import type { RibbonData, Slice } from "@data/shapes";
 import {
   convertZoomedCoordinatesToFullImage,
-  DrawTrapezoid,
+  drawTrapezoid,
   setupCanvases,
   translateTrapezoid,
 } from "@logic/canvas";
@@ -141,7 +141,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
         // render the first trapezoid distinctly
         const isFirstTrapezoid = i === 0;
         ctx.globalAlpha = isFirstTrapezoid ? 1 : 0.7;
-        DrawTrapezoid(
+        drawTrapezoid(
           trapezoids[i],
           ctx,
           color,
@@ -428,6 +428,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
         clickedPoints: [[imgX, imgY], ...points],
         configurations: [],
         slicesToConfigure: [],
+        slicesToMove: [],
       } satisfies RibbonData,
     });
   };

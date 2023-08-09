@@ -1,6 +1,5 @@
 import { Button } from "@components/Button";
 import { FinalImaging } from "@components/FinalImaging";
-import { FinalReview } from "@components/FinalReview";
 import { GrabForm } from "@components/InitialGrab";
 import { Instructions } from "@components/Instructions";
 import { Canvas } from "@components/RibbonDetector/Canvas";
@@ -29,6 +28,7 @@ export const App = () => {
   const [primaryImage] = primaryImageSignal;
   const [ribbonReducer, dispatch] = ribbonState;
   const [initialStage] = initialStageSignal;
+  const [confirmImaging, setConfirmImaging] = createSignal(false);
 
   onMount(() => {
     setTimeout(() => {
@@ -47,7 +47,6 @@ export const App = () => {
     }, DELAY_TO_INITIALIZE_SAM);
   });
 
-  const reviewing = () => ribbonReducer().phase === "review";
   const imaging = () => ribbonReducer().phase === "imaging";
   const enqueuedRibbons = () => ribbonReducer().enqueuedRibbons;
   const enqueuedSlices = () =>
@@ -63,21 +62,29 @@ export const App = () => {
   return (
     <div class="flex flex-col gap-3 m-4">
       <Instructions />
-      <Show when={enqueuedRibbons().length > 0 && !reviewing() && !imaging()}>
+      <Show when={enqueuedRibbons().length > 0 && !imaging()}>
         <div class="rounded-lg my-4 p-4 bg-green-200 flex flex-row items-center justify-between">
           <span>
-            {enqueuedRibbons().length} ribbons ({enqueuedSlices()} slices)
-            enqueued for imaging
+            {enqueuedRibbons().length} ribbon
+            {enqueuedRibbons().length === 1 ? "" : "s"} ({enqueuedSlices()}{" "}
+            slices) enqueued for imaging
           </span>
           <div>
             <Button
               onClick={() => {
-                dispatch({ action: "setPhase", payload: "review" });
+                if (!confirmImaging()) {
+                  setConfirmImaging(true);
+                  setTimeout(() => setConfirmImaging(false), 1000);
+                  return;
+                }
+                dispatch({ action: "setPhase", payload: "imaging" });
               }}
               tooltipPosition="left"
               tooltip="Once you've configured all of the ribbons you want to image, click here to review them all before imaging."
             >
-              Review
+              <Show when={confirmImaging()} fallback="Begin Imaging">
+                Click to confirm
+              </Show>
             </Button>
           </div>
         </div>
@@ -85,9 +92,6 @@ export const App = () => {
       <Switch>
         <Match when={!connected()}>
           <Unconnected onConnect={() => setConnected(true)} />
-        </Match>
-        <Match when={reviewing()}>
-          <FinalReview />
         </Match>
         <Match when={connected() && !primaryImage()}>
           <GrabForm />

@@ -23,7 +23,7 @@ import {
 import { Button } from "../Button";
 import { SliderPicker } from "../SliderPicker";
 import { EnqueueRibbon } from "./EnqueueRibbon";
-import { SliceGrouper } from "./SliceGrouper";
+import { SliceGrouper } from "./InterpolationGrouper";
 
 export const SliceConfigurationScreen = () => {
   const [magnification, setMagnification] = magnificationSignal;
@@ -107,7 +107,8 @@ export const SliceConfigurationScreen = () => {
   return (
     <div class="flex flex-col gap-2 items-center">
       <SliceGrouper />
-      <div class="flex flex-row gap-4 items-center justify-center w-full mt-12">
+      <div class='border-[1px] border-t-[#888] h-1 w-full my-6' />
+      <div class="flex flex-row gap-4 items-center justify-center w-full">
         <div classList={{ invisible: ribbonReducer().focusedSliceIndex === 0 }}>
           <Button
             onClick={() => ribbonDispatch({ action: "focusPreviousSlice" })}

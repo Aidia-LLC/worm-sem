@@ -207,7 +207,7 @@ export const RibbonConfig = (props: {
               class="w-full"
               variant="secondary"
             >
-              Detect slices again
+              Detect again
             </Button>
           </div>
         </Show>
