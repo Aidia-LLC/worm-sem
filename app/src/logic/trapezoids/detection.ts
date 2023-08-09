@@ -115,6 +115,8 @@ export function detectTrapezoid(
   let trapezoid: Trapezoid | null = null;
   if (vertices.length === 4) {
     trapezoid = computeTrapezoid(vertices);
+  } else if (vertices.length < 4) {
+    return { trapezoid: null, fit: null, vertices };
   } else {
     // go through each combination of 4 vertices and find the best trapezoid, using getPointsOnTrapezoid
     const combinations = Combinations(vertices, 4);
@@ -131,7 +133,7 @@ export function detectTrapezoid(
     }
   }
   if (!trapezoid) {
-    return { trapezoid: null, fit: null };
+    return { trapezoid: null, fit: null, vertices: vertices.slice(0, 2) };
   }
   // drawTrapezoid(trapezoid, ctx, "yellow", 15);
 
@@ -146,7 +148,8 @@ export function detectTrapezoid(
     ctx
   );
 
-  if (!newTrapezoid) return { trapezoid: null, fit: null };
+  if (!newTrapezoid)
+    return { trapezoid: null, fit: null, vertices: vertices.slice(0, 2) };
   // drawTrapezoid(newTrapezoid, ctx, "yellow", 15);
   console.log("trapezoid", newTrapezoid);
 
@@ -377,7 +380,12 @@ function Merge(
       mergedLines.push({ ...line, count: 1 });
     }
   }
-  return mergedLines;
+  return mergedLines.filter((line) => {
+    const length = Math.sqrt(
+      (line.x1 - line.x2) ** 2 + (line.y1 - line.y2) ** 2
+    );
+    return length > options.squareSize * 0.5;
+  });
 }
 
 // function pixelsPerLine(

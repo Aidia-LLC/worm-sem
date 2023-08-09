@@ -2,9 +2,11 @@ import { ProcessingOptions } from "@data/ProcessingOptions";
 import { Slice } from "@data/shapes";
 import {
   DirectSearchOptimization,
+  drawTrapezoid,
   findConnectedTrapezoids,
   getPointsOnTrapezoid,
   getSquare,
+  permuteTrapezoid,
   RANSAC,
   translateTrapezoid,
 } from "@logic/canvas";
@@ -31,7 +33,7 @@ export const detectRibbons = async ({
     edgeDataCanvasRef.width,
     edgeDataCanvasRef.height
   );
-  let { trapezoid, fit } = detectTrapezoid(
+  let { trapezoid, fit, vertices } = detectTrapezoid(
     imgX,
     imgY,
     edgeData,
@@ -49,7 +51,12 @@ export const detectRibbons = async ({
       0,
       options,
       imgX - options.squareSize / 2,
-      imgY - options.squareSize / 2
+      imgY - options.squareSize / 2,
+      options.squareSize,
+      vertices?.map((v) => ({
+        x: v.x - (imgX - options.squareSize / 2),
+        y: v.y - (imgY - options.squareSize / 2),
+      }))
     )!;
     console.log("trapezoid ransac", trapezoid);
     if (!trapezoid) return [];
@@ -58,6 +65,7 @@ export const detectRibbons = async ({
       imgX - options.squareSize / 2,
       imgY - options.squareSize / 2
     );
+    drawTrapezoid(trapezoid, overlayCanvasRef.getContext("2d")!, "yellow");
     const { trapezoid: newTrapezoid, fit: f } = DirectSearchOptimization(
       getPointsOnTrapezoid,
       trapezoid,
@@ -67,7 +75,7 @@ export const detectRibbons = async ({
       imgY
     );
     fit = f;
-    trapezoid = newTrapezoid;
+    trapezoid = permuteTrapezoid(newTrapezoid);
   }
   if (!trapezoid) return [];
   // trapezoid = permuteTrapezoid(trapezoid);

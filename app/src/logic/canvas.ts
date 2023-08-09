@@ -498,8 +498,10 @@ export function RANSAC(
   options: ProcessingOptions,
   x: number,
   y: number,
-  squareSize?: number
+  squareSize?: number,
+  vertices?: Vertex[]
 ): Slice | undefined {
+  console.log("RANSAC", vertices);
   const areaThreshold = [trapezoidArea * 0.9, trapezoidArea * 1.1];
   const iterations = 25000;
   const size = squareSize ?? options.squareSize;
@@ -508,7 +510,8 @@ export function RANSAC(
   for (let i = 0; i < iterations; i++) {
     const sample: Vertex[] = getSemiRandomSample(
       4,
-      squareSize ?? options.squareSize
+      squareSize ?? options.squareSize,
+      vertices
     );
     // If sample not within 20% of area, continue
     const trapezoid = computeTrapezoid(sample);
@@ -536,28 +539,52 @@ export function RANSAC(
   return bestTrapezoid;
 }
 
-function getSemiRandomSample<Vertex>(size: number, width: number): Vertex[] {
-  const sample: Vertex[] = [];
+function getSemiRandomSample<Vertex>(
+  size: number,
+  width: number,
+  startingPoints?: Vertex[]
+): Vertex[] {
+  const sample: Vertex[] = [...(startingPoints ?? [])];
 
   const randomNumbers: number[] = [];
   for (let i = 0; i < size; i++) {
     randomNumbers.push(Math.floor(Math.random() * (width / 2)));
     randomNumbers.push(Math.floor(Math.random() * (width / 2)));
   }
-
-  sample.push({ x: randomNumbers[0], y: randomNumbers[1] } as Vertex);
-  sample.push({
-    x: randomNumbers[2] + width / 2,
-    y: randomNumbers[3],
-  } as Vertex);
-  sample.push({
-    x: randomNumbers[4],
-    y: randomNumbers[5] + width / 2,
-  } as Vertex);
-  sample.push({
-    x: randomNumbers[6] + width / 2,
-    y: randomNumbers[7] + width / 2,
-  } as Vertex);
+  const topLeft = sample.filter(
+    (p: any) => p.x < width / 2 && p.y < width / 2
+  )?.[0];
+  const topRight = sample.filter(
+    (p: any) => p.x > width / 2 && p.y < width / 2
+  )?.[0];
+  const bottomLeft = sample.filter(
+    (p: any) => p.x < width / 2 && p.y > width / 2
+  )?.[0];
+  const bottomRight = sample.filter(
+    (p: any) => p.x > width / 2 && p.y > width / 2
+  )?.[0];
+  //push a point
+  if (!topLeft) {
+    sample.push({ x: randomNumbers[0], y: randomNumbers[1] } as Vertex);
+  }
+  if (!topRight) {
+    sample.push({
+      x: randomNumbers[2] + width / 2,
+      y: randomNumbers[3],
+    } as Vertex);
+  }
+  if (!bottomLeft) {
+    sample.push({
+      x: randomNumbers[4],
+      y: randomNumbers[5] + width / 2,
+    } as Vertex);
+  }
+  if (!bottomRight) {
+    sample.push({
+      x: randomNumbers[6] + width / 2,
+      y: randomNumbers[7] + width / 2,
+    } as Vertex);
+  }
 
   return sample;
 }
