@@ -6,15 +6,15 @@ import {
   ShapeConfiguration,
   ShapeSet,
 } from "src/SliceManager/types";
-import { lerp } from "./interpolation";
 import { StageConfiguration } from "./computeStageCoordinates";
+import { lerp } from "./interpolation";
 
 export const sleep = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
 export const handleFinalImaging = async (details: {
   configurations: FinalRibbonConfiguration[];
-  onProgressUpdate: (percentDone: number) => void;
+  onProgressUpdate: (sliceCount: number) => void;
   scanSpeed: number;
 }) => {
   const { configurations, onProgressUpdate, scanSpeed } = details;
@@ -39,9 +39,7 @@ export const handleFinalImaging = async (details: {
   await microscopeBridge.setImageQuality("HIGH");
   await sleep(3000);
   for (let i = 0; i < sliceConfigurations.length; i++) {
-    onProgressUpdate(
-      Math.round((i / sliceConfigurations.length) * 10000) / 100
-    );
+    onProgressUpdate(i);
     const config = sliceConfigurations[i];
     await microscopeBridge.moveStageTo({
       x: config.point[0],
@@ -67,7 +65,7 @@ export const handleFinalImaging = async (details: {
       }
     );
   }
-  onProgressUpdate(100);
+  onProgressUpdate(sliceConfigurations.length);
 };
 
 const interpolateConfigurations = (
