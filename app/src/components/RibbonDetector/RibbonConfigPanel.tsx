@@ -117,8 +117,8 @@ export const RibbonConfigPanel = (props: {
         when={!enqueued()}
         fallback={
           <span class="col-span-3 text-md">
-            This ribbon has been enqueued for imaging. If you need to edit it,
-            you can do so in the final review step.
+            This ribbon has been enqueued for imaging. You can no longer edit
+            it.
           </span>
         }
       >
@@ -209,15 +209,17 @@ export const RibbonConfigPanel = (props: {
             >
               Reverse Direction
             </Button>
-            <Button
-              onClick={handleDetectAgain}
-              class="w-full"
-              variant="secondary"
-              tooltip="Attempt to detect the slices again, starting from the next point clicked."
-            >
-              Detect again ({props.ribbon.referencePointIndex + 1} /{" "}
-              {props.ribbon.referencePoints.length} points)
-            </Button>
+            <Show when={props.ribbon.allowDetectAgain}>
+              <Button
+                onClick={handleDetectAgain}
+                class="w-full"
+                variant="secondary"
+                tooltip="Attempt to detect the slices again, starting from the next point clicked."
+              >
+                Detect again (point {props.ribbon.referencePointIndex + 1} /{" "}
+                {props.ribbon.referencePoints.length})
+              </Button>
+            </Show>
           </div>
         </Show>
         <Show

@@ -1,9 +1,9 @@
 import {
   computeStageCoordinates,
   StageConfiguration,
-} from "@logic/semCoordinates";
+} from "@logic/computeStageCoordinates";
 import {
-  FinalShapeConfiguration,
+  FinalRibbonConfiguration,
   Shape,
   ShapeSet,
 } from "src/SliceManager/types";
@@ -13,12 +13,6 @@ type DraggingData = {
   sliceId?: number;
   vertexPosition?: string;
   position: [number, number];
-};
-
-type FinalRibbonConfiguration = {
-  ribbon: Pick<ShapeSet, "id" | "name">;
-  stage: StageConfiguration;
-  slices: FinalShapeConfiguration[];
 };
 
 type AppPhase = "ribbon-detection" | "imaging";
@@ -212,6 +206,10 @@ const ribbonUpdater = (
         ...state,
         masks: event.payload,
         currentMaskIndex: event.payload.length > 0 ? 0 : -1,
+        ribbons: state.ribbons.map((r) => ({
+          ...r,
+          allowDetectAgain: false,
+        })),
       };
     case "changeMask":
       let nextIndex =

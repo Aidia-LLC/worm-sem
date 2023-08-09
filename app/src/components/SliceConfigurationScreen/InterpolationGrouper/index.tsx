@@ -1,6 +1,6 @@
 import { Button } from "@components/Button";
 import { getInterpolationGroups } from "@logic/interpolation";
-import { getIndicesOfSlicesToConfigure } from "@logic/sliceConfiguration";
+import { getIndicesOfSlicesToConfigure } from "@logic/getIndicesOfSlicesToConfigure";
 import { For, onMount } from "solid-js";
 import { ribbonState } from "src/data/signals/globals";
 import { GrouperCanvas } from "./GrouperCanvas";

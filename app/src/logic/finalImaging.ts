@@ -1,34 +1,36 @@
 import { grabImageOnFrameEnd } from "src/MicroscopeBridge/grabImageOnFrameEnd";
 import { microscopeBridge } from "src/MicroscopeBridge/index";
 import {
+  FinalRibbonConfiguration,
   FinalShapeConfiguration,
   ShapeConfiguration,
   ShapeSet,
 } from "src/SliceManager/types";
 import { lerp } from "./interpolation";
-import { computeStageCoordinates, StageConfiguration } from "./semCoordinates";
+import { StageConfiguration } from "./computeStageCoordinates";
 
 export const sleep = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
 export const handleFinalImaging = async (details: {
-  configurations: FinalShapeConfiguration[];
+  configurations: FinalRibbonConfiguration[];
   onProgressUpdate: (percentDone: number) => void;
   scanSpeed: number;
 }) => {
   const { configurations, onProgressUpdate, scanSpeed } = details;
-  if (configurations.length === 0)
-    return alert("No configurations received. Please try again.");
   onProgressUpdate(0);
+  const sliceConfigurations = configurations.map((c) => c.slices).flat();
+  if (sliceConfigurations.length === 0)
+    return alert("No configurations received. Please try again.");
   await microscopeBridge.grabFullFrame({
     temporary: false,
-    ribbonId: configurations[0].ribbonId,
-    ribbonName: configurations[0].ribbonName,
+    ribbonId: configurations[0].ribbon.id,
+    ribbonName: configurations[0].ribbon.name,
     filename: "",
     name: "setup",
   });
   await sleep(500);
-  await microscopeBridge.setMagnification(configurations[0].magnification);
+  await microscopeBridge.setMagnification(sliceConfigurations[0].magnification);
   await sleep(500);
   await microscopeBridge.setDetectorType("ZOOMED_IN");
   await sleep(500);
@@ -36,9 +38,11 @@ export const handleFinalImaging = async (details: {
   await sleep(500);
   await microscopeBridge.setImageQuality("HIGH");
   await sleep(3000);
-  for (let i = 0; i < configurations.length; i++) {
-    onProgressUpdate(Math.round((i / configurations.length) * 10000) / 100);
-    const config = configurations[i];
+  for (let i = 0; i < sliceConfigurations.length; i++) {
+    onProgressUpdate(
+      Math.round((i / sliceConfigurations.length) * 10000) / 100
+    );
+    const config = sliceConfigurations[i];
     await microscopeBridge.moveStageTo({
       x: config.point[0],
       y: config.point[1],
@@ -123,18 +127,13 @@ export const setupFinalConfigurations = (details: {
     .replace(/[^a-z0-9]/gi, "-")
     .toLowerCase();
   return interpolatedConfigurations.map((c) => {
-    const point = computeStageCoordinates({
-      point: details.ribbon.matchedPoints[c.index],
-      canvasConfiguration: details.canvasConfiguration,
-      stageConfiguration: details.stageConfiguration,
-    });
     return {
       magnification: details.magnification,
       brightness: c.brightness!,
       contrast: c.contrast!,
       focus: c.focus!,
       label: `slice-${c.index + 1}`,
-      point,
+      point: c.point,
       ribbonId: details.ribbonId,
       ribbonName,
     };

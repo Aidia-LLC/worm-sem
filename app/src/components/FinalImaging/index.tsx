@@ -1,53 +1,25 @@
-import {
-  handleFinalImaging,
-  setupFinalConfigurations,
-} from "@logic/finalImaging";
+import { handleFinalImaging } from "@logic/finalImaging";
 import { createSignal, onMount } from "solid-js";
-import {
-  initialStageSignal,
-  magnificationSignal,
-  nextRibbonIdSignal,
-  primaryImageSignal,
-  ribbonState,
-  scanSpeedSignal,
-} from "src/data/signals/globals";
+import { ribbonState, scanSpeedSignal } from "src/data/signals/globals";
 
 export const FinalImaging = () => {
   const [percentComplete, setPercentComplete] = createSignal(0);
   const [ribbonReducer, ribbonDispatch] = ribbonState;
-  const [initialStage] = initialStageSignal;
-  const [nextRibbonId, setNextRibbonId] = nextRibbonIdSignal;
-  const [magnification] = magnificationSignal;
-  const [primaryImage] = primaryImageSignal;
   const [scanSpeed] = scanSpeedSignal;
 
   onMount(async () => {
-    ribbonDispatch({ action: "clearFocusedSlice" });
-    const ribbon = ribbonReducer().ribbons.find(
-      (r) => r.id === ribbonReducer().focusedRibbonId
-    );
-    const stage = initialStage();
-    if (!ribbon || !stage) return alert("Error grabbing ribbon");
-    const ribbonId = nextRibbonId();
-    setNextRibbonId(ribbonId + 1);
-    const finalConfigurations = setupFinalConfigurations({
-      canvasConfiguration: primaryImage()!.size!,
-      ribbon,
-      ribbonId,
-      magnification: magnification(),
-      stageConfiguration: stage,
-    });
-    console.log("final config", finalConfigurations);
+    const ribbons = ribbonReducer().enqueuedRibbons;
+    console.log("final config", ribbons);
     try {
       await handleFinalImaging({
-        configurations: finalConfigurations,
+        configurations: ribbons,
         onProgressUpdate: setPercentComplete,
         scanSpeed: scanSpeed(),
       });
-      alert(`Done imaging for ${ribbon.name}!`);
+      alert("Done imaging!");
     } catch (err) {
       console.error(err);
-      alert(`Error imaging ${ribbon.name}. ${(err as Error).message}`);
+      alert(`Error imaging. ${(err as Error).message}`);
     }
     ribbonDispatch({
       action: "setPhase",

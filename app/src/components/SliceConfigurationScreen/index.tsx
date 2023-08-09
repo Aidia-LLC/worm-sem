@@ -1,4 +1,4 @@
-import { computeStageCoordinates } from "@logic/semCoordinates";
+import { computeStageCoordinates } from "@logic/computeStageCoordinates";
 import { createEffect, createSignal, Show, untrack } from "solid-js";
 import {
   BRIGHTNESS_STEP,

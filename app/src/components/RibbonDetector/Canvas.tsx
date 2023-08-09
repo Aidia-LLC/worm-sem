@@ -1,6 +1,6 @@
+import { base64ToImageSrc } from "@logic/base64ToImageSrc";
 import { convertZoomedCoordinates } from "@logic/convertZoomedCoordinates";
-import { base64ToImageSrc } from "@logic/image";
-import { segmentImage } from "@logic/segmentation";
+import { segmentImage } from "@logic/segmentImage";
 import { setupCanvases } from "@logic/setupCanvases";
 import { createEffect, createSignal, For, onMount, Show } from "solid-js";
 import * as signals from "src/data/signals/globals";
@@ -10,7 +10,6 @@ import { Button } from "../Button";
 import { DetectionInstructions } from "./DetectionInstructions";
 import { MaskSelector } from "./MaskSelector";
 import { ParameterPanel } from "./ParameterPanel";
-import { RemoveRibbonsButton } from "./RemoveRibbonsButton";
 import { availableColors, RibbonConfigPanel } from "./RibbonConfigPanel";
 import { ZoomController } from "./ZoomController";
 import { ZoomSlider } from "./ZoomSlider";
@@ -22,7 +21,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
   let edgeDataCanvasRef!: HTMLCanvasElement;
   let debugCanvasRef!: HTMLCanvasElement;
 
-  const [nextId, setNextId] = createSignal(1);
+  const [nextId, setNextId] = signals.nextRibbonIdSignal;
   const [zoomState, setZoomState] = signals.zoomStateSignal;
   const [ribbonReducer, ribbonDispatch] = signals.ribbonState;
   const [showOriginalImage, setShowOriginalImage] =
@@ -427,7 +426,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
       payload: {
         slices,
         id,
-        name: `Ribbon ${Math.ceil(id / 2)}`,
+        name: `Ribbon ${id}`,
         color,
         thickness: 5,
         status: "editing",
@@ -437,6 +436,7 @@ export const Canvas = (props: { samLoaded: boolean }) => {
         configurations: [],
         slicesToConfigure: [],
         slicesToMove: [],
+        allowDetectAgain: true,
       } satisfies ShapeSet,
     });
   };
@@ -504,7 +504,6 @@ export const Canvas = (props: { samLoaded: boolean }) => {
             </Button>
           </Show>
         </Show>
-        <RemoveRibbonsButton />
         <Show when={ribbonReducer().masks.length > 0}>
           <Button
             variant="ghost"
@@ -520,16 +519,20 @@ export const Canvas = (props: { samLoaded: boolean }) => {
         edgeDataCanvasRef={() => edgeDataCanvasRef}
         handleRibbonDetection={handleRibbonDetection}
       />
-      <For each={ribbonReducer().ribbons}>
-        {(ribbon) => (
-          <RibbonConfigPanel
-            canvasSize={canvasRef}
-            ribbon={ribbon}
-            ctx={canvasRef.getContext("2d")!}
-            handleRibbonDetection={handleRibbonDetection}
-          />
-        )}
-      </For>
+      <Show
+        when={ribbonReducer().masks.length === 0 && !ribbonReducer().detection}
+      >
+        <For each={ribbonReducer().ribbons}>
+          {(ribbon) => (
+            <RibbonConfigPanel
+              canvasSize={canvasRef}
+              ribbon={ribbon}
+              ctx={canvasRef.getContext("2d")!}
+              handleRibbonDetection={handleRibbonDetection}
+            />
+          )}
+        </For>
+      </Show>
       <ZoomSlider />
       <DetectionInstructions />
       <div class="relative">

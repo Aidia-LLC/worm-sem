@@ -1,3 +1,5 @@
+import { StageConfiguration } from "@logic/computeStageCoordinates";
+
 export type Shape = {
   id: number;
 } & Record<string, any>;
@@ -21,6 +23,7 @@ export type ShapeSet = {
   slicesToMove: Shape["id"][];
   matchedPoints: [number, number][];
   configurations: ShapeConfiguration[];
+  allowDetectAgain: boolean;
 };
 
 export type ShapeConfiguration = {
@@ -41,4 +44,10 @@ export type FinalShapeConfiguration = {
   point: [number, number];
   ribbonId: number;
   ribbonName: string;
+};
+
+export type FinalRibbonConfiguration = {
+  ribbon: Pick<ShapeSet, "id" | "name">;
+  stage: StageConfiguration;
+  slices: FinalShapeConfiguration[];
 };
