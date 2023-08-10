@@ -1,3 +1,4 @@
+import { ParameterPanel } from "@components/RibbonDetector/ParameterPanel";
 import { sleep } from "@logic/finalImaging";
 import { createSignal, Show } from "solid-js";
 import {
@@ -78,6 +79,7 @@ export const GrabForm = () => {
       <Show when={loading()}>
         <span>Grabbing image...</span>
       </Show>
+      <ParameterPanel />
     </div>
   );
 };
