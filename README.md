@@ -26,12 +26,10 @@ Install `node`. Navigate to the `app` directory and run `yarn`. Then run `yarn d
 
 ## TODO
 
-- [ ] Moving the stage
-- [ ] High magnification
-- [ ] Focus
-- [ ] Interpolation of slice configuration (brightness, contrast, focus)
-- [ ] Scale of brightness, contrast, and working distance. May need to adjust to allow using arrow keys and having proper increments (very small, maybe 0.01)
-- [ ] Maybe change device to `cuda` in the Python server to allow hardware acceleration
+- [ ] Remove matched points when adding a new slicee
+- [ ] Change x/y adjustments to be in canvas units
+- [ ] Rewrite instructions
+- [ ] (Canyon) Compute computable parameters & remove from options
 
 ## Building the CLI program
 

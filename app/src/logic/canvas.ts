@@ -1,4 +1,4 @@
-import { base64ToImageSrc } from "./image";
+import { base64ToImageSrc } from "./base64ToImageSrc";
 
 export const setupCanvases = async (details: {
   primaryCanvas: HTMLCanvasElement;
