@@ -52,13 +52,17 @@ export const Instructions = () => {
       </div>
       <Show when={showInstructions()}>
         <div class="bg-gray-200 py-2 px-3 rounded translate-y-3 text-md leading-relaxed">
-          <h2 class="font-bold">Grabbing an image</h2>
+          <h2 class="font-bold">Grabbing an Image</h2>
           <ol class="list-decimal list-inside">
-            <li>Disable the data zone from SmartSEM.</li>
+            <li>Disable the data zone in SmartSEM.</li>
             <li>Click the "Connect" button to connect to the server.</li>
             <li>
-              Click the "Grab Initial Image" button to grab an initial frame
-              from the microscope.
+              Move the stage to the desired position and set a magnification to
+              see the entire sample.
+            </li>
+            <li>
+              Click the "Grab Image" button to grab an initial frame from the
+              microscope.
             </li>
           </ol>
           <h2 class="font-bold mt-2">Detecting Ribbons</h2>
@@ -158,18 +162,43 @@ export const Instructions = () => {
               selected, some of these fields may not be visible for that slice.
             </li>
             <li>
-              After all slices have been configured, click "Finish" to start
-              imaging.
+              When editing these values, use the live preview in the SmartSEM
+              program to see the changes to the parameters. You can use the
+              Previous and Next Slice buttons to cycle through the slices.
             </li>
             <li>
-              A dialog will pop up to choose the folder to save the images to.
+              The bottom configuration pane has the scan speed and
+              magnification. The value for magnification will be used across all
+              slices in this ribbon. The scan speed will only be used for the
+              preview. To set the scan speed for final imaging, set the "Final
+              Scan Speed" option in the main screen.
+            </li>
+            <li>
+              After all slices have been configured, click "Queue Ribbon" to
+              save the configuration to the queue. Only do this once you are
+              certain that the configuration is correct. You will not be able to
+              edit it later.
+            </li>
+            <li>Repeat for any other ribbons in the image.</li>
+            <li>
+              Click "Clear Image" and repeat for any other grids you want to
+              image.
+            </li>
+            <li>
+              When you are completely done setting up the ribbons, click "Begin
+              Imaging" in the banner at the top of the screen. This will open a
+              dialog to choose the folder to save the images to.
             </li>
             <li>
               The program will begin configuring the microscope and imaging in
-              the background. A percent complete will be displayed at the top of
-              the screen while the operation is in progress.
+              the background. The current progress will be displayed while the
+              operation is in progress. When it is complete, there will be a
+              message displayed.
             </li>
-            <li>When the program is done, it will display a message.</li>
+            <li>
+              Treat yourself to some ice cream while you wait for the imaging to
+              finish! It may take a long, long while.
+            </li>
           </ol>
         </div>
       </Show>

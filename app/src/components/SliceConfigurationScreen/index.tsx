@@ -15,9 +15,9 @@ import {
 import {
   initialStageSignal,
   magnificationSignal,
+  previewScanSpeedSignal,
   primaryImageSignal,
   ribbonState,
-  scanSpeedSignal,
 } from "src/data/signals/globals";
 import { microscopeBridge } from "src/MicroscopeBridge/index";
 import { ShapeSet } from "src/SliceManager/types";
@@ -28,7 +28,7 @@ import { SliceGrouper } from "./InterpolationGrouper";
 
 export const SliceConfigurationScreen = () => {
   const [magnification, setMagnification] = magnificationSignal;
-  const [scanSpeed, setScanSpeed] = scanSpeedSignal;
+  const [scanSpeed, setScanSpeed] = previewScanSpeedSignal;
   const [ribbonReducer, ribbonDispatch] = ribbonState;
   const [stage] = initialStageSignal;
   const [primaryImage] = primaryImageSignal;
@@ -74,6 +74,7 @@ export const SliceConfigurationScreen = () => {
     });
 
     await microscopeBridge.setDetectorType("ZOOMED_IN");
+    await microscopeBridge.setImageQuality("LOW");
     await microscopeBridge.moveStageTo({
       x: coordinates[0],
       y: coordinates[1],
@@ -308,7 +309,7 @@ export const SliceConfigurationScreen = () => {
             }}
           />
           <SliderPicker
-            label="Scan Speed"
+            label="Preview Scan Speed"
             value={scanSpeed()}
             min={MIN_SCAN_SPEED}
             max={MAX_SCAN_SPEED}

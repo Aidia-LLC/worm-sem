@@ -26,7 +26,7 @@ export const ParameterPanel = () => {
           description="This sets the size of a bounding box where the program will look for a slice. This may need to be changed if the apparent size of the slices is larger or smaller than usual."
         />
         <Param
-          label="Scan Speed"
+          label="Final Scan Speed"
           value={scanSpeed()}
           onChange={setScanSpeed}
           description="This is the scan speed used for the final imaging. A value of 7 is a sensible default that will take about 20 minutes to image each slice."

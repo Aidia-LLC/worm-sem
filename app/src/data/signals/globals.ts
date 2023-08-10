@@ -19,6 +19,7 @@ export const optionsStore = createOptionsStore();
 export const optionsSequenceSignal = createSignal(0);
 export const magnificationSignal = createSignal(DEFAULT_MAGNIFICATION);
 export const scanSpeedSignal = createSignal(DEFAULT_SCAN_SPEED);
+export const previewScanSpeedSignal = createSignal(DEFAULT_SCAN_SPEED);
 
 export const zoomStateSignal = createSignal<ZoomState>({
   status: "zoomed-out",
