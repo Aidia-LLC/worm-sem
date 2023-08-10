@@ -4,7 +4,6 @@ import { createStore, SetStoreFunction } from "solid-js/store";
 export const defaultOptions: ProcessingOptions = {
   squareSize: 420,
   houghVoteThreshold: 0.5,
-  pixelThreshold: 0.35,
   maxLines: 6,
 };
 
