@@ -17,3 +17,5 @@ export const BRIGHTNESS_STEP = 0.0001;
 export const DISTANCE_STEP = 1;
 
 export const DEFAULT_ZOOM_SCALE = 10;
+
+export const DEBUG = false;
