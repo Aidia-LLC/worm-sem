@@ -1,8 +1,8 @@
-import { primaryImageSignal, ribbonState } from "@data/signals/globals";
-import { setupCanvases } from "@logic/setupCanvases";
+import { primaryImageSignal, ribbonState } from "src/lib/data/signals/globals";
+import { setupCanvases } from "src/lib/utils/setupCanvases";
 import { createEffect, onMount } from "solid-js";
-import { getSliceManager } from "src/SliceManager";
-import { Shape } from "src/SliceManager/types";
+import { getSliceManager } from "src/lib/SliceManager";
+import { Shape } from "src/lib/SliceManager/types";
 import { groupColors } from "./colors";
 
 export const GrouperCanvas = (props: {

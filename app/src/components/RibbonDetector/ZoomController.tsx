@@ -1,5 +1,5 @@
 import { Match, onCleanup, onMount, Show, Switch } from "solid-js";
-import { ribbonState, zoomStateSignal } from "src/data/signals/globals";
+import { ribbonState, zoomStateSignal } from "src/lib/data/signals/globals";
 import { Button } from "../Button";
 
 export type ZoomState =

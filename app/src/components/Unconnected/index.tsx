@@ -1,5 +1,5 @@
 import { Button } from "@components/Button";
-import { microscopeBridge } from "src/MicroscopeBridge/index";
+import { microscopeBridge } from "src/lib/MicroscopeBridge/index";
 import { createSignal } from "solid-js";
 
 export const Unconnected = (props: { onConnect: () => void }) => {

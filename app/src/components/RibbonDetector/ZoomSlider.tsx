@@ -1,5 +1,5 @@
 import { SliderPicker } from "@components/SliderPicker";
-import { defaultZoomScaleSignal, zoomStateSignal } from "@data/signals/globals";
+import { defaultZoomScaleSignal, zoomStateSignal } from "src/lib/data/signals/globals";
 import { Show } from "solid-js";
 
 export const ZoomSlider = () => {

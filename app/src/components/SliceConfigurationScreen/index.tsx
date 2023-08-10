@@ -1,4 +1,4 @@
-import { computeStageCoordinates } from "@logic/computeStageCoordinates";
+import { computeStageCoordinates } from "src/lib/utils/computeStageCoordinates";
 import { createEffect, createSignal, Show, untrack } from "solid-js";
 import {
   BRIGHTNESS_STEP,
@@ -18,9 +18,9 @@ import {
   previewScanSpeedSignal,
   primaryImageSignal,
   ribbonState,
-} from "src/data/signals/globals";
-import { microscopeBridge } from "src/MicroscopeBridge/index";
-import { ShapeSet } from "src/SliceManager/types";
+} from "src/lib/data/signals/globals";
+import { microscopeBridge } from "src/lib/MicroscopeBridge/index";
+import { ShapeSet } from "src/lib/SliceManager/types";
 import { Button } from "../Button";
 import { SliderPicker } from "../SliderPicker";
 import { EnqueueRibbon } from "./EnqueueRibbon";

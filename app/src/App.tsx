@@ -2,7 +2,7 @@ import { Button } from "@components/Button";
 import { FinalImaging } from "@components/FinalImaging";
 import { GrabForm } from "@components/InitialGrab";
 import { Instructions } from "@components/Instructions";
-import { Canvas } from "@components/RibbonDetector/Canvas";
+import { RibbonDetector } from "@components/RibbonDetector";
 import { SliceConfigurationScreen } from "@components/SliceConfigurationScreen";
 import { Unconnected } from "@components/Unconnected";
 import {
@@ -18,7 +18,7 @@ import {
   initialStageSignal,
   primaryImageSignal,
   ribbonState,
-} from "./data/signals/globals";
+} from "./lib/data/signals/globals";
 
 const DELAY_TO_INITIALIZE_SAM = 10000;
 
@@ -107,7 +107,7 @@ export const App = () => {
           <SliceConfigurationScreen />
         </Match>
         <Match when={connected() && primaryImage() && !imaging()}>
-          <Canvas samLoaded={samLoaded()} />
+          <RibbonDetector samLoaded={samLoaded()} />
         </Match>
         <Match when={imaging()}>
           <FinalImaging />

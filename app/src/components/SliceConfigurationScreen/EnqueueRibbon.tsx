@@ -4,8 +4,8 @@ import {
   magnificationSignal,
   primaryImageSignal,
   ribbonState,
-} from "@data/signals/globals";
-import { setupFinalConfigurations } from "@logic/finalImaging";
+} from "src/lib/data/signals/globals";
+import { setupFinalConfigurations } from "src/lib/utils/finalImaging";
 import { createSignal, Show } from "solid-js";
 
 export const EnqueueRibbon = () => {

@@ -1,6 +1,6 @@
-import { handleFinalImaging } from "@logic/finalImaging";
+import { handleFinalImaging } from "src/lib/utils/finalImaging";
 import { createSignal, onCleanup, onMount } from "solid-js";
-import { ribbonState, scanSpeedSignal } from "src/data/signals/globals";
+import { ribbonState, scanSpeedSignal } from "src/lib/data/signals/globals";
 
 const MIN_DOT_COUNT = 2;
 const MAX_DOT_COUNT = 10;

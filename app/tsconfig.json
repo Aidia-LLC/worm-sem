@@ -21,10 +21,10 @@
     "paths": {
       "@components/*": ["src/components/*"],
       "@types/*": ["src/types/*"],
-      "@data/*": ["src/data/*"],
-      "@logic/*": ["src/logic/*"],
+      "@data/*": ["src/lib/data/*"],
+      "@logic/*": ["src/lib/utils/*"],
       "@electron/*": ["src/electron/*"],
-      "@microscopeBridge/*": ["src/MicroscopeBridge/*"]
+      "@microscopeBridge/*": ["src/lib/MicroscopeBridge/*"]
     }
   }
 }

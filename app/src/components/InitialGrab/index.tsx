@@ -1,12 +1,12 @@
 import { ParameterPanel } from "@components/RibbonDetector/ParameterPanel";
-import { sleep } from "@logic/finalImaging";
+import { sleep } from "src/lib/utils/finalImaging";
 import { createSignal, Show } from "solid-js";
 import {
   initialStageSignal,
   primaryImageSignal,
-} from "src/data/signals/globals";
-import { grabImageOnFrameEnd } from "src/MicroscopeBridge/grabImageOnFrameEnd";
-import { microscopeBridge } from "src/MicroscopeBridge/index";
+} from "src/lib/data/signals/globals";
+import { grabImageOnFrameEnd } from "src/lib/MicroscopeBridge/grabImageOnFrameEnd";
+import { microscopeBridge } from "src/lib/MicroscopeBridge/index";
 import { Button } from "../Button";
 
 const SCAN_SPEED = 5;

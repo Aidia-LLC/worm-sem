@@ -1,6 +1,6 @@
-import { edgeFilter } from "@logic/edgeFilter";
+import { edgeFilter } from "src/lib/utils/edgeFilter";
 import { Show } from "solid-js";
-import { ribbonState } from "src/data/signals/globals";
+import { ribbonState } from "src/lib/data/signals/globals";
 import { Button } from "../Button";
 
 export const MaskSelector = (props: {

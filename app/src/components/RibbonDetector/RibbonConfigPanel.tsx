@@ -5,10 +5,10 @@ import {
   nextSliceIdSignal,
   primaryImageSignal,
   ribbonState,
-} from "src/data/signals/globals";
-import { microscopeBridge } from "src/MicroscopeBridge/index";
-import { getSliceManager } from "src/SliceManager";
-import { ShapeSet } from "src/SliceManager/types";
+} from "src/lib/data/signals/globals";
+import { microscopeBridge } from "src/lib/MicroscopeBridge/index";
+import { getSliceManager } from "src/lib/SliceManager";
+import { ShapeSet } from "src/lib/SliceManager/types";
 import { Button } from "../Button";
 
 export const availableColors = [
