@@ -50,6 +50,7 @@ export const RibbonConfigPanel = (props: {
   const handleAddTrapezoid = ({ top }: { top: boolean }) => {
     setRibbon({
       ...props.ribbon,
+      matchedPoints: [],
       slices: sliceManager.addSlice({
         shapes: props.ribbon.slices,
         id: nextSliceId(),

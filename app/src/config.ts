@@ -14,6 +14,6 @@ export const WORKING_DISTANCE_STEP = 0.000001;
 
 export const CONTRAST_STEP = 0.0001;
 export const BRIGHTNESS_STEP = 0.0001;
-export const DISTANCE_STEP = 0.0000001;
+export const DISTANCE_STEP = 1;
 
 export const DEFAULT_ZOOM_SCALE = 10;

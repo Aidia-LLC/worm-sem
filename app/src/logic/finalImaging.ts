@@ -6,7 +6,10 @@ import {
   ShapeConfiguration,
   ShapeSet,
 } from "src/SliceManager/types";
-import { StageConfiguration } from "./computeStageCoordinates";
+import {
+  computeStageCoordinates,
+  StageConfiguration,
+} from "./computeStageCoordinates";
 import { lerp } from "./interpolation";
 
 export const sleep = (ms: number) =>
@@ -124,14 +127,19 @@ export const setupFinalConfigurations = (details: {
   const ribbonName = details.ribbon.name
     .replace(/[^a-z0-9]/gi, "-")
     .toLowerCase();
-  return interpolatedConfigurations.map((c) => {
+  return interpolatedConfigurations.map((c, i) => {
+    const point = computeStageCoordinates({
+      canvasConfiguration: details.canvasConfiguration,
+      stageConfiguration: details.stageConfiguration,
+      point: details.ribbon.matchedPoints[i],
+    });
     return {
       magnification: details.magnification,
       brightness: c.brightness!,
       contrast: c.contrast!,
       focus: c.focus!,
       label: `slice-${c.index + 1}`,
-      point: c.point,
+      point,
       ribbonId: details.ribbonId,
       ribbonName,
     };

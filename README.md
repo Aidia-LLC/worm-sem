@@ -26,7 +26,6 @@ Install `node`. Navigate to the `app` directory and run `yarn`. Then run `yarn d
 
 ## TODO
 
-- [ ] Remove matched points when adding a new slicee
 - [ ] Change x/y adjustments to be in canvas units
 - [ ] Rewrite instructions
 - [ ] (Canyon) Compute computable parameters & remove from options
