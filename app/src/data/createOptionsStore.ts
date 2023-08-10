@@ -5,7 +5,6 @@ export const defaultOptions: ProcessingOptions = {
   squareSize: 420,
   houghVoteThreshold: 0.4,
   mergeLineThreshold: 120,
-  pixelThreshold: 0.35,
   maxLines: 6,
   minimumFit: 0.5,
   firstFit: 200,

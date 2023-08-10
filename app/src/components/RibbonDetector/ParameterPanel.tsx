@@ -88,15 +88,6 @@ export const ParameterPanel = () => {
             tooltipPosition="right"
           />
           <Param
-            description="Lines that cross less than this number of edge pixels are discarded."
-            label="Pixels Per Line Percentage Threshold"
-            value={options.options.pixelThreshold}
-            onChange={(value) => {
-              setOptions("options", "pixelThreshold", value);
-              setOptionsSequence(optionsSequence() + 1);
-            }}
-          />
-          <Param
             description="When looking for a trapezoid, the algorithm looks at the top X lines found in the 'bounding box'. This sets X."
             label="Max Lines Per Square"
             value={options.options.maxLines}
