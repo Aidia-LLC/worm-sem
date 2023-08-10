@@ -1,6 +1,6 @@
 import { edgeFilter } from "@utils/edgeFilter";
 import { Show } from "solid-js";
-import { ribbonState } from "@data/signals/globals";
+import { ribbonState } from "@data/globals";
 import { Button } from "../Button";
 
 export const MaskSelector = (props: {

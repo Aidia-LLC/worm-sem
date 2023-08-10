@@ -4,7 +4,7 @@ import { createSignal, Show } from "solid-js";
 import {
   initialStageSignal,
   primaryImageSignal,
-} from "@data/signals/globals";
+} from "@data/globals";
 import { grabImageOnFrameEnd } from "@MicroscopeBridge/grabImageOnFrameEnd";
 import { microscopeBridge } from "@MicroscopeBridge/index";
 import { Button } from "../Button";

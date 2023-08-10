@@ -1,14 +1,14 @@
-import { For, Show } from "solid-js";
 import {
   initialStageSignal,
   magnificationSignal,
   nextSliceIdSignal,
   primaryImageSignal,
   ribbonState,
-} from "@data/signals/globals";
+} from "@data/globals";
 import { microscopeBridge } from "@MicroscopeBridge/index";
-import { getSliceManager } from "@SliceManager";
+import { getSliceManager } from "@SliceManager/index";
 import { ShapeSet } from "@SliceManager/types";
+import { For, Show } from "solid-js";
 import { Button } from "../Button";
 
 export const availableColors = [

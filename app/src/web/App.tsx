@@ -18,7 +18,7 @@ import {
   initialStageSignal,
   primaryImageSignal,
   ribbonState,
-} from "./lib/data/signals/globals";
+} from "./lib/data/globals";
 
 const DELAY_TO_INITIALIZE_SAM = 10000;
 

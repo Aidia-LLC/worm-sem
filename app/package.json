@@ -43,8 +43,8 @@
         ]
       },
       {
-        "from": "../python",
-        "to": "Resources/python",
+        "from": "../mask-server",
+        "to": "Resources/mask-server",
         "filter": [
           "**/*"
         ]

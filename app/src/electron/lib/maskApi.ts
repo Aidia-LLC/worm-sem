@@ -6,8 +6,8 @@ import { PYTHON_PORT } from "../../config";
 
 const isProduction = app.isPackaged;
 export const maskServerPath = isProduction
-  ? path.join(path.dirname(appRootDir.get()), "python")
-  : path.join(appRootDir.get(), "..", "python");
+  ? path.join(path.dirname(appRootDir.get()), "mask-server")
+  : path.join(appRootDir.get(), "..", "mask-server");
 
 export const initializeMaskApi = async (): Promise<ChildProcess> => {
   const process = exec(`python -m flask run -p ${PYTHON_PORT}`, {

@@ -12,7 +12,7 @@ import {
   RibbonDispatchPayload,
   ribbonReducerInitialState,
   RibbonReducerState,
-} from "../ribbonReducer";
+} from "./ribbonReducer";
 import { createOptionsStore } from "./options";
 
 export const optionsStore = createOptionsStore();

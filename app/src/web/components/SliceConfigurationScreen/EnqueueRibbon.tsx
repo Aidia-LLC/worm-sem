@@ -4,7 +4,7 @@ import {
   magnificationSignal,
   primaryImageSignal,
   ribbonState,
-} from "@data/signals/globals";
+} from "@data/globals";
 import { setupFinalConfigurations } from "@utils/finalImaging";
 import { createSignal, Show } from "solid-js";
 

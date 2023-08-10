@@ -1,6 +1,6 @@
 import { handleFinalImaging } from "@utils/finalImaging";
 import { createSignal, onCleanup, onMount } from "solid-js";
-import { ribbonState, scanSpeedSignal } from "@data/signals/globals";
+import { ribbonState, scanSpeedSignal } from "@data/globals";
 
 const MIN_DOT_COUNT = 2;
 const MAX_DOT_COUNT = 10;

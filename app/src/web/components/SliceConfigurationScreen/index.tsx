@@ -16,7 +16,7 @@ import {
   previewScanSpeedSignal,
   primaryImageSignal,
   ribbonState,
-} from "@data/signals/globals";
+} from "@data/globals";
 import { microscopeBridge } from "@MicroscopeBridge/index";
 import { ShapeSet } from "@SliceManager/types";
 import { computeStageCoordinates } from "@utils/computeStageCoordinates";

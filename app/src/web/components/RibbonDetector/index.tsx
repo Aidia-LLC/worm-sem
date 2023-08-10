@@ -1,11 +1,11 @@
+import * as signals from "@data/globals";
+import { getSliceManager } from "@SliceManager/index";
+import { Shape, ShapeSet } from "@SliceManager/types";
 import { base64ToImageSrc } from "@utils/base64ToImageSrc";
 import { convertZoomedCoordinates } from "@utils/convertZoomedCoordinates";
 import { segmentImage } from "@utils/segmentImage";
 import { setupCanvases } from "@utils/setupCanvases";
 import { createEffect, createSignal, For, onMount, Show } from "solid-js";
-import * as signals from "@data/signals/globals";
-import { getSliceManager } from "@SliceManager";
-import { Shape, ShapeSet } from "@SliceManager/types";
 import { Button } from "../Button";
 import { DetectionInstructions } from "./DetectionInstructions";
 import { MaskSelector } from "./MaskSelector";
