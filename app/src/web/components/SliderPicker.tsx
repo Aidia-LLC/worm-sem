@@ -37,7 +37,10 @@ export const SliderPicker = (props: {
             step={props.step}
             class="w-full"
             value={props.value}
-            onChange={(e) => props.setValue(parseFloat(e.currentTarget.value))}
+            onInput={(e) => {
+              const value = parseFloat(e.currentTarget.value);
+              if (!Number.isNaN(value)) props.setValue(value);
+            }}
           />
           <Show when={props.unit}>
             <span>{props.unit}</span>

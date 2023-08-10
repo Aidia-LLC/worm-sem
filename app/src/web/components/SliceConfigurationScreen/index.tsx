@@ -173,6 +173,77 @@ export const SliceConfigurationScreen = () => {
       <div class="flex flex-col w-full items-center mb-16 gap-4">
         <div class="flex flex-col gap-4 bg-slate-200 rounded-xl p-4 w-full items-center shadow-lg border-slate-400 border-2">
           <h6 class="text-xl font-bold">Slice Configuration</h6>
+
+          <Show when={editingPosition()}>
+            <SliderPicker
+              label="X"
+              unit="pixels"
+              value={
+                ribbon().matchedPoints[
+                  ribbonReducer().focusedSliceIndex
+                ]?.[0] || 0
+              }
+              min={0}
+              max={primaryImage()?.size?.width || 0}
+              step={DISTANCE_STEP}
+              setValue={async (value) => {
+                ribbonDispatch({
+                  action: "updateRibbon",
+                  payload: {
+                    ...ribbon(),
+                    matchedPoints: ribbon().matchedPoints.map((p, i) =>
+                      i === ribbonReducer().focusedSliceIndex
+                        ? [value, p[1]]
+                        : p
+                    ),
+                  },
+                });
+                const coordinates = computeStageCoordinates({
+                  canvasConfiguration: primaryImage()?.size!,
+                  stageConfiguration: stage()!,
+                  point: [configuration().point[0], value],
+                });
+                await microscopeBridge.moveStageTo({
+                  x: coordinates[0],
+                  y: coordinates[1],
+                });
+              }}
+            />
+            <SliderPicker
+              label="Y"
+              unit="pixels"
+              value={
+                ribbon().matchedPoints[
+                  ribbonReducer().focusedSliceIndex
+                ]?.[1] || 0
+              }
+              min={0}
+              max={primaryImage()?.size?.height || 0}
+              step={DISTANCE_STEP}
+              setValue={async (value) => {
+                ribbonDispatch({
+                  action: "updateRibbon",
+                  payload: {
+                    ...ribbon(),
+                    matchedPoints: ribbon().matchedPoints.map((p, i) =>
+                      i === ribbonReducer().focusedSliceIndex
+                        ? [p[0], value]
+                        : p
+                    ),
+                  },
+                });
+                const coordinates = computeStageCoordinates({
+                  canvasConfiguration: primaryImage()?.size!,
+                  stageConfiguration: stage()!,
+                  point: [configuration().point[0], value],
+                });
+                await microscopeBridge.moveStageTo({
+                  x: coordinates[0],
+                  y: coordinates[1],
+                });
+              }}
+            />
+          </Show>
           <Show when={editingConfiguration()}>
             <SliderPicker
               label="Brightness"
@@ -217,79 +288,6 @@ export const SliceConfigurationScreen = () => {
                   payload: { focus: value },
                 });
                 await microscopeBridge.setWorkingDistance(value);
-              }}
-            />
-          </Show>
-
-          <Show when={editingPosition()}>
-            <SliderPicker
-              label="X"
-              unit="m"
-              value={
-                ribbon().matchedPoints[
-                  ribbonReducer().focusedSliceIndex
-                ]?.[0] || 0
-              }
-              min={0}
-              max={primaryImage()?.size?.width || 0}
-              step={DISTANCE_STEP}
-              hideSlider={true}
-              setValue={async (value) => {
-                ribbonDispatch({
-                  action: "updateRibbon",
-                  payload: {
-                    ...ribbon(),
-                    matchedPoints: ribbon().matchedPoints.map((p, i) =>
-                      i === ribbonReducer().focusedSliceIndex
-                        ? [p[0], value]
-                        : p
-                    ),
-                  },
-                });
-                const coordinates = computeStageCoordinates({
-                  canvasConfiguration: primaryImage()?.size!,
-                  stageConfiguration: stage()!,
-                  point: [configuration().point[0], value],
-                });
-                await microscopeBridge.moveStageTo({
-                  x: coordinates[0],
-                  y: coordinates[1],
-                });
-              }}
-            />
-            <SliderPicker
-              label="Y"
-              unit="m"
-              value={
-                ribbon().matchedPoints[
-                  ribbonReducer().focusedSliceIndex
-                ]?.[1] || 0
-              }
-              min={0}
-              max={primaryImage()?.size?.height || 0}
-              step={DISTANCE_STEP}
-              hideSlider={true}
-              setValue={async (value) => {
-                ribbonDispatch({
-                  action: "updateRibbon",
-                  payload: {
-                    ...ribbon(),
-                    matchedPoints: ribbon().matchedPoints.map((p, i) =>
-                      i === ribbonReducer().focusedSliceIndex
-                        ? [p[0], value]
-                        : p
-                    ),
-                  },
-                });
-                const coordinates = computeStageCoordinates({
-                  canvasConfiguration: primaryImage()?.size!,
-                  stageConfiguration: stage()!,
-                  point: [configuration().point[0], value],
-                });
-                await microscopeBridge.moveStageTo({
-                  x: coordinates[0],
-                  y: coordinates[1],
-                });
               }}
             />
           </Show>

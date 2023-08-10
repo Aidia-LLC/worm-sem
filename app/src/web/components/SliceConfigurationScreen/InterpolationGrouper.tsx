@@ -3,8 +3,8 @@ import { getInterpolationGroups } from "@utils/interpolation";
 import { getIndicesOfSlicesToConfigure } from "@utils/getIndicesOfSlicesToConfigure";
 import { For, onMount } from "solid-js";
 import { ribbonState } from "@data/globals";
-import { GrouperCanvas } from "./GrouperCanvas";
-import { groupColors } from "./colors";
+import { PreviewCanvas } from "./PreviewCanvas";
+import { groupColors } from "./groupColors";
 
 export const SliceGrouper = () => {
   const [ribbonReducer, dispatch] = ribbonState;
@@ -117,7 +117,7 @@ export const SliceGrouper = () => {
           )}
         </For>
       </div>
-      <GrouperCanvas groups={interpolationGroups()} />
+      <PreviewCanvas groups={interpolationGroups()} />
     </div>
   );
 };

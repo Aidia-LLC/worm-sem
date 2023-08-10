@@ -3,9 +3,9 @@ import { getSliceManager } from "@SliceManager/index";
 import { Shape } from "@SliceManager/types";
 import { setupCanvases } from "@utils/setupCanvases";
 import { createEffect, onMount } from "solid-js";
-import { groupColors } from "./colors";
+import { groupColors } from "./groupColors";
 
-export const GrouperCanvas = (props: {
+export const PreviewCanvas = (props: {
   groups: Map<Shape["id"], Set<number>>;
 }) => {
   const sliceManager = getSliceManager();
@@ -56,7 +56,7 @@ export const GrouperCanvas = (props: {
       const slice = ribbon.slices[i];
       const point = ribbon.matchedPoints[i];
       ctx.strokeStyle = ribbon.slicesToMove.includes(slice.id)
-        ? "black"
+        ? "yellow"
         : "white";
       ctx.beginPath();
       ctx.arc(point[0], point[1], radius, 0, 2 * Math.PI);
