@@ -1,5 +1,5 @@
 import { ElectronMessage } from "@electron/types";
-import { ParamName } from "src/lib/MicroscopeBridge/types";
+import { ParamName } from "@MicroscopeBridge/types";
 import { z } from "zod";
 import {
   MicroscopeDetectorType,

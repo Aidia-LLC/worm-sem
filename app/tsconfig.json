@@ -19,12 +19,13 @@
     "jsxImportSource": "solid-js",
     "baseUrl": ".",
     "paths": {
-      "@components/*": ["src/components/*"],
-      "@types/*": ["src/types/*"],
-      "@data/*": ["src/lib/data/*"],
-      "@logic/*": ["src/lib/utils/*"],
+      "@config": ["src/config.ts"],
+      "@components/*": ["src/web/components/*"],
+      "@data/*": ["src/web/lib/data/*"],
+      "@utils/*": ["src/web/lib/utils/*"],
       "@electron/*": ["src/electron/*"],
-      "@microscopeBridge/*": ["src/lib/MicroscopeBridge/*"]
+      "@MicroscopeBridge/*": ["src/web/lib/MicroscopeBridge/*"],
+      "@SliceManager/*": ["src/web/lib/SliceManager/*"]
     }
   }
 }

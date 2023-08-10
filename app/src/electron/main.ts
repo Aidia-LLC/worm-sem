@@ -2,7 +2,7 @@ import { ChildProcess } from "child_process";
 import { app, BrowserWindow, ipcMain } from "electron";
 import path from "path";
 import { platform } from "process";
-import { Command, GrabFullFrameCommand } from "../lib/MicroscopeBridge/types";
+import { Command, GrabFullFrameCommand } from "../web/lib/MicroscopeBridge/types";
 import { getFilename } from "./lib/filesystem";
 import { initializeMaskApi } from "./lib/maskApi";
 import { MicroscopeCallingInterface } from "./lib/MicroscopeCallingInterface";
