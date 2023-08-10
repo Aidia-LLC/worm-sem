@@ -95,8 +95,7 @@ function recurseSearchTrapezoid(
     options,
     x + deltaX - squareSize / 2,
     y + deltaY - squareSize / 2,
-    squareSize,
-    fit
+    squareSize
   );
   if (secondTest) {
     // drawTrapezoid(secondTest, ctx, "green", 5 * (count + 2));
@@ -209,7 +208,6 @@ function RecurseDirectSearchOptimization(
   x: number,
   y: number,
   squareSize: number,
-  fit: number,
   ctx?: CanvasRenderingContext2D
 ) {
   console.log("recurse");
@@ -268,6 +266,6 @@ function RecurseDirectSearchOptimization(
       }
     }
   }
-  if (bestFt < fit * (options.squareSize / 2)) return null;
+  if (bestFt < options.squareSize / 2) return null;
   return computeTrapezoid(vertices);
 }
