@@ -61,86 +61,101 @@ export const Instructions = () => {
               from the microscope.
             </li>
           </ol>
-          <h2 class="font-bold mt-2">Finding Ribbons</h2>
+          <h2 class="font-bold mt-2">Detecting Ribbons</h2>
           <ol class="list-decimal list-inside">
             <li>
-              Click "Show Edge Data" to display the edge data of the image. It's
-              easier to find the best edges this way.
+              Follow the instructions to click a slice at the end, start, and
+              several slices in the middle of a ribbon. Make sure to include all
+              corners of the slice in the bounding box, but it should be a tight
+              fit. If any of the slices don't fit in the bounding box, you can
+              adjust the size of the box in the options panel at the bottom of
+              the screen.
             </li>
             <li>
-              Click the center of the slice with the best-defined edge. This can
-              be finicky, and may take a few attempts to learn how the algorithm
-              performs best. You can click the "Remove" button to remove a bad
-              set of detected trapezoids. There are parameters that can be
-              changed below the image if the algorithm is not working well on
-              this image.
+              The program will use the Segemnt Anything Model to mask out the
+              noise of the image. There are three masks to choose from. You can
+              cycle through them and pick the one that fits the ribbon the best.
+              Click "Accept Mask" to continue to the next step.
             </li>
             <li>
-              The program will look for a trapezoid centered on the clicked
-              point using the Hough Transform. If this fails, it will generate
-              thousands of random trapezoids and keep the best one. It then
-              shifts these trapezoids up and down to find connected trapezoids.
+              The program will look for a slice centered on the first clicked
+              point using the Hough Transform. If it fails to find one, it will
+              generate thousands of random shapes and keep the one that fits
+              best. It then shifts these shapes up and down to find connected
+              slices.
             </li>
             <li>
-              A trapezoid can be edited by clicking and dragging a vertex, or
-              clicking the middle of the trapezoid to move the whole trapezoid.
+              If the ribbon is not detected correctly, you can click the "Detect
+              Again" button to try again. This will use the next point you
+              clicked as a reference point for finding slices. If, after cycling
+              through all of the points, it doesn't detect the slice, you can
+              remove the ribbon and try again.
             </li>
             <li>
-              A trapezoid will be deleted if dragged to any edge of the image.
+              If the program still cannot detect a ribbon properly, you can try
+              changing the Hough Vote Threshold in the options. If the mask fits
+              the ribbon well, you can try changing it to a value of 0.4. If the
+              mask doesn't fit the ribbon well, you can try changing it to a
+              value of 0.6. As a last resort, you can try changing the Max Lines
+              option to a value of 3 or 4.
+            </li>
+          </ol>
+          <h2 class="font-bold mt-2">Editing Ribbons</h2>
+          <ol class="list-decimal list-inside">
+            <li>
+              There are 3 different statuses for a ribbon: "Editing",
+              "Matching", and "Locked". After creating a ribbon, it will be in
+              "Editing" status. In this status, you can move a slice or a vertex
+              by clicking and dragging it. You can also delete a slice by
+              dragging it to the edge of the image. You can add a slice to the
+              top or the bottom of the slice using the corresponding buttons.
+              You can then fine tune the position of the slice by dragging it.
+              The number order of the slices is automatically detected, but if
+              it is wrong, you can click the "Reverse Direction" button.
             </li>
             <li>
-              The slice that is currently designated at the first slice will
-              have a bolded line. You can swap the direction by clicking the
-              "Reverse Direction" button while the ribbon's status is "Editing".
-            </li>
-            <li>
-              You can edit the color and status of the ribbon, or remove it
-              entirely. You can also change the name of the ribbon. The name
-              will be included in the filename of the saved images.
-            </li>
-            <li>
-              You can toggle between the original image and the edge data as
-              needed.
+              While in the "Matching" status, you can click and drag anywhere
+              inside a slice to highlight the corresponding point on all other
+              slices in the ribbon. This is the point that will be imaged. You
+              can adjust all points on the ribbon by choosing the "Match Across
+              All Slices" option. After initially matching the points, you can
+              choose "Adjust Single Slice" to move a single point.
             </li>
             <li>
               To prevent any further changes to the ribbon, change the status to
               "Locked".
             </li>
-            <li>Repeat for any other ribbons.</li>
+            <li>Repeat for any other ribbons in the image.</li>
           </ol>
-          <h2 class="font-bold mt-2">
-            Getting Points and Sending to Miscroscope
-          </h2>
+          <h2 class="font-bold mt-2">Configuring Slices for Imaging</h2>
           <ol class="list-decimal list-inside">
-            <li>Change the ribbon's status to "Matching".</li>
             <li>
-              Click a point in any slice of a ribbon with a status of
-              "Matching". The same point in every other slice will be
-              highlighted.
+              Click "Configure Slices" on the ribbon you want to configure.
             </li>
             <li>
-              Click and drag any point to adjust it within only that slice.
-              Single click in a trapezoid to reset the point in every slice. If
-              you need to make a slight adjustment, you may need to click far
-              away in the slice to get it out of the way so it doesn't think
-              you're trying to drag a single point.
+              There will be a table with 4 columns. The first is the number of
+              the slice. The second column has a checkbox to enable tweaking the
+              position of the point to image on the slice. Enabling this will
+              turn the point to a black color in the preview. The third column
+              has a checkbox to enable configuring the brightness, contrast, and
+              working distance for that slice. You must configure these values
+              for the first and last slices. Values for any unselected slices
+              will be interpolated between the nearest configured slices. The
+              groups to be interpolated are represented visually in the fourth
+              column. The slices are outlined in the corresponding color in the
+              preview.
             </li>
             <li>
-              Change the status to "Locked" to prevent any further changes.
+              If a slice is much darker or brighter than the others, you may
+              need to select that slice and each of its neighbors in the third
+              column so that those values don't get interpolated to the other
+              slices.
             </li>
             <li>
-              Click the "Configure Slices" button to configure parameters
-              (brightness, contrast, and focus) for each slice. Magnification
-              will be applied across all slices.
-            </li>
-            <li>
-              A few slices will be selected automatically to configure manually
-              such that there will not be more than 5 slices between each
-              configured slice.
-            </li>
-            <li>
-              Make any adjustments as needed, and then click "Next Slice" to
-              continue.
+              Below the table, there are two configuration panes. The top pane
+              is for the brightness, contrast, working distance, and position of
+              the slice. If the corresponding checkbox in the table above isn't
+              selected, some of these fields may not be visible for that slice.
             </li>
             <li>
               After all slices have been configured, click "Finish" to start

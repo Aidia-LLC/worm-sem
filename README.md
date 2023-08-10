@@ -26,9 +26,7 @@ Install `node`. Navigate to the `app` directory and run `yarn`. Then run `yarn d
 
 ## TODO
 
-- [ ] Change x/y adjustments to be in canvas units
 - [ ] Rewrite instructions
-- [ ] (Canyon) Compute computable parameters & remove from options
 
 ## Building the CLI program
 

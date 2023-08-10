@@ -33,9 +33,7 @@ export const matchPoints = ({
   const dy = point[1] - center.y;
 
   const points: [number, number][] = [];
-  points.push(point);
   for (const otherSlice of ribbon.slices) {
-    if (otherSlice === slice) continue;
     let angle2 = 0;
     // angle2 of the top line
     if (otherSlice.top.x1 === otherSlice.top.x2) {
@@ -66,7 +64,8 @@ export const matchPoints = ({
     const otherDy = dx * Math.sin(angle) + dy * Math.cos(angle);
     const otherX = otherCenter.x + otherDx;
     const otherY = otherCenter.y + otherDy;
-    points.push([otherX, otherY]);
+    if (slice.id === otherSlice.id) points.push(point);
+    else points.push([otherX, otherY]);
   }
   return points;
 };
