@@ -193,7 +193,6 @@ function FixedDirectSearchOptimization(
   return computeTrapezoid(vertices);
 }
 
-
 function RecurseDirectSearchOptimization(
   ft: (
     data: Uint8ClampedArray,
@@ -269,6 +268,6 @@ function RecurseDirectSearchOptimization(
       }
     }
   }
-  if (bestFt < fit * options.minimumFit) return null;
+  if (bestFt < fit * (options.squareSize / 2)) return null;
   return computeTrapezoid(vertices);
 }
