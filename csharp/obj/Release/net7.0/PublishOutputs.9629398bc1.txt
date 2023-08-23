@@ -1,5 +1,0 @@
-C:\Users\sem\Desktop\worm-sem\csharp\bin\Release\net7.0\publish\wormsem.exe
-C:\Users\sem\Desktop\worm-sem\csharp\bin\Release\net7.0\publish\wormsem.dll
-C:\Users\sem\Desktop\worm-sem\csharp\bin\Release\net7.0\publish\wormsem.deps.json
-C:\Users\sem\Desktop\worm-sem\csharp\bin\Release\net7.0\publish\wormsem.runtimeconfig.json
-C:\Users\sem\Desktop\worm-sem\csharp\bin\Release\net7.0\publish\wormsem.pdb

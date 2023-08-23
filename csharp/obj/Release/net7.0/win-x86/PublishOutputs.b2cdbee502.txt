@@ -1,2 +1,0 @@
-C:\Users\sem\Desktop\worm-sem\csharp\bin\Release\net7.0\win-x86\publish\wormsem.pdb
-C:\Users\sem\Desktop\worm-sem\csharp\bin\Release\net7.0\win-x86\publish\wormsem.exe

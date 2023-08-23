@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "dev": "cd app && yarn dev",
+    "dev": "cd app && npm run dev",
     "start": "cd app && npm run start"
   }
 }
