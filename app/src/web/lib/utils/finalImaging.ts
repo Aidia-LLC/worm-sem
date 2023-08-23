@@ -25,6 +25,8 @@ export const handleFinalImaging = async (details: {
   const sliceConfigurations = configurations.map((c) => c.slices).flat();
   if (sliceConfigurations.length === 0)
     return alert("No configurations received. Please try again.");
+  await microscopeBridge.moveStageTo(configurations.at(0)!.stage);
+  await sleep(2500);
   await microscopeBridge.grabFullFrame({
     temporary: false,
     ribbonId: configurations[0].ribbon.id,
@@ -43,14 +45,14 @@ export const handleFinalImaging = async (details: {
   await sleep(3000);
   let i = 0;
   for (const ribbonConfig of configurations) {
-    onProgressUpdate(i);
     for (const sliceConfig of ribbonConfig.slices) {
+      onProgressUpdate(i++);
       await microscopeBridge.moveStageTo({
         x: sliceConfig.point[0],
         y: sliceConfig.point[1],
         r: ribbonConfig.stage.r,
       });
-      await sleep(500);
+      await sleep(2500);
       await microscopeBridge.setBrightness(sliceConfig.brightness);
       await sleep(500);
       await microscopeBridge.setContrast(sliceConfig.contrast);

@@ -10,6 +10,17 @@ export const SliderPicker = (props: {
   step: number;
   hideSlider?: boolean;
 }) => {
+  const inputHandler = (e: InputEvent & {
+    currentTarget: HTMLInputElement;
+    target: Element;
+  }) => {
+    let v = e.currentTarget.valueAsNumber
+    if (isNaN(v)) {
+      v = parseFloat(e.currentTarget.value + '0')
+      if (isNaN(v)) return
+    }
+    props.setValue(v)
+  }
   return (
     <div class="flex flex-col gap-2 w-full max-w-[512px] mx-auto">
       <span class="font-bold">{props.label}</span>
@@ -21,7 +32,7 @@ export const SliderPicker = (props: {
             max={props.max}
             value={props.value}
             step={props.step}
-            onInput={(e) => props.setValue(parseFloat(e.currentTarget.value))}
+            onInput={inputHandler}
           />
         </Show>
         <div
@@ -37,10 +48,7 @@ export const SliderPicker = (props: {
             step={props.step}
             class="w-full"
             value={props.value}
-            onInput={(e) => {
-              const value = parseFloat(e.currentTarget.value);
-              if (!Number.isNaN(value)) props.setValue(value);
-            }}
+            onInput={inputHandler}
           />
           <Show when={props.unit}>
             <span>{props.unit}</span>
