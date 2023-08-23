@@ -68,23 +68,18 @@ export const SliceConfigurationScreen = () => {
     )!;
     const point = ribbon.matchedPoints[0];
 
+    const coordinates = computeStageCoordinates({
+      point,
+      canvasConfiguration: primaryImage()!.size!,
+      stageConfiguration: stage()!,
+    });
 
-
-    createEffect(() => {
-      const coordinates = computeStageCoordinates({
-        point,
-        canvasConfiguration: primaryImage()!.size!,
-        stageConfiguration: stage()!,
-      });
-      console.log({
-        coordinates,
-        point,
-        canvas: primaryImage()!.size!,
-        stage: stage(),
-      })
+    console.log({
+      coordinates,
+      point,
+      canvas: primaryImage()!.size!,
+      stage: stage(),
     })
-
-
 
     await microscopeBridge.setDetectorType("ZOOMED_IN");
     await microscopeBridge.setImageQuality("LOW");
@@ -111,6 +106,14 @@ export const SliceConfigurationScreen = () => {
         canvasConfiguration: primaryImage()!.size!,
         stageConfiguration: stage()!,
       });
+
+      console.log({
+        coordinates,
+        point,
+        canvas: primaryImage()!.size!,
+        stage: stage(),
+      })
+
       await microscopeBridge.moveStageTo({
         x: coordinates[0],
         y: coordinates[1],
