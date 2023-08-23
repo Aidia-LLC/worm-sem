@@ -25,6 +25,7 @@ import { Button } from "../Button";
 import { SliderPicker } from "../SliderPicker";
 import { EnqueueRibbon } from "./EnqueueRibbon";
 import { SliceGrouper } from "./InterpolationGrouper";
+import { sleep } from "@utils/finalImaging";
 
 export const SliceConfigurationScreen = () => {
   const [magnification, setMagnification] = magnificationSignal;
@@ -103,6 +104,8 @@ export const SliceConfigurationScreen = () => {
         y: coordinates[1],
         r: stage()!.r,
       });
+
+      await sleep(1000)
 
       if (!editingConfiguration()) return;
       const configuration = ribbon.configurations[focusedSliceIndex]!;
