@@ -1,5 +1,4 @@
 import { ElectronMessage } from "@electron/types";
-import { sleep } from "@utils/finalImaging";
 import appRootDir from "app-root-dir";
 import { ChildProcessWithoutNullStreams, exec, spawn } from "child_process";
 import { app } from "electron";
@@ -13,6 +12,8 @@ import {
   MicroscopeImageQuality,
 } from "../types";
 import type { ZeissMessage } from "./types";
+
+const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
 const isProduction = app.isPackaged;
 const isLinux = getPlatform() === "linux";
