@@ -20,7 +20,8 @@ export abstract class MicroscopeCallingInterface {
   abstract setDetectorType(detectorType: MicroscopeDetectorType): Promise<void>;
   abstract setImageQuality(imageQuality: MicroscopeImageQuality): Promise<void>;
   abstract moveStageTo({ x, y }: { x: number; y: number }): Promise<void>;
-  abstract getStagePosition(): Promise<{ x: number; y: number }>;
+  abstract rotateStageTo(r: number): Promise<void>;
+  abstract getStagePosition(): Promise<{ x: number; y: number; r: number }>;
   abstract getStageBounds(): Promise<{
     x: { min: number; max: number };
     y: { min: number; max: number };
@@ -71,6 +72,10 @@ export abstract class MicroscopeCallingInterface {
           })
           .parse(value);
         return this.moveStageTo(position);
+      case "STAGE_ROTATION": {
+        const rotation = z.number().parse(value);
+        return this.rotateStageTo(rotation);
+      }
       case "FIELD_OF_VIEW":
       case "STAGE_BOUNDS":
         throw new Error(`Cannot set ${param}`);
@@ -91,6 +96,8 @@ export abstract class MicroscopeCallingInterface {
         return this.getWorkingDistance();
       case "STAGE_POSITION":
         return this.getStagePosition();
+      case "STAGE_ROTATION":
+        return this.getStagePosition().then(({ r }) => r);
       case "FIELD_OF_VIEW":
         return this.getFieldOfView();
       case "STAGE_BOUNDS":

@@ -148,12 +148,16 @@ export const microscopeBridge: MicroscopeBridge = {
   moveStageTo: async ({ x, y }) => {
     await setSEMParam("STAGE_POSITION", { x, y });
   },
+  rotateStage: async (rotation) => {
+    await setSEMParam("STAGE_ROTATION", rotation);
+  },
   getStagePosition: async () => {
     const position = await getSEMParam("STAGE_POSITION");
     return z
       .object({
         x: z.number(),
         y: z.number(),
+        r: z.number(),
       })
       .parse(position);
   },
