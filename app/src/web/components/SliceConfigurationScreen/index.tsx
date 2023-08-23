@@ -75,10 +75,10 @@ export const SliceConfigurationScreen = () => {
 
     await microscopeBridge.setDetectorType("ZOOMED_IN");
     await microscopeBridge.setImageQuality("LOW");
-    await microscopeBridge.rotateStage(stage()!.r)
     await microscopeBridge.moveStageTo({
       x: coordinates[0],
       y: coordinates[1],
+      r: stage()!.r,
     });
     await microscopeBridge.setMagnification(magnification());
     await microscopeBridge.setScanSpeed(scanSpeed());
@@ -101,6 +101,7 @@ export const SliceConfigurationScreen = () => {
       await microscopeBridge.moveStageTo({
         x: coordinates[0],
         y: coordinates[1],
+        r: stage()!.r,
       });
 
       if (!editingConfiguration()) return;
@@ -207,6 +208,7 @@ export const SliceConfigurationScreen = () => {
                 await microscopeBridge.moveStageTo({
                   x: coordinates[0],
                   y: coordinates[1],
+                  r: stage()!.r,
                 });
               }}
             />
@@ -241,6 +243,7 @@ export const SliceConfigurationScreen = () => {
                 await microscopeBridge.moveStageTo({
                   x: coordinates[0],
                   y: coordinates[1],
+                  r: stage()!.r,
                 });
               }}
             />

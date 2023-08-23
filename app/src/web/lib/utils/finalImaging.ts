@@ -41,32 +41,35 @@ export const handleFinalImaging = async (details: {
   await sleep(500);
   await microscopeBridge.setImageQuality("HIGH");
   await sleep(3000);
-  for (let i = 0; i < sliceConfigurations.length; i++) {
+  let i = 0;
+  for (const ribbonConfig of configurations) {
     onProgressUpdate(i);
-    const config = sliceConfigurations[i];
-    await microscopeBridge.moveStageTo({
-      x: config.point[0],
-      y: config.point[1],
-    });
-    await sleep(500);
-    await microscopeBridge.setBrightness(config.brightness);
-    await sleep(500);
-    await microscopeBridge.setContrast(config.contrast);
-    await sleep(500);
-    await microscopeBridge.setWorkingDistance(config.focus);
-    await sleep(5000);
-    await grabImageOnFrameEnd(
-      {
-        name: config.label,
-        temporary: false,
-        ribbonId: config.ribbonId,
-        ribbonName: config.ribbonName,
-      },
-      {
-        minSleepMs: 60_000,
-        pollIntervalMs: 5_000,
-      }
-    );
+    for (const sliceConfig of ribbonConfig.slices) {
+      await microscopeBridge.moveStageTo({
+        x: sliceConfig.point[0],
+        y: sliceConfig.point[1],
+        r: ribbonConfig.stage.r,
+      });
+      await sleep(500);
+      await microscopeBridge.setBrightness(sliceConfig.brightness);
+      await sleep(500);
+      await microscopeBridge.setContrast(sliceConfig.contrast);
+      await sleep(500);
+      await microscopeBridge.setWorkingDistance(sliceConfig.focus);
+      await sleep(5000);
+      await grabImageOnFrameEnd(
+        {
+          name: sliceConfig.label,
+          temporary: false,
+          ribbonId: sliceConfig.ribbonId,
+          ribbonName: sliceConfig.ribbonName,
+        },
+        {
+          minSleepMs: 60_000,
+          pollIntervalMs: 5_000,
+        }
+      );
+    }
   }
   onProgressUpdate(sliceConfigurations.length);
 };

@@ -40,7 +40,6 @@ export type ParamName =
   | "BRIGHTNESS"
   | "CONTRAST"
   | "STAGE_POSITION"
-  | "STAGE_ROTATION"
   | "STAGE_BOUNDS"
   | "FIELD_OF_VIEW"
   | "DETECTOR_TYPE";

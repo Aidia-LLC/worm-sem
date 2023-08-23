@@ -44,10 +44,7 @@ export interface MicroscopeBridge {
   setImageQuality(imageQuality: MicroscopeImageQuality): Promise<void>;
 
   /// Moves the stage to the specified coordinates.
-  moveStageTo(coordinates: { x: number; y: number }): Promise<void>;
-
-  /// Moves the stage to the specified coordinates.
-  rotateStage(rotation: number): Promise<void>;
+  moveStageTo(coordinates: { x: number; y: number; r: number }): Promise<void>;
 
   /// Gets the current stage coordinates.
   getStagePosition(): Promise<{ x: number; y: number; r: number }>;

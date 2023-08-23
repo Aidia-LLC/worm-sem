@@ -145,11 +145,8 @@ export const microscopeBridge: MicroscopeBridge = {
   setImageQuality: async (imageQuality) => {
     await setSEMParam("IMAGE_QUALITY", imageQuality);
   },
-  moveStageTo: async ({ x, y }) => {
-    await setSEMParam("STAGE_POSITION", { x, y });
-  },
-  rotateStage: async (rotation) => {
-    await setSEMParam("STAGE_ROTATION", rotation);
+  moveStageTo: async ({ x, y, r }) => {
+    await setSEMParam("STAGE_POSITION", { x, y, r });
   },
   getStagePosition: async () => {
     const position = await getSEMParam("STAGE_POSITION");
