@@ -220,6 +220,7 @@ export const SliceConfigurationScreen = () => {
 
           <Show when={editingPosition()}>
             <SliderPicker
+              waitUntilOnChanged
               label="X"
               unit="pixels"
               value={
@@ -255,6 +256,7 @@ export const SliceConfigurationScreen = () => {
               }}
             />
             <SliderPicker
+              waitUntilOnChanged
               label="Y"
               unit="pixels"
               value={

@@ -1,4 +1,4 @@
-import { Show } from "solid-js";
+import { Show, createEffect } from "solid-js";
 
 export const SliderPicker = (props: {
   label: string;
@@ -9,8 +9,9 @@ export const SliderPicker = (props: {
   unit?: string;
   step: number;
   hideSlider?: boolean;
+  waitUntilOnChanged?: boolean;
 }) => {
-  const inputHandler = (e: InputEvent & {
+  const inputHandler = (e: (InputEvent | Event) & {
     currentTarget: HTMLInputElement;
     target: Element;
   }) => {
@@ -21,6 +22,21 @@ export const SliderPicker = (props: {
     }
     props.setValue(v)
   }
+  const handler = () => {
+    return props.waitUntilOnChanged ? {
+      onInput: inputHandler
+    } : {
+      onChange: inputHandler
+    }
+  }
+  let inputRef1!: HTMLInputElement
+  let inputRef2!: HTMLInputElement
+
+  createEffect(() => {
+    const v = props.value.toString()
+    inputRef1.value = v
+    inputRef2.value = v
+  })
   return (
     <div class="flex flex-col gap-2 w-full max-w-[512px] mx-auto">
       <span class="font-bold">{props.label}</span>
@@ -30,9 +46,9 @@ export const SliderPicker = (props: {
             type="range"
             min={props.min}
             max={props.max}
-            value={props.value}
             step={props.step}
-            onInput={inputHandler}
+            {...handler()}
+
           />
         </Show>
         <div
@@ -47,8 +63,7 @@ export const SliderPicker = (props: {
             max={props.max}
             step={props.step}
             class="w-full"
-            value={props.value}
-            onInput={inputHandler}
+            {...handler()}
           />
           <Show when={props.unit}>
             <span>{props.unit}</span>
