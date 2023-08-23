@@ -43,6 +43,7 @@ export const SliderPicker = (props: {
       <div class="grid grid-cols-2 w-full gap-2">
         <Show when={!props.hideSlider}>
           <input
+            ref={inputRef1}
             type="range"
             min={props.min}
             max={props.max}
@@ -58,6 +59,7 @@ export const SliderPicker = (props: {
           }}
         >
           <input
+            ref={inputRef2}
             type="number"
             min={props.min}
             max={props.max}
