@@ -198,16 +198,21 @@ export class ZeissInterface extends MicroscopeCallingInterface {
     await this.setZeissParam("AP_STAGE_GOTO_Y", position.y);
   }
 
+  override async rotateStageTo(angle: number): Promise<void> {
+    await this.setZeissParam("AP_STAGE_GOTO_R", angle);
+  }
+
   override async getFieldOfView(): Promise<{ width: number; height: number }> {
     const width = await this.getZeissParam("AP_WIDTH");
     const height = await this.getZeissParam("AP_HEIGHT");
     return { width: parseFloat(width), height: parseFloat(height) };
   }
 
-  override async getStagePosition(): Promise<{ x: number; y: number }> {
+  override async getStagePosition(): Promise<{ x: number; y: number; r: number }> {
     const x = await this.getZeissParam("AP_STAGE_AT_X");
     const y = await this.getZeissParam("AP_STAGE_AT_Y");
-    return { x: parseFloat(x), y: parseFloat(y) };
+    const r = await this.getZeissParam("AP_STAGE_AT_R");
+    return { x: parseFloat(x), y: parseFloat(y), r: parseFloat(r) };
   }
 
   override async getFrozen(): Promise<boolean> {

@@ -47,6 +47,7 @@ export const GrabForm = () => {
       setInitialStage({
         x: stage.x,
         y: stage.y,
+        r: stage.r,
         width: fieldOfView.width,
         height: fieldOfView.height,
         limits: {

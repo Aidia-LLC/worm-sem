@@ -75,6 +75,7 @@ export const SliceConfigurationScreen = () => {
 
     await microscopeBridge.setDetectorType("ZOOMED_IN");
     await microscopeBridge.setImageQuality("LOW");
+    await microscopeBridge.rotateStage(stage()!.r)
     await microscopeBridge.moveStageTo({
       x: coordinates[0],
       y: coordinates[1],
@@ -180,7 +181,7 @@ export const SliceConfigurationScreen = () => {
               unit="pixels"
               value={
                 ribbon().matchedPoints[
-                  ribbonReducer().focusedSliceIndex
+                ribbonReducer().focusedSliceIndex
                 ]?.[0] || 0
               }
               min={0}
@@ -214,7 +215,7 @@ export const SliceConfigurationScreen = () => {
               unit="pixels"
               value={
                 ribbon().matchedPoints[
-                  ribbonReducer().focusedSliceIndex
+                ribbonReducer().focusedSliceIndex
                 ]?.[1] || 0
               }
               min={0}
