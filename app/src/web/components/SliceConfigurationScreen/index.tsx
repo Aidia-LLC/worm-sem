@@ -105,7 +105,7 @@ export const SliceConfigurationScreen = () => {
         r: stage()!.r,
       });
 
-      await sleep(1000)
+      await sleep(5000)
 
       if (!editingConfiguration()) return;
       const configuration = ribbon.configurations[focusedSliceIndex]!;
