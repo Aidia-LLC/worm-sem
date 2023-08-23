@@ -175,6 +175,42 @@ export const SliceConfigurationScreen = () => {
       <div class="flex flex-col w-full items-center mb-16 gap-4">
         <div class="flex flex-col gap-4 bg-slate-200 rounded-xl p-4 w-full items-center shadow-lg border-slate-400 border-2">
           <h6 class="text-xl font-bold">Slice Configuration</h6>
+          <button class='btn btn-primary' onClick={
+            async () => {
+              const [
+                brightness,
+                contrast,
+                workingDistance,
+                magnification,
+                position
+              ] = await Promise.all([
+                microscopeBridge.getBrightness(),
+                microscopeBridge.getContrast(),
+                microscopeBridge.getWorkingDistance(),
+                microscopeBridge.getMagnification(),
+                microscopeBridge.getStagePosition(),
+              ])
+              // BRIGHTNESS, CONTRAST, WORKING DISTANCE
+              ribbonDispatch({
+                action: "updateSliceConfiguration",
+                payload: { brightness, contrast, focus: workingDistance },
+              });
+              // POSITION
+              ribbonDispatch({
+                action: "updateRibbon",
+                payload: {
+                  ...ribbon(),
+                  matchedPoints: ribbon().matchedPoints.map((p, i) =>
+                    i === ribbonReducer().focusedSliceIndex
+                      ? [position.x, position.y]
+                      : p
+                  ),
+                },
+              });
+              // MAGNIFICATION
+              setMagnification(magnification);
+            }
+          }>Pull Microscrope Settings</button>
 
           <Show when={editingPosition()}>
             <SliderPicker
