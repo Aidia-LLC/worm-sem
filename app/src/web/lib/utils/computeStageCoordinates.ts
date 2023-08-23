@@ -10,6 +10,29 @@ export type StageConfiguration = {
   };
 };
 
+export const computeCanvasCoordinates = ({
+  point,
+  canvasConfiguration,
+  stageConfiguration,
+}: {
+  point: [number, number];
+  canvasConfiguration: {
+    width: number;
+    height: number;
+  };
+  stageConfiguration: StageConfiguration;
+}) => {
+  const scaleX = canvasConfiguration.width / stageConfiguration.width;
+  const scaleY = canvasConfiguration.height / stageConfiguration.height;
+
+  const translatedX =
+    (point[0] - stageConfiguration.x) * scaleX + canvasConfiguration.width / 2;
+  const translatedY =
+    (point[1] - stageConfiguration.y) * scaleY + canvasConfiguration.height / 2;
+
+  return [translatedX, translatedY] as [number, number];
+};
+
 /// Convert device coordinates to SEM coordinates
 export const computeStageCoordinates = ({
   point,
