@@ -74,6 +74,13 @@ export const SliceConfigurationScreen = () => {
       stageConfiguration: stage()!,
     });
 
+    console.log({
+      coordinates,
+      point,
+      canvas: primaryImage()!.size!,
+      stage: stage(),
+    })
+
     await microscopeBridge.setDetectorType("ZOOMED_IN");
     await microscopeBridge.setImageQuality("LOW");
     await microscopeBridge.moveStageTo({
