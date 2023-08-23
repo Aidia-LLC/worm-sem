@@ -1,4 +1,5 @@
 import { ElectronMessage } from "@electron/types";
+import { sleep } from "@utils/finalImaging";
 import { z } from "zod";
 import { MicroscopeBridge } from "./MicroscopeBridge";
 import {
@@ -146,6 +147,7 @@ export const microscopeBridge: MicroscopeBridge = {
     await setSEMParam("IMAGE_QUALITY", imageQuality);
   },
   moveStageTo: async ({ x, y, r }) => {
+    await sleep(1);
     await setSEMParam("STAGE_POSITION", { x, y, r });
   },
   getStagePosition: async () => {

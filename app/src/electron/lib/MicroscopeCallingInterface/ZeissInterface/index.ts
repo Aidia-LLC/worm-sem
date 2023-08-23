@@ -1,4 +1,5 @@
 import { ElectronMessage } from "@electron/types";
+import { sleep } from "@utils/finalImaging";
 import appRootDir from "app-root-dir";
 import { ChildProcessWithoutNullStreams, exec, spawn } from "child_process";
 import { app } from "electron";
@@ -195,8 +196,11 @@ export class ZeissInterface extends MicroscopeCallingInterface {
     y: number;
     r: number;
   }): Promise<void> {
+    await sleep(10);
     await this.setZeissParam("AP_STAGE_GOTO_X", position.x);
+    await sleep(10);
     await this.setZeissParam("AP_STAGE_GOTO_Y", position.y);
+    await sleep(10);
     await this.setZeissParam("AP_STAGE_GOTO_R", position.r);
   }
 
