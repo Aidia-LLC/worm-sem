@@ -1,3 +1,5 @@
+import { microscopeBridge } from "@MicroscopeBridge/index";
+import { ShapeSet } from "@SliceManager/types";
 import {
   BRIGHTNESS_STEP,
   CONTRAST_STEP,
@@ -17,15 +19,13 @@ import {
   primaryImageSignal,
   ribbonState,
 } from "@data/globals";
-import { microscopeBridge } from "@MicroscopeBridge/index";
-import { ShapeSet } from "@SliceManager/types";
 import { computeCanvasCoordinates, computeStageCoordinates } from "@utils/computeStageCoordinates";
-import { createEffect, createSignal, Show, untrack } from "solid-js";
+import { sleep } from "@utils/finalImaging";
+import { Show, createEffect, createSignal, untrack } from "solid-js";
 import { Button } from "../Button";
 import { SliderPicker } from "../SliderPicker";
 import { EnqueueRibbon } from "./EnqueueRibbon";
 import { SliceGrouper } from "./InterpolationGrouper";
-import { sleep } from "@utils/finalImaging";
 
 export const SliceConfigurationScreen = () => {
   const [magnification, setMagnification] = magnificationSignal;
@@ -86,7 +86,6 @@ export const SliceConfigurationScreen = () => {
     await microscopeBridge.moveStageTo({
       x: coordinates[0],
       y: coordinates[1],
-      r: stage()!.r,
     });
     await microscopeBridge.setMagnification(magnification());
     await microscopeBridge.setScanSpeed(scanSpeed());
@@ -117,7 +116,6 @@ export const SliceConfigurationScreen = () => {
       await microscopeBridge.moveStageTo({
         x: coordinates[0],
         y: coordinates[1],
-        r: stage()!.r,
       });
 
       await sleep(5000)
@@ -269,7 +267,6 @@ export const SliceConfigurationScreen = () => {
                 await microscopeBridge.moveStageTo({
                   x: coordinates[0],
                   y: coordinates[1],
-                  r: stage()!.r,
                 });
               }}
             />
@@ -305,7 +302,6 @@ export const SliceConfigurationScreen = () => {
                 await microscopeBridge.moveStageTo({
                   x: coordinates[0],
                   y: coordinates[1],
-                  r: stage()!.r,
                 });
               }}
             />

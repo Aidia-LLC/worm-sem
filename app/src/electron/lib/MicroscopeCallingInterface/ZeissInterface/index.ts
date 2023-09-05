@@ -195,14 +195,18 @@ export class ZeissInterface extends MicroscopeCallingInterface {
   override async moveStageTo(position: {
     x: number;
     y: number;
-    r: number;
+    r?: number | undefined;
   }): Promise<void> {
     await sleep(10);
+    const r = position.r;
+    if (r) {
+      await this.setZeissParam("AP_STAGE_GOTO_R", r);
+      await sleep(30_000);
+    }
     await this.setZeissParam("AP_STAGE_GOTO_X", position.x);
     await sleep(10);
     await this.setZeissParam("AP_STAGE_GOTO_Y", position.y);
     await sleep(10);
-    await this.setZeissParam("AP_STAGE_GOTO_R", position.r);
   }
 
   override async getFieldOfView(): Promise<{ width: number; height: number }> {

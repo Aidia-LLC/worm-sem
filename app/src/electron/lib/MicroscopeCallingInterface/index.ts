@@ -26,7 +26,7 @@ export abstract class MicroscopeCallingInterface {
   }: {
     x: number;
     y: number;
-    r: number;
+    r?: number | undefined;
   }): Promise<void>;
   abstract getStagePosition(): Promise<{ x: number; y: number; r: number }>;
   abstract getStageBounds(): Promise<{
