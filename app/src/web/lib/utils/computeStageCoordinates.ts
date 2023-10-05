@@ -66,10 +66,12 @@ export const computeStageCoordinates = ({
   const scaleY = stageHeightInMicrons / canvasConfiguration.height;
 
   const translatedX = micronsToMeters(
-    (canvasConfiguration.width / 2 - point[0]) * scaleX + stageConfiguration.x
+    (canvasConfiguration.width / 2 - point[0]) * scaleX +
+      metersToMicrons(stageConfiguration.x)
   );
   const translatedY = micronsToMeters(
-    (point[1] - canvasConfiguration.height / 2) * scaleY + stageConfiguration.y
+    (point[1] - canvasConfiguration.height / 2) * scaleY +
+      metersToMicrons(stageConfiguration.y)
   );
 
   const limitedX = Math.max(
