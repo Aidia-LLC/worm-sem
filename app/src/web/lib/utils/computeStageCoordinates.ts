@@ -10,6 +10,11 @@ export type StageConfiguration = {
   };
 };
 
+const micronsInMeter = 1_000_000;
+
+const metersToMicrons = (meters: number) => Math.round(meters * micronsInMeter);
+const micronsToMeters = (microns: number) => microns / micronsInMeter;
+
 export const computeCanvasCoordinates = ({
   point,
   canvasConfiguration,
@@ -22,24 +27,24 @@ export const computeCanvasCoordinates = ({
   };
   stageConfiguration: StageConfiguration;
 }) => {
-  const scaleX = canvasConfiguration.width / stageConfiguration.width;
-  const scaleY = canvasConfiguration.height / stageConfiguration.height;
+  const stageWidthInMicrons = metersToMicrons(stageConfiguration.width);
+  const stageHeightInMicrons = metersToMicrons(stageConfiguration.height);
+
+  const scaleX = canvasConfiguration.width / stageWidthInMicrons;
+  const scaleY = canvasConfiguration.height / stageHeightInMicrons;
 
   const translatedX =
-    canvasConfiguration.width / 2 - (point[0] - stageConfiguration.x) * scaleX;
+    canvasConfiguration.width / 2 -
+    (metersToMicrons(point[0]) - metersToMicrons(stageConfiguration.x)) *
+      scaleX;
 
   const translatedY =
-    (point[1] - stageConfiguration.y) * scaleY + canvasConfiguration.height / 2;
+    (metersToMicrons(point[1]) - metersToMicrons(stageConfiguration.y)) *
+      scaleY +
+    canvasConfiguration.height / 2;
 
   return [translatedX, translatedY] as [number, number];
 };
-
-const millimetersInMeter = 1_000;
-
-const metersToMillimeters3sigfig = (meters: number) =>
-  Math.round(meters * millimetersInMeter * 1_000) / 1_000;
-
-const millimetersToMeters = (mm: number) => mm / millimetersInMeter;
 
 /// Convert device coordinates to SEM coordinates
 export const computeStageCoordinates = ({
@@ -54,16 +59,18 @@ export const computeStageCoordinates = ({
   };
   stageConfiguration: StageConfiguration;
 }) => {
-  // const stageWidthInMM = metersToMillimeters3sigfig(stageConfiguration.width);
-  // const stageHeightInMM = metersToMillimeters3sigfig(stageConfiguration.height);
+  const stageWidthInMicrons = metersToMicrons(stageConfiguration.width);
+  const stageHeightInMicrons = metersToMicrons(stageConfiguration.height);
 
-  const scaleX = stageConfiguration.width / canvasConfiguration.width;
-  const scaleY = stageConfiguration.height / canvasConfiguration.height;
+  const scaleX = stageWidthInMicrons / canvasConfiguration.width;
+  const scaleY = stageHeightInMicrons / canvasConfiguration.height;
 
-  const translatedX =
-    (canvasConfiguration.width / 2 - point[0]) * scaleX + stageConfiguration.x;
-  const translatedY =
-    (point[1] - canvasConfiguration.height / 2) * scaleY + stageConfiguration.y;
+  const translatedX = micronsToMeters(
+    (canvasConfiguration.width / 2 - point[0]) * scaleX + stageConfiguration.x
+  );
+  const translatedY = micronsToMeters(
+    (point[1] - canvasConfiguration.height / 2) * scaleY + stageConfiguration.y
+  );
 
   const limitedX = Math.max(
     stageConfiguration.limits.x[0],
