@@ -20,7 +20,7 @@ export const Unconnected = (props: { onConnect: () => void }) => {
       <label class="flex flex-row gap-2">
         <input
           type="checkbox"
-          checked={datazoneCheck()}
+          checked={rotationCheck()}
           onChange={(e) => setRotationCheck(e.currentTarget.checked)}
         />
         <span>
