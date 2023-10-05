@@ -27,8 +27,6 @@ export const handleFinalImaging = async (details: {
   const sliceConfigurations = configurations.map((c) => c.slices).flat();
   if (sliceConfigurations.length === 0)
     return alert("No configurations received. Please try again.");
-  await microscopeBridge.moveStageTo(configurations.at(0)!.stage);
-  await sleep(2500);
   await microscopeBridge.grabFullFrame({
     temporary: false,
     ribbonId: configurations[0].ribbon.id,
