@@ -76,7 +76,7 @@ export abstract class MicroscopeCallingInterface {
           .object({
             x: z.number(),
             y: z.number(),
-            r: z.number(),
+            r: z.number().optional(),
           })
           .parse(value);
         return this.moveStageTo(position);
