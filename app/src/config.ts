@@ -3,6 +3,7 @@ export const MIN_MAGNIFICATION = 40;
 export const MAX_MAGNIFICATION = 6000;
 
 export const DEFAULT_SCAN_SPEED = 7;
+export const DEFAULT_PREVIEW_SCAN_SPEED = 4;
 export const MIN_SCAN_SPEED = 1;
 export const MAX_SCAN_SPEED = 10;
 

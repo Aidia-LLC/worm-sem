@@ -1,25 +1,26 @@
 import { ZoomState } from "@components/RibbonDetector/ZoomController";
 import {
   DEFAULT_MAGNIFICATION,
+  DEFAULT_PREVIEW_SCAN_SPEED,
   DEFAULT_SCAN_SPEED,
   DEFAULT_ZOOM_SCALE,
 } from "@config";
 import { createReducer } from "@solid-primitives/reducer";
 import { StageConfiguration } from "@utils/computeStageCoordinates";
 import { createSignal } from "solid-js";
+import { createOptionsStore } from "./options";
 import {
   ribbonDispatcher,
   RibbonDispatchPayload,
   ribbonReducerInitialState,
   RibbonReducerState,
 } from "./ribbonReducer";
-import { createOptionsStore } from "./options";
 
 export const optionsStore = createOptionsStore();
 export const optionsSequenceSignal = createSignal(0);
 export const magnificationSignal = createSignal(DEFAULT_MAGNIFICATION);
 export const scanSpeedSignal = createSignal(DEFAULT_SCAN_SPEED);
-export const previewScanSpeedSignal = createSignal(DEFAULT_SCAN_SPEED);
+export const previewScanSpeedSignal = createSignal(DEFAULT_PREVIEW_SCAN_SPEED);
 
 export const zoomStateSignal = createSignal<ZoomState>({
   status: "zoomed-out",
