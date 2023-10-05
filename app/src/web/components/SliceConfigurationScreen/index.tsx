@@ -11,6 +11,7 @@ import {
   WORKING_DISTANCE_STEP,
 } from "@config";
 import {
+  detectionTypeSignal,
   initialStageSignal,
   magnificationSignal,
   previewScanSpeedSignal,
@@ -36,6 +37,7 @@ export const SliceConfigurationScreen = () => {
   const [ribbonReducer, ribbonDispatch] = ribbonState;
   const [stage] = initialStageSignal;
   const [primaryImage] = primaryImageSignal;
+  const [detectionType, setDetectionType] = detectionTypeSignal;
 
   const [initializedRibbonId, setInitializedRibbonId] = createSignal<
     ShapeSet["id"] | null
@@ -100,7 +102,7 @@ export const SliceConfigurationScreen = () => {
       stage: stage(),
     });
 
-    await microscopeBridge.setDetectorType("ZOOMED_IN");
+    await microscopeBridge.setDetectorType(detectionType());
     await microscopeBridge.setImageQuality("LOW");
     await microscopeBridge.moveStageTo({
       x: coordinates[0],
@@ -365,6 +367,28 @@ export const SliceConfigurationScreen = () => {
               await microscopeBridge.setMagnification(value);
             }}
           />
+          <div class="flex gap-2">
+            <input
+              type="radio"
+              name="detection_type"
+              value="A"
+              checked={detectionType() === "ZOOMED_IN_A"}
+              onClick={() => setDetectionType("ZOOMED_IN_A")}
+              id="radio_a"
+            />
+            <label for="radio_a">STEM A</label>
+            <br></br>
+            <input
+              type="radio"
+              name="detection_type"
+              value="B"
+              checked={detectionType() === "ZOOMED_IN_B"}
+              onClick={() => setDetectionType("ZOOMED_IN_B")}
+              id="radio_b"
+            />
+            <label for="radio_b">STEM B</label>
+            <br></br>
+          </div>
           <SliderPicker
             label="Preview Scan Speed"
             value={scanSpeed()}

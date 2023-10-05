@@ -1,3 +1,4 @@
+import { detectionTypeSignal } from "@data/globals";
 import { grabImageOnFrameEnd } from "@MicroscopeBridge/grabImageOnFrameEnd";
 import { microscopeBridge } from "@MicroscopeBridge/index";
 import {
@@ -20,6 +21,7 @@ export const handleFinalImaging = async (details: {
   onProgressUpdate: (sliceCount: number) => void;
   scanSpeed: number;
 }) => {
+  const [detectionType] = detectionTypeSignal;
   const { configurations, onProgressUpdate, scanSpeed } = details;
   onProgressUpdate(0);
   const sliceConfigurations = configurations.map((c) => c.slices).flat();
@@ -37,7 +39,7 @@ export const handleFinalImaging = async (details: {
   await sleep(500);
   await microscopeBridge.setMagnification(sliceConfigurations[0].magnification);
   await sleep(500);
-  await microscopeBridge.setDetectorType("ZOOMED_IN");
+  await microscopeBridge.setDetectorType(detectionType());
   await sleep(500);
   await microscopeBridge.setScanSpeed(scanSpeed);
   await sleep(500);
@@ -45,12 +47,16 @@ export const handleFinalImaging = async (details: {
   await sleep(3000);
   let i = 0;
   for (const ribbonConfig of configurations) {
+    await microscopeBridge.moveStageTo({
+      x: ribbonConfig.stage.x,
+      y: ribbonConfig.stage.y,
+      r: ribbonConfig.stage.r,
+    });
     for (const sliceConfig of ribbonConfig.slices) {
       onProgressUpdate(i++);
       await microscopeBridge.moveStageTo({
         x: sliceConfig.point[0],
         y: sliceConfig.point[1],
-        r: ribbonConfig.stage.r,
       });
       await sleep(2500);
       await microscopeBridge.setBrightness(sliceConfig.brightness);

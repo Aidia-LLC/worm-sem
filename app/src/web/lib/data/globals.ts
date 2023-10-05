@@ -5,6 +5,7 @@ import {
   DEFAULT_SCAN_SPEED,
   DEFAULT_ZOOM_SCALE,
 } from "@config";
+import { MicroscopeDetectorType } from "@electron/lib/MicroscopeCallingInterface/types";
 import { createReducer } from "@solid-primitives/reducer";
 import { StageConfiguration } from "@utils/computeStageCoordinates";
 import { createSignal } from "solid-js";
@@ -21,6 +22,8 @@ export const optionsSequenceSignal = createSignal(0);
 export const magnificationSignal = createSignal(DEFAULT_MAGNIFICATION);
 export const scanSpeedSignal = createSignal(DEFAULT_SCAN_SPEED);
 export const previewScanSpeedSignal = createSignal(DEFAULT_PREVIEW_SCAN_SPEED);
+export const detectionTypeSignal =
+  createSignal<MicroscopeDetectorType>("ZOOMED_IN_B");
 
 export const zoomStateSignal = createSignal<ZoomState>({
   status: "zoomed-out",

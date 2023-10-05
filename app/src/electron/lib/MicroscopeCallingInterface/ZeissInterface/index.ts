@@ -20,6 +20,7 @@ const isLinux = getPlatform() === "linux";
 const RESPONSE_TIMEOUT = 10_000;
 
 const DETECTOR_TYPE_STEM_A_ZOOMED_IN = 40;
+const DETECTOR_TYPE_STEM_B_ZOOMED_IN = 41;
 const DETECTOR_TYPE_STEM_D_ZOOMED_OUT = 43;
 const LOW_IMAGE_QUALITY = 4;
 const MEDIUM_IMAGE_QUALITY = 5;
@@ -161,10 +162,16 @@ export class ZeissInterface extends MicroscopeCallingInterface {
     detectorType: MicroscopeDetectorType
   ): Promise<void> {
     switch (detectorType) {
-      case "ZOOMED_IN":
+      case "ZOOMED_IN_A":
         await this.setZeissParam(
           "DP_DETECTOR_TYPE",
           DETECTOR_TYPE_STEM_A_ZOOMED_IN
+        );
+        break;
+      case "ZOOMED_IN_B":
+        await this.setZeissParam(
+          "DP_DETECTOR_TYPE",
+          DETECTOR_TYPE_STEM_B_ZOOMED_IN
         );
         break;
       case "ZOOMED_OUT":
@@ -201,7 +208,7 @@ export class ZeissInterface extends MicroscopeCallingInterface {
     const r = position.r;
     if (r) {
       await this.setZeissParam("AP_STAGE_GOTO_R", r);
-      await sleep(30_000);
+      await sleep(45_000);
     }
     await this.setZeissParam("AP_STAGE_GOTO_X", position.x);
     await sleep(1_000);
