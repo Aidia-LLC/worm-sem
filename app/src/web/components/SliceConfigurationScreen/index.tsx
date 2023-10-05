@@ -59,6 +59,10 @@ export const SliceConfigurationScreen = () => {
     setInitializedRibbonId(focusedRibbonId);
   });
 
+  createEffect(() => {
+    microscopeBridge.setDetectorType(detectionType());
+  });
+
   createEffect(async () => {
     const focusedRibbonId = ribbonReducer().focusedRibbonId;
     const focusedSliceIndex = ribbonReducer().focusedSliceIndex;
@@ -101,8 +105,6 @@ export const SliceConfigurationScreen = () => {
       canvas: primaryImage()!.size!,
       stage: stage(),
     });
-
-    await microscopeBridge.setDetectorType(detectionType());
     await microscopeBridge.setImageQuality("LOW");
     await microscopeBridge.moveStageTo({
       x: coordinates[0],
