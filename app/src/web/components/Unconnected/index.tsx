@@ -21,7 +21,7 @@ export const Unconnected = (props: { onConnect: () => void }) => {
         <input
           type="checkbox"
           checked={datazoneCheck()}
-          onChange={(e) => setDatazoneCheck(e.currentTarget.checked)}
+          onChange={(e) => setRotationCheck(e.currentTarget.checked)}
         />
         <span>
           I have disabled the imaging rotation. SCANNING &rsaquo; ROTATE /
