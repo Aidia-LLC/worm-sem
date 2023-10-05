@@ -204,9 +204,9 @@ export class ZeissInterface extends MicroscopeCallingInterface {
       await sleep(30_000);
     }
     await this.setZeissParam("AP_STAGE_GOTO_X", position.x);
-    await sleep(10);
+    await sleep(1_000);
     await this.setZeissParam("AP_STAGE_GOTO_Y", position.y);
-    await sleep(10);
+    await sleep(1_000);
   }
 
   override async getFieldOfView(): Promise<{ width: number; height: number }> {
