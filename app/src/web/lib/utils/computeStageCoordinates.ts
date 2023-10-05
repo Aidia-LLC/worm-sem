@@ -34,6 +34,13 @@ export const computeCanvasCoordinates = ({
   return [translatedX, translatedY] as [number, number];
 };
 
+const millimetersInMeter = 1_000;
+
+const metersToMillimeters3sigfig = (meters: number) =>
+  Math.round(meters * millimetersInMeter * 1_000) / 1_000;
+
+const millimetersToMeters = (mm: number) => mm / millimetersInMeter;
+
 /// Convert device coordinates to SEM coordinates
 export const computeStageCoordinates = ({
   point,
@@ -47,6 +54,9 @@ export const computeStageCoordinates = ({
   };
   stageConfiguration: StageConfiguration;
 }) => {
+  // const stageWidthInMM = metersToMillimeters3sigfig(stageConfiguration.width);
+  // const stageHeightInMM = metersToMillimeters3sigfig(stageConfiguration.height);
+
   const scaleX = stageConfiguration.width / canvasConfiguration.width;
   const scaleY = stageConfiguration.height / canvasConfiguration.height;
 
