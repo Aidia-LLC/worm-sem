@@ -41,6 +41,10 @@ export const SliceConfigurationScreen = () => {
     ShapeSet["id"] | null
   >(null);
 
+  const [initializedSliceId, setInitializedSliceId] = createSignal<
+    number | null
+  >(null);
+
   createEffect(() => {
     const focusedRibbonId = ribbonReducer().focusedRibbonId;
     const focusedSliceIndex = ribbonReducer().focusedSliceIndex;
@@ -109,7 +113,9 @@ export const SliceConfigurationScreen = () => {
 
   createEffect(() => {
     const focusedSliceIndex = ribbonReducer().focusedSliceIndex;
-    if (focusedSliceIndex === -1) return;
+    if (focusedSliceIndex === -1 || focusedSliceIndex === initializedSliceId())
+      return;
+    setInitializedSliceId(focusedSliceIndex);
     untrack(async () => {
       const ribbon = ribbonReducer().ribbons.find(
         (ribbon) => ribbon.id === ribbonReducer().focusedRibbonId
