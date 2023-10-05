@@ -1,5 +1,3 @@
-import { microscopeBridge } from "@MicroscopeBridge/index";
-import { ShapeSet } from "@SliceManager/types";
 import {
   BRIGHTNESS_STEP,
   CONTRAST_STEP,
@@ -19,9 +17,14 @@ import {
   primaryImageSignal,
   ribbonState,
 } from "@data/globals";
-import { computeCanvasCoordinates, computeStageCoordinates } from "@utils/computeStageCoordinates";
+import { microscopeBridge } from "@MicroscopeBridge/index";
+import { ShapeSet } from "@SliceManager/types";
+import {
+  computeCanvasCoordinates,
+  computeStageCoordinates,
+} from "@utils/computeStageCoordinates";
 import { sleep } from "@utils/finalImaging";
-import { Show, createEffect, createSignal, untrack } from "solid-js";
+import { createEffect, createSignal, Show, untrack } from "solid-js";
 import { Button } from "../Button";
 import { SliderPicker } from "../SliderPicker";
 import { EnqueueRibbon } from "./EnqueueRibbon";
@@ -37,6 +40,18 @@ export const SliceConfigurationScreen = () => {
   const [initializedRibbonId, setInitializedRibbonId] = createSignal<
     ShapeSet["id"] | null
   >(null);
+
+  createEffect(() => {
+    const focusedRibbonId = ribbonReducer().focusedRibbonId;
+    const focusedSliceIndex = ribbonReducer().focusedSliceIndex;
+    if (
+      focusedRibbonId === null ||
+      focusedSliceIndex === -1 ||
+      initializedRibbonId() === focusedRibbonId
+    )
+      return;
+    setInitializedRibbonId(focusedRibbonId);
+  });
 
   createEffect(async () => {
     const focusedRibbonId = ribbonReducer().focusedRibbonId;
@@ -79,7 +94,7 @@ export const SliceConfigurationScreen = () => {
       point,
       canvas: primaryImage()!.size!,
       stage: stage(),
-    })
+    });
 
     await microscopeBridge.setDetectorType("ZOOMED_IN");
     await microscopeBridge.setImageQuality("LOW");
@@ -111,14 +126,14 @@ export const SliceConfigurationScreen = () => {
         point,
         canvas: primaryImage()!.size!,
         stage: stage(),
-      })
+      });
 
       await microscopeBridge.moveStageTo({
         x: coordinates[0],
         y: coordinates[1],
       });
 
-      await sleep(5000)
+      await sleep(5000);
 
       if (!editingConfiguration()) return;
       const configuration = ribbon.configurations[focusedSliceIndex]!;
@@ -191,46 +206,48 @@ export const SliceConfigurationScreen = () => {
       <div class="flex flex-col w-full items-center mb-16 gap-4">
         <div class="flex flex-col gap-4 bg-slate-200 rounded-xl p-4 w-full items-center shadow-lg border-slate-400 border-2">
           <h6 class="text-xl font-bold">Slice Configuration</h6>
-          <Button onClick={async () => {
-            const [
-              brightness,
-              contrast,
-              workingDistance,
-              magnification,
-              position
-            ] = await Promise.all([
-              microscopeBridge.getBrightness(),
-              microscopeBridge.getContrast(),
-              microscopeBridge.getWorkingDistance(),
-              microscopeBridge.getMagnification(),
-              microscopeBridge.getStagePosition(),
-            ])
-            // BRIGHTNESS, CONTRAST, WORKING DISTANCE
-            ribbonDispatch({
-              action: "updateSliceConfiguration",
-              payload: { brightness, contrast, focus: workingDistance },
-            });
-            // MAGNIFICATION
-            setMagnification(magnification);
-            if (editingPosition())
-              // POSITION
+          <Button
+            onClick={async () => {
+              const [
+                brightness,
+                contrast,
+                workingDistance,
+                magnification,
+                position,
+              ] = await Promise.all([
+                microscopeBridge.getBrightness(),
+                microscopeBridge.getContrast(),
+                microscopeBridge.getWorkingDistance(),
+                microscopeBridge.getMagnification(),
+                microscopeBridge.getStagePosition(),
+              ]);
+              // BRIGHTNESS, CONTRAST, WORKING DISTANCE
               ribbonDispatch({
-                action: "updateRibbon",
-                payload: {
-                  ...ribbon(),
-                  matchedPoints: ribbon().matchedPoints.map((p, i) =>
-                    i === ribbonReducer().focusedSliceIndex
-                      ? computeCanvasCoordinates({
-                        point: [position.x, position.y],
-                        canvasConfiguration: primaryImage()?.size!,
-                        stageConfiguration: stage()!,
-                      })
-                      : p
-                  ),
-                },
+                action: "updateSliceConfiguration",
+                payload: { brightness, contrast, focus: workingDistance },
               });
-
-          }} class='whitespace-nowrap text-2xl'>
+              // MAGNIFICATION
+              setMagnification(magnification);
+              if (editingPosition())
+                // POSITION
+                ribbonDispatch({
+                  action: "updateRibbon",
+                  payload: {
+                    ...ribbon(),
+                    matchedPoints: ribbon().matchedPoints.map((p, i) =>
+                      i === ribbonReducer().focusedSliceIndex
+                        ? computeCanvasCoordinates({
+                            point: [position.x, position.y],
+                            canvasConfiguration: primaryImage()?.size!,
+                            stageConfiguration: stage()!,
+                          })
+                        : p
+                    ),
+                  },
+                });
+            }}
+            class="whitespace-nowrap text-2xl"
+          >
             Pull Microscrope Settings
           </Button>
 
@@ -241,7 +258,7 @@ export const SliceConfigurationScreen = () => {
               unit="pixels"
               value={
                 ribbon().matchedPoints[
-                ribbonReducer().focusedSliceIndex
+                  ribbonReducer().focusedSliceIndex
                 ]?.[0] || 0
               }
               min={0}
@@ -259,15 +276,6 @@ export const SliceConfigurationScreen = () => {
                     ),
                   },
                 });
-                const coordinates = computeStageCoordinates({
-                  canvasConfiguration: primaryImage()?.size!,
-                  stageConfiguration: stage()!,
-                  point: [configuration().point[0], value],
-                });
-                await microscopeBridge.moveStageTo({
-                  x: coordinates[0],
-                  y: coordinates[1],
-                });
               }}
             />
             <SliderPicker
@@ -276,7 +284,7 @@ export const SliceConfigurationScreen = () => {
               unit="pixels"
               value={
                 ribbon().matchedPoints[
-                ribbonReducer().focusedSliceIndex
+                  ribbonReducer().focusedSliceIndex
                 ]?.[1] || 0
               }
               min={0}
@@ -293,15 +301,6 @@ export const SliceConfigurationScreen = () => {
                         : p
                     ),
                   },
-                });
-                const coordinates = computeStageCoordinates({
-                  canvasConfiguration: primaryImage()?.size!,
-                  stageConfiguration: stage()!,
-                  point: [configuration().point[0], value],
-                });
-                await microscopeBridge.moveStageTo({
-                  x: coordinates[0],
-                  y: coordinates[1],
                 });
               }}
             />
