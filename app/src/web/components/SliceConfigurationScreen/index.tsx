@@ -208,26 +208,18 @@ export const SliceConfigurationScreen = () => {
           <h6 class="text-xl font-bold">Slice Configuration</h6>
           <Button
             onClick={async () => {
-              const [
-                brightness,
-                contrast,
-                workingDistance,
-                magnification,
-                position,
-              ] = await Promise.all([
-                microscopeBridge.getBrightness(),
-                microscopeBridge.getContrast(),
-                microscopeBridge.getWorkingDistance(),
-                microscopeBridge.getMagnification(),
-                microscopeBridge.getStagePosition(),
-              ]);
+              const [brightness, contrast, workingDistance, position] =
+                await Promise.all([
+                  microscopeBridge.getBrightness(),
+                  microscopeBridge.getContrast(),
+                  microscopeBridge.getWorkingDistance(),
+                  microscopeBridge.getStagePosition(),
+                ]);
               // BRIGHTNESS, CONTRAST, WORKING DISTANCE
               ribbonDispatch({
                 action: "updateSliceConfiguration",
                 payload: { brightness, contrast, focus: workingDistance },
               });
-              // MAGNIFICATION
-              setMagnification(magnification);
               if (editingPosition())
                 // POSITION
                 ribbonDispatch({
