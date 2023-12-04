@@ -36,6 +36,7 @@ export const App = () => {
         .then((d) => d.json())
         .then((d) => {
           if (!d.success) {
+            //here
             alert(`Failed to initialize SAM: ${JSON.stringify(d)}`);
             return;
           }

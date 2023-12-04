@@ -17,7 +17,7 @@ The Electron app is the main point of entry. It spins up processes for the other
 
 ## Running the Zeiss API
 
-Install `dotnet`. 
+Install `dotnet`.
 
 For development purposes, you can run the API as a standalone program by navigating to the `zeiss-api` directory and running `dotnet run`. The program will start and wait for commands through `stdin`.
 

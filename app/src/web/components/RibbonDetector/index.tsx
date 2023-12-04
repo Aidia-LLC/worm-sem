@@ -1,6 +1,14 @@
 import * as signals from "@data/globals";
 import { getSliceManager } from "@SliceManager/index";
+import {
+  detectContours,
+  drawContours,
+  matVectorToArray,
+  straightenContours,
+  testPoints,
+} from "@SliceManager/TrapezoidalSliceManager/functions/opencv";
 import { Shape, ShapeSet } from "@SliceManager/types";
+import cv from "@techstark/opencv-js";
 import { base64ToImageSrc } from "@utils/base64ToImageSrc";
 import { convertZoomedCoordinates } from "@utils/convertZoomedCoordinates";
 import { segmentImage } from "@utils/segmentImage";
@@ -10,7 +18,7 @@ import { Button } from "../Button";
 import { DetectionInstructions } from "./DetectionInstructions";
 import { MaskSelector } from "./MaskSelector";
 import { ParameterPanel } from "./ParameterPanel";
-import { availableColors, RibbonConfigPanel } from "./RibbonConfigPanel";
+import { RibbonConfigPanel } from "./RibbonConfigPanel";
 import { ZoomController } from "./ZoomController";
 import { ZoomSlider } from "./ZoomSlider";
 
@@ -405,40 +413,124 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
     [[imgX, imgY], ...points]: [number, number][],
     clickedPointIndex: number
   ) => {
-    const slices = await sliceManager.detectRibbon({
-      referencePoint: [imgX, imgY],
-      edgeDataCanvas: edgeDataCanvasRef,
-      debugCanvas: debugCanvasRef,
-      options: options.options,
+    console.log("start", imgX, imgY, points, clickedPointIndex);
+
+    const edgeContext = edgeDataCanvasRef.getContext("2d")!;
+    const edgeData = edgeContext.getImageData(
+      0,
+      0,
+      edgeDataCanvasRef.width,
+      edgeDataCanvasRef.height
+    );
+    // const edge = edgeFilter(edgeDataCanvasRef, edgeData, edgeContext);
+    const { contours } = detectContours({
+      imageData: edgeData,
     });
-    const id = nextId();
-    setNextId((prev) => prev + 1);
-    ribbonDispatch({
-      action: "setDetection",
-      payload: false,
+
+    const straightContours = straightenContours({ contours });
+    const straightContourData = drawContours(
+      edgeData,
+      straightContours,
+      new cv.Scalar(255, 255, 255, 255)
+    );
+
+    const blackImageData = new ImageData(
+      straightContourData.width,
+      straightContourData.height
+    ).data.map((_, i) => {
+      if (i % 4 === 3) return 255;
+      return 0;
     });
-    setShowOriginalImage(true);
-    const colors = new Set(availableColors);
-    ribbonReducer().ribbons.forEach((set) => colors.delete(set.color));
-    const color = colors.size > 0 ? colors.values().next().value : "red";
-    ribbonDispatch({
-      action: "addRibbon",
-      payload: {
-        slices,
-        id,
-        name: `Ribbon ${id}`,
-        color,
-        thickness: 5,
-        status: "editing",
-        matchedPoints: [],
-        referencePoints: [[imgX, imgY], ...points],
-        referencePointIndex: clickedPointIndex || 0,
-        configurations: [],
-        slicesToConfigure: [],
-        slicesToMove: [],
-        allowDetectAgain: true,
-      } satisfies ShapeSet,
-    });
+    console.log("blackImageData", blackImageData);
+    const blackData = new ImageData(
+      blackImageData,
+      straightContourData.width,
+      straightContourData.height
+    );
+    const blackImage = drawContours(
+      blackData,
+      straightContours,
+      new cv.Scalar(255, 255, 255, 255)
+    );
+
+    const size = straightContours.size();
+
+    let largest = { area: 0, contour: straightContours.get(0) };
+    if (size > 1) {
+      //find the right one
+      console.log("size", size);
+      for (let i = 0; i < size; i++) {
+        const contour = straightContours.get(i);
+        const area = cv.contourArea(contour);
+        if (largest === null || area > largest.area) {
+          largest = { area, contour };
+        }
+      }
+    }
+
+    const lines = matVectorToArray(largest.contour);
+    console.log("lines", lines);
+
+    edgeContext.putImageData(blackImage, 0, 0);
+    let organizedPoints = [];
+    for (const line of lines) {
+      // edgeContext.beginPath();
+      organizedPoints.push(line[0]);
+      // edgeContext.moveTo(line[0][0], line[0][1]);
+      // edgeContext.lineTo(line[1][0], line[1][1]);
+      // edgeContext.strokeStyle = "red";
+      // edgeContext.lineWidth = Math.round(lines.indexOf(line) * 0.25);
+      // edgeContext.stroke();
+    }
+    console.log("organizedPoints", organizedPoints);
+
+    const validSlices = testPoints(organizedPoints);
+    for (const slice of validSlices) {
+      edgeContext.beginPath();
+      edgeContext.moveTo(slice[0][0][0], slice[0][0][1]);
+      edgeContext.lineTo(slice[1][0][0], slice[1][0][1]);
+      edgeContext.lineTo(slice[2][0][0], slice[2][0][1]);
+      edgeContext.lineTo(slice[3][0][0], slice[3][0][1]);
+      edgeContext.lineTo(slice[0][0][0], slice[0][0][1]);
+      edgeContext.strokeStyle = "red";
+      edgeContext.lineWidth = 2;
+      edgeContext.stroke();
+    }
+
+    // const slices = await sliceManager.detectRibbon({
+    //   referencePoint: [imgX, imgY],
+    //   edgeDataCanvas: edgeDataCanvasRef,
+    //   debugCanvas: debugCanvasRef,
+    //   options: options.options,
+    // });
+    // const id = nextId();
+    // setNextId((prev) => prev + 1);
+    // ribbonDispatch({
+    //   action: "setDetection",
+    //   payload: false,
+    // });
+    // setShowOriginalImage(true);
+    // const colors = new Set(availableColors);
+    // ribbonReducer().ribbons.forEach((set) => colors.delete(set.color));
+    // const color = colors.size > 0 ? colors.values().next().value : "red";
+    // ribbonDispatch({
+    //   action: "addRibbon",
+    //   payload: {
+    //     slices,
+    //     id,
+    //     name: `Ribbon ${id}`,
+    //     color,
+    //     thickness: 5,
+    //     status: "editing",
+    //     matchedPoints: [],
+    //     referencePoints: [[imgX, imgY], ...points],
+    //     referencePointIndex: clickedPointIndex || 0,
+    //     configurations: [],
+    //     slicesToConfigure: [],
+    //     slicesToMove: [],
+    //     allowDetectAgain: true,
+    //   } satisfies ShapeSet,
+    // });
   };
 
   const handleMask = async () => {

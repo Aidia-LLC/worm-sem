@@ -25,92 +25,14 @@ export function detectTrapezoid({
   }
 
   const square = getSquare(imageData, x, y, options.squareSize);
-  // draw square
-  // ctx.beginPath();
-  // ctx.rect(
-  //   x - options.squareSize / 2,
-  //   y - options.squareSize / 2,
-  //   options.squareSize,
-  //   options.squareSize
-  // );
-  // ctx.strokeStyle = "blue";
-  // ctx.stroke();
-  // ctx.closePath();
 
   const lines = hough(square, options);
-  // for (const line of lines) {
-  //   ctx.beginPath();
-  //   ctx.moveTo(
-  //     line.x1 + x - options.squareSize / 2,
-  //     line.y1 + y - options.squareSize / 2
-  //   );
-  //   ctx.lineTo(
-  //     line.x2 + x - options.squareSize / 2,
-  //     line.y2 + y - options.squareSize / 2
-  //   );
-  //   ctx.strokeStyle = "green";
-  //   ctx.stroke();
-  //   ctx.closePath();
-  // }
-  // console.log("lines", lines);
-  const goodLines = Merge(lines, options);
-  // console.log("mergedLines", mergedLines);
-  // for (const line of mergedLines) {
-  //   ctx.beginPath();
-  //   ctx.lineWidth = 6;
-  //   ctx.moveTo(
-  //     line.x1 + x - options.squareSize / 2,
-  //     line.y1 + y - options.squareSize / 2
-  //   );
-  //   ctx.lineTo(
-  //     line.x2 + x - options.squareSize / 2,
-  //     line.y2 + y - options.squareSize / 2
-  //   );
-  //   ctx.strokeStyle = "green";
-  //   ctx.stroke();
-  //   ctx.closePath();
-  // }
 
-  // const goodLines = DirectSearchLineOptimization(
-  //   pixelsPerLine,
-  //   [...mergedLines],
-  //   square,
-  //   options
-  // );
-  console.log("goodLines", goodLines);
-  // for (const line of goodLines) {
-  //   ctx.beginPath();
-  //   ctx.lineWidth = 4;
-  //   ctx.moveTo(
-  //     line.x1 + x - options.squareSize / 2,
-  //     line.y1 + y - options.squareSize / 2
-  //   );
-  //   ctx.lineTo(
-  //     line.x2 + x - options.squareSize / 2,
-  //     line.y2 + y - options.squareSize / 2
-  //   );
-  //   ctx.strokeStyle = "blue";
-  //   ctx.stroke();
-  //   ctx.closePath();
-  // }
+  const goodLines = Merge(lines, options);
 
   const shortLines = ShortenLines(goodLines, square, options);
   console.log("shortLines", shortLines);
-  // for (const line of shortLines) {
-  //   ctx.beginPath();
-  //   ctx.lineWidth = 8;
-  //   ctx.moveTo(
-  //     line.x1 + x - options.squareSize / 2,
-  //     line.y1 + y - options.squareSize / 2
-  //   );
-  //   ctx.lineTo(
-  //     line.x2 + x - options.squareSize / 2,
-  //     line.y2 + y - options.squareSize / 2
-  //   );
-  //   ctx.strokeStyle = "green";
-  //   ctx.stroke();
-  //   ctx.closePath();
-  // }
+
   const vertices = computeVertices(shortLines, options, goodLines).map(
     (vertex) => ({
       x: vertex.x + x - options.squareSize / 2,
@@ -118,6 +40,17 @@ export function detectTrapezoid({
     })
   );
 
+  //draw vertices
+  if (ctx) {
+    ctx.strokeStyle = "blue";
+    ctx.lineWidth = 5;
+    for (let i = 0; i < vertices.length; i++) {
+      const vertex = vertices[i];
+      ctx.beginPath();
+      ctx.arc(vertex.x, vertex.y, 10, 0, 2 * Math.PI);
+      ctx.stroke();
+    }
+  }
   let trapezoid: TrapezoidalSlice | null = null;
   if (vertices.length === 4) {
     trapezoid = computeTrapezoid(vertices);
@@ -186,7 +119,12 @@ function Combinations<T>(array: T[], size: number): T[][] {
   return combinations;
 }
 
-function getSquare(fullImage: ImageData, x: number, y: number, size: number) {
+export function getSquare(
+  fullImage: ImageData,
+  x: number,
+  y: number,
+  size: number
+) {
   const square: number[] = [];
   const imageData = fullImage.data;
   const width = fullImage.width;
@@ -209,7 +147,7 @@ interface IHoughLine {
   r: number;
 }
 
-function hough(
+export function hough(
   data: Uint8ClampedArray,
   options: ProcessingOptions,
   thetaStep = Math.PI / 180
@@ -330,7 +268,7 @@ function CartesionLines(
   return cartesionLines;
 }
 
-function Merge(
+export function Merge(
   lines: LineSegment[],
   options: ProcessingOptions
 ): LineSegment[] {
@@ -388,7 +326,7 @@ function Merge(
   });
 }
 
-function ShortenLines(
+export function ShortenLines(
   lines: LineSegment[],
   data: Uint8ClampedArray,
   options: ProcessingOptions

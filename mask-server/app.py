@@ -21,15 +21,20 @@ predictor: SamPredictor = None
 
 @app.get('/init')
 def init():
+    print("here")
     global predictor
     if predictor is not None:
         return {
             'success': True,
             'alreadyInitialized': True,
         }
+    print(f"Loading SAM model {model_type} from {sam_checkpoint}")
     sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
+    print(f"Loaded SAM model {sam}")
     sam.to(device=device)
+    print(f"Moved SAM model to {device}")
     predictor = SamPredictor(sam)
+    print(f"Created SAM predictor {predictor}")
     return {
         'success': True,
         'alreadyInitialized': False,

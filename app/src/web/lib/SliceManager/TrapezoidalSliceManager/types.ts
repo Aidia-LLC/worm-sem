@@ -20,7 +20,7 @@ export type TrapezoidalShapeSet = ShapeSet & {
   slices: TrapezoidalSlice[];
 };
 
-export type Vertex= {
+export type Vertex = {
   x: number;
   y: number;
-}
+};
