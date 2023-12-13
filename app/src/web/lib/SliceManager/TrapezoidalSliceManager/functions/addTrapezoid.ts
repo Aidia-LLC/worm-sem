@@ -180,5 +180,5 @@ export const addTrapezoid = ({
 
     newTrapezoidSet.push(bottomTrapezoid);
   }
-  return newTrapezoidSet;
+  return newTrapezoidSet.map((s, i) => ({ ...s, id: i }));
 };

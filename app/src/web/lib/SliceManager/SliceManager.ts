@@ -1,14 +1,7 @@
-import { ProcessingOptions } from "@data/ProcessingOptions";
+import { Line, Point, Vertex } from "./TrapezoidalSliceManager/types";
 import { Shape, ShapeSet } from "./types";
 
 export abstract class SliceManager {
-  abstract detectRibbon(details: {
-    referencePoint: [number, number];
-    options: ProcessingOptions;
-    edgeDataCanvas: HTMLCanvasElement;
-    debugCanvas?: HTMLCanvasElement;
-  }): Promise<Shape[]>;
-
   abstract translateSlice(details: {
     slice: Shape;
     dx: number;
@@ -64,4 +57,16 @@ export abstract class SliceManager {
     shapes: Shape[];
     id: number;
   }): Shape[];
+
+  abstract findCorners(details: {
+    imageData: ImageData;
+    imageContext: CanvasRenderingContext2D;
+  }): {
+    corners: [number, number][];
+    imageData: ImageData;
+  };
+
+  abstract getValidSlices(points: Point[]): Line[][];
+
+  abstract distanceSegmentToPoint(A: Vertex, B: Vertex, C: Vertex): number;
 }

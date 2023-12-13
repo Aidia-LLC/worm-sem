@@ -1,24 +1,17 @@
 import * as signals from "@data/globals";
 import { getSliceManager } from "@SliceManager/index";
-import {
-  detectContours,
-  drawContours,
-  matVectorToArray,
-  straightenContours,
-  testPoints,
-} from "@SliceManager/TrapezoidalSliceManager/functions/opencv";
 import { Shape, ShapeSet } from "@SliceManager/types";
-import cv from "@techstark/opencv-js";
 import { base64ToImageSrc } from "@utils/base64ToImageSrc";
 import { convertZoomedCoordinates } from "@utils/convertZoomedCoordinates";
 import { segmentImage } from "@utils/segmentImage";
 import { setupCanvases } from "@utils/setupCanvases";
 import { createEffect, createSignal, For, onMount, Show } from "solid-js";
 import { Button } from "../Button";
+import { CornerValidation } from "./CornerValidation";
 import { DetectionInstructions } from "./DetectionInstructions";
 import { MaskSelector } from "./MaskSelector";
 import { ParameterPanel } from "./ParameterPanel";
-import { RibbonConfigPanel } from "./RibbonConfigPanel";
+import { availableColors, RibbonConfigPanel } from "./RibbonConfigPanel";
 import { ZoomController } from "./ZoomController";
 import { ZoomSlider } from "./ZoomSlider";
 
@@ -39,7 +32,6 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
     0, 0,
   ]);
   const [defaultZoomScale] = signals.defaultZoomScaleSignal;
-  const [options] = signals.optionsStore;
 
   createEffect(() => {
     const state = ribbonReducer();
@@ -54,6 +46,8 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
     [...ribbonReducer().ribbons]; // destructuring array to create dependency, otherwise its not reactive
     zoomState();
     cursorPosition();
+    ribbonReducer().corners;
+    ribbonReducer().contours;
     ribbonReducer().detection;
     drawOverlay();
   });
@@ -96,42 +90,12 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
     }
 
     if (ribbonReducer().detection) {
-      const [x, y] = cursorPosition();
-      const halfSquare = options.options.squareSize / 2;
-      if (x && y) {
-        ctx.beginPath();
-        ctx.rect(
-          x - halfSquare,
-          y - halfSquare,
-          options.options.squareSize,
-          options.options.squareSize
-        );
-        ctx.strokeStyle = "red";
-        ctx.lineWidth = 15;
-        ctx.closePath();
-        ctx.stroke();
-      }
-
       for (const point of ribbonReducer().referencePoints) {
         ctx.beginPath();
         ctx.arc(point[0], point[1], 10, 0, 2 * Math.PI);
         ctx.fillStyle = "red";
         ctx.fill();
         ctx.closePath();
-
-        ctx.globalAlpha = 0.5;
-        ctx.beginPath();
-        ctx.rect(
-          point[0] - halfSquare,
-          point[1] - halfSquare,
-          options.options.squareSize,
-          options.options.squareSize
-        );
-        ctx.strokeStyle = "red";
-        ctx.lineWidth = 15;
-        ctx.closePath();
-        ctx.stroke();
-        ctx.globalAlpha = 1;
       }
     }
 
@@ -160,6 +124,11 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
         ctx.stroke();
       }
     }
+
+    if (ribbonReducer().cornerValidation) {
+      drawPoints(ribbonReducer().corners);
+    }
+
     ctx.restore();
   };
 
@@ -193,6 +162,7 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
   };
 
   const handleMouseDown = (e: MouseEvent) => {
+    console.log("mouse down");
     e.preventDefault();
     const { x: imgX, y: imgY, unzoomed } = getImageCoordinatesFromMouseEvent(e);
 
@@ -204,6 +174,68 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
         y: unzoomed.y,
       });
       return;
+    }
+
+    if (ribbonReducer().cornerValidation) {
+      if (ribbonReducer().cornerPhase === "delete") {
+        let points = ribbonReducer().corners;
+        const clickedPointIndex = points.findIndex(
+          (p) => Math.abs(p[0] - imgX) < 15 && Math.abs(p[1] - imgY) < 15
+        );
+        console.log("clickedPointIndex", clickedPointIndex, points, imgX, imgY);
+        if (clickedPointIndex !== -1) {
+          ribbonDispatch({
+            action: "setCorners",
+            payload: points.filter((_, i) => i !== clickedPointIndex),
+          });
+          points = points.filter((_, i) => i !== clickedPointIndex);
+        }
+
+        drawPoints(points);
+        return;
+      } else if (ribbonReducer().cornerPhase === "add") {
+        // find circle-line intersection
+        const points = ribbonReducer().corners;
+        for (let i = 0; i < points.length; i++) {
+          const distance = sliceManager.distanceSegmentToPoint(
+            { x: points[i][0], y: points[i][1] },
+            {
+              x: points[i + 1 > points.length - 1 ? 0 : i + 1][0],
+              y: points[i + 1 > points.length - 1 ? 0 : i + 1][1],
+            },
+            { x: imgX, y: imgY }
+          );
+          if (distance < 10) {
+            const newPoints: [number, number][] = [
+              ...points.slice(0, i + 1),
+              [imgX, imgY],
+              ...points.slice(i + 1),
+            ];
+            ribbonDispatch({
+              action: "setCorners",
+              payload: newPoints,
+            });
+            drawPoints(newPoints);
+            return;
+          }
+        }
+
+        return;
+      } else if (ribbonReducer().cornerPhase === "adjust") {
+        const points = ribbonReducer().corners;
+        const clickedPointIndex = points.findIndex(
+          (p) => Math.abs(p[0] - imgX) < 15 && Math.abs(p[1] - imgY) < 15
+        );
+        ribbonDispatch({
+          action: "setDraggingData",
+          payload: {
+            position: [imgX, imgY],
+            ribbonId: -1,
+            sliceId: clickedPointIndex,
+          },
+        });
+        return;
+      }
     }
 
     if (ribbonReducer().detection) {
@@ -236,6 +268,7 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
     const inTrapezoid = Boolean(containingSlice);
     const slice = containingSlice?.slice;
     const ribbon = containingSlice?.set;
+    console.log("containingSlice", containingSlice, slice, ribbon, inTrapezoid);
     if (inTrapezoid && slice && ribbon) {
       if (
         ribbon.status === "matching-one" ||
@@ -247,6 +280,7 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
           point: [imgX, imgY],
         });
       }
+      console.log("in trapezoid");
       ribbonDispatch({
         action: "setDraggingData",
         payload: {
@@ -300,12 +334,43 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
     });
   };
 
+  const handleCornerMove = (e: MouseEvent) => {
+    const { x: imgX, y: imgY } = getImageCoordinatesFromMouseEvent(e);
+    const points = ribbonReducer().corners;
+    const clickedPointIndex = ribbonReducer().draggingData?.sliceId ?? -1;
+    console.log("clickedPointIndex", clickedPointIndex, points, imgX, imgY);
+    if (clickedPointIndex !== -1) {
+      const newPoints: [number, number][] = [
+        ...points.slice(0, clickedPointIndex),
+        [imgX, imgY],
+        ...points.slice(clickedPointIndex + 1),
+      ];
+      ribbonDispatch({
+        action: "setCorners",
+        payload: newPoints,
+      });
+      drawPoints(newPoints);
+    }
+  };
+
   const handleMouseMove = (e: MouseEvent) => {
     e.preventDefault();
+
     const draggingData = ribbonReducer().draggingData;
     const { x, y } = getImageCoordinatesFromMouseEvent(e);
     setCursorPosition([x, y]);
-    if (!draggingData || !draggingData.sliceId) return;
+    if (
+      !draggingData ||
+      draggingData.sliceId === undefined ||
+      draggingData === null
+    )
+      return;
+
+    if (ribbonReducer().cornerValidation) {
+      handleCornerMove(e);
+      return;
+    }
+    console.log("draggingData", draggingData);
 
     ribbonDispatch({
       action: "setDraggingData",
@@ -409,12 +474,7 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
     });
   };
 
-  const handleRibbonDetection = async (
-    [[imgX, imgY], ...points]: [number, number][],
-    clickedPointIndex: number
-  ) => {
-    console.log("start", imgX, imgY, points, clickedPointIndex);
-
+  const handleRibbonDetection = async () => {
     const edgeContext = edgeDataCanvasRef.getContext("2d")!;
     const edgeData = edgeContext.getImageData(
       0,
@@ -422,69 +482,47 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
       edgeDataCanvasRef.width,
       edgeDataCanvasRef.height
     );
-    // const edge = edgeFilter(edgeDataCanvasRef, edgeData, edgeContext);
-    const { contours } = detectContours({
+    const { corners, imageData } = sliceManager.findCorners({
+      imageContext: edgeContext,
       imageData: edgeData,
     });
 
-    const straightContours = straightenContours({ contours });
-    const straightContourData = drawContours(
-      edgeData,
-      straightContours,
-      new cv.Scalar(255, 255, 255, 255)
-    );
+    edgeContext.putImageData(imageData, 0, 0);
+    drawPoints(corners);
 
-    const blackImageData = new ImageData(
-      straightContourData.width,
-      straightContourData.height
-    ).data.map((_, i) => {
-      if (i % 4 === 3) return 255;
-      return 0;
+    ribbonDispatch({
+      action: "setCornerValidation",
+      payload: true,
     });
-    console.log("blackImageData", blackImageData);
-    const blackData = new ImageData(
-      blackImageData,
-      straightContourData.width,
-      straightContourData.height
-    );
-    const blackImage = drawContours(
-      blackData,
-      straightContours,
-      new cv.Scalar(255, 255, 255, 255)
-    );
+    ribbonDispatch({
+      action: "setCorners",
+      payload: corners,
+    });
+  };
 
-    const size = straightContours.size();
+  const drawPoints = (points: [number, number][]) => {
+    const overlayContext = overlayCanvasRef.getContext("2d")!;
 
-    let largest = { area: 0, contour: straightContours.get(0) };
-    if (size > 1) {
-      //find the right one
-      console.log("size", size);
-      for (let i = 0; i < size; i++) {
-        const contour = straightContours.get(i);
-        const area = cv.contourArea(contour);
-        if (largest === null || area > largest.area) {
-          largest = { area, contour };
-        }
-      }
+    for (let i = 0; i < points.length; i++) {
+      const point = points[i];
+      overlayContext.beginPath();
+      overlayContext.arc(point[0], point[1], 10, 0, 2 * Math.PI);
+      overlayContext.fillStyle = "blue";
+      overlayContext.lineWidth = 3;
+      overlayContext.fill();
+      overlayContext.moveTo(point[0], point[1]);
+      const nextPoint = points[i + 1 > points.length - 1 ? 0 : i + 1];
+      overlayContext.lineTo(nextPoint[0], nextPoint[1]);
+      overlayContext.strokeStyle = "blue";
+      overlayContext.lineWidth = 1;
+      overlayContext.stroke();
     }
+  };
 
-    const lines = matVectorToArray(largest.contour);
-    console.log("lines", lines);
-
-    edgeContext.putImageData(blackImage, 0, 0);
-    let organizedPoints = [];
-    for (const line of lines) {
-      // edgeContext.beginPath();
-      organizedPoints.push(line[0]);
-      // edgeContext.moveTo(line[0][0], line[0][1]);
-      // edgeContext.lineTo(line[1][0], line[1][1]);
-      // edgeContext.strokeStyle = "red";
-      // edgeContext.lineWidth = Math.round(lines.indexOf(line) * 0.25);
-      // edgeContext.stroke();
-    }
-    console.log("organizedPoints", organizedPoints);
-
-    const validSlices = testPoints(organizedPoints);
+  const handleCornerValidation = () => {
+    const edgeContext = edgeDataCanvasRef.getContext("2d")!;
+    const organizedPoints = ribbonReducer().corners;
+    const validSlices = sliceManager.getValidSlices(organizedPoints);
     for (const slice of validSlices) {
       edgeContext.beginPath();
       edgeContext.moveTo(slice[0][0][0], slice[0][0][1]);
@@ -496,41 +534,67 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
       edgeContext.lineWidth = 2;
       edgeContext.stroke();
     }
-
-    // const slices = await sliceManager.detectRibbon({
-    //   referencePoint: [imgX, imgY],
-    //   edgeDataCanvas: edgeDataCanvasRef,
-    //   debugCanvas: debugCanvasRef,
-    //   options: options.options,
-    // });
-    // const id = nextId();
-    // setNextId((prev) => prev + 1);
-    // ribbonDispatch({
-    //   action: "setDetection",
-    //   payload: false,
-    // });
-    // setShowOriginalImage(true);
-    // const colors = new Set(availableColors);
-    // ribbonReducer().ribbons.forEach((set) => colors.delete(set.color));
-    // const color = colors.size > 0 ? colors.values().next().value : "red";
-    // ribbonDispatch({
-    //   action: "addRibbon",
-    //   payload: {
-    //     slices,
-    //     id,
-    //     name: `Ribbon ${id}`,
-    //     color,
-    //     thickness: 5,
-    //     status: "editing",
-    //     matchedPoints: [],
-    //     referencePoints: [[imgX, imgY], ...points],
-    //     referencePointIndex: clickedPointIndex || 0,
-    //     configurations: [],
-    //     slicesToConfigure: [],
-    //     slicesToMove: [],
-    //     allowDetectAgain: true,
-    //   } satisfies ShapeSet,
-    // });
+    const slices = validSlices.map((slice, i) => {
+      return {
+        left: {
+          x1: slice[0][0][0],
+          y1: slice[0][0][1],
+          x2: slice[1][0][0],
+          y2: slice[1][0][1],
+        },
+        right: {
+          x1: slice[3][0][0],
+          y1: slice[3][0][1],
+          x2: slice[2][0][0],
+          y2: slice[2][0][1],
+        },
+        top: {
+          x1: slice[0][0][0],
+          y1: slice[0][0][1],
+          x2: slice[3][0][0],
+          y2: slice[3][0][1],
+        },
+        bottom: {
+          x1: slice[1][0][0],
+          y1: slice[1][0][1],
+          x2: slice[2][0][0],
+          y2: slice[2][0][1],
+        },
+        id: i,
+      };
+    });
+    const id = nextId();
+    setNextId((prev) => prev + 1);
+    ribbonDispatch({
+      action: "setDetection",
+      payload: false,
+    });
+    setShowOriginalImage(true);
+    const colors = new Set(availableColors);
+    ribbonReducer().ribbons.forEach((set) => colors.delete(set.color));
+    const color = colors.size > 0 ? colors.values().next().value : "red";
+    ribbonDispatch({
+      action: "addRibbon",
+      payload: {
+        slices,
+        id,
+        name: `Ribbon ${id}`,
+        color,
+        thickness: 5,
+        status: "editing",
+        matchedPoints: [],
+        referencePoints: [],
+        referencePointIndex: 0,
+        configurations: [],
+        slicesToConfigure: [],
+        slicesToMove: [],
+        allowDetectAgain: false,
+      } satisfies ShapeSet,
+    });
+    ribbonDispatch({
+      action: "setCornerValidation",
+      payload: false,
+    });
   };
 
   const handleMask = async () => {
@@ -596,7 +660,11 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
             </Button>
           </Show>
         </Show>
-        <Show when={ribbonReducer().masks.length > 0}>
+        <Show
+          when={
+            ribbonReducer().masks.length > 0 || ribbonReducer().cornerValidation
+          }
+        >
           <Button
             variant="ghost"
             onClick={() => setShowOriginalImage(!showOriginalImage())}
@@ -611,8 +679,17 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
         edgeDataCanvasRef={() => edgeDataCanvasRef}
         handleRibbonDetection={handleRibbonDetection}
       />
+      <CornerValidation
+        edgeDataCanvasRef={() => edgeDataCanvasRef}
+        handleCornerValidation={handleCornerValidation}
+        handleRibbonDetection={handleRibbonDetection}
+      />
       <Show
-        when={ribbonReducer().masks.length === 0 && !ribbonReducer().detection}
+        when={
+          ribbonReducer().masks.length === 0 &&
+          !ribbonReducer().detection &&
+          !ribbonReducer().cornerValidation
+        }
       >
         <For each={ribbonReducer().ribbons}>
           {(ribbon) => (

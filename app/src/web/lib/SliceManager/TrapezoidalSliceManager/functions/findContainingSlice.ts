@@ -1,6 +1,6 @@
-import { ShapeSet } from "@SliceManager/types";
+import { Shape, ShapeSet } from "@SliceManager/types";
 import { TrapezoidalSlice } from "../types";
-import { calculateArea } from "./calculateArea";
+// import { calculateArea } from "./calculateArea";
 
 export const findContainingSlice = ({
   point,
@@ -10,10 +10,15 @@ export const findContainingSlice = ({
   sets: ShapeSet[];
 }) => {
   const [x, y] = point;
+  let smallestArea = { sum: Infinity, slice: null, set: null } as {
+    sum: number;
+    slice: Shape | null;
+    set: ShapeSet | null;
+  };
   for (const ribbon of sets) {
     for (const slice of ribbon.slices) {
       const { top, bottom, left, right } = slice;
-      const trapezoidArea = calculateArea(slice as TrapezoidalSlice);
+      // const trapezoidArea = calculateArea(slice as TrapezoidalSlice);
       let sum = 0;
       // sum up area of triangle between the point and each side of the trapezoid
       sum += Math.abs(
@@ -44,12 +49,20 @@ export const findContainingSlice = ({
             x * right.y1 -
             (right.x2 * right.y1 + x * right.y2 + right.x1 * y))
       );
-      // if the sum of the areas of the triangles is equal to the area of the trapezoid, the point is inside the trapezoid
-      if (sum < trapezoidArea * 1.05) {
-        return { slice: slice as TrapezoidalSlice, set: ribbon };
+      if (sum < smallestArea.sum) {
+        smallestArea = { sum, slice, set: ribbon };
       }
+      // if the sum of the areas of the triangles is equal to the area of the trapezoid, the point is inside the trapezoid
+      // if (sum < trapezoidArea * 1.05) {
+      //   return { slice: slice as TrapezoidalSlice, set: ribbon };
+      // }
     }
   }
-
+  if (smallestArea.slice) {
+    return {
+      slice: smallestArea.slice as TrapezoidalSlice,
+      set: smallestArea.set as ShapeSet,
+    };
+  }
   return null;
 };

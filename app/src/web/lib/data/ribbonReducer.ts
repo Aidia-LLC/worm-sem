@@ -1,12 +1,8 @@
+import { FinalRibbonConfiguration, Shape, ShapeSet } from "@SliceManager/types";
 import {
   computeStageCoordinates,
   StageConfiguration,
 } from "@utils/computeStageCoordinates";
-import {
-  FinalRibbonConfiguration,
-  Shape,
-  ShapeSet,
-} from "@SliceManager/types";
 
 type DraggingData = {
   ribbonId: ShapeSet["id"] | null;
@@ -25,6 +21,10 @@ export const ribbonReducerInitialState = {
   referencePoints: [] as [number, number][],
   detection: true,
   detectionLoading: false,
+  cornerValidation: false,
+  cornerPhase: "delete" as "delete" | "add" | "adjust",
+  contours: [] as any,
+  corners: [] as [number, number][],
   masks: [] as ImageData[],
   currentMaskIndex: -1,
   enqueuedRibbons: [] as FinalRibbonConfiguration[],
@@ -59,6 +59,22 @@ export type RibbonDispatchPayload =
   | {
       action: "setDetectionLoading";
       payload: boolean;
+    }
+  | {
+      action: "setCornerValidation";
+      payload: boolean;
+    }
+  | {
+      action: "setCorners";
+      payload: [number, number][];
+    }
+  | {
+      action: "setCornerPhase";
+      payload: "delete" | "add" | "adjust";
+    }
+  | {
+      action: "setContours";
+      payload: any;
     }
   | {
       action: "setMasks";
@@ -201,6 +217,14 @@ const ribbonUpdater = (
       return { ...state, detection: event.payload };
     case "setDetectionLoading":
       return { ...state, detectionLoading: event.payload };
+    case "setCornerValidation":
+      return { ...state, cornerValidation: event.payload };
+    case "setCorners":
+      return { ...state, corners: event.payload };
+    case "setCornerPhase":
+      return { ...state, cornerPhase: event.payload };
+    case "setContours":
+      return { ...state, contours: event.payload };
     case "setMasks":
       return {
         ...state,

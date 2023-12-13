@@ -24,3 +24,6 @@ export type Vertex = {
   x: number;
   y: number;
 };
+
+export type Point = [number, number];
+export type Line = [Point, Point];

@@ -2,9 +2,7 @@ import { ProcessingOptions } from "@data/ProcessingOptions";
 import { createStore, SetStoreFunction } from "solid-js/store";
 
 export const defaultOptions: ProcessingOptions = {
-  squareSize: 420,
-  houghVoteThreshold: 0.4,
-  maxLines: 6,
+  sensitivity: 5,
 };
 
 export const createOptionsStore = (): [
