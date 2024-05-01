@@ -43,8 +43,8 @@ echo "•"
 echo "•"
 echo "•"
 
-pip install flask flask-cors opencv-python pycocotools matplotlib onnxruntime onnx torch torchvision
-pip install git+https://github.com/facebookresearch/segment-anything.git
+pip3 install flask flask-cors opencv-python pycocotools matplotlib onnxruntime onnx torch torchvision
+pip3 install git+https://github.com/facebookresearch/segment-anything.git
 curl -o ./mask-server/sam_vit_h_4b8939.pth https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth
 
 echo "2 / X: "
