@@ -3,8 +3,5 @@
     "dev": "cd app && npm run dev",
     "start": "cd app && npm run start",
     "make": "cd app && npm run make"
-  },
-  "dependencies": {
-    "@techstark/opencv-js": "^4.8.0-release.10"
   }
 }

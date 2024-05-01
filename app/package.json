@@ -95,6 +95,7 @@
   },
   "dependencies": {
     "@solid-primitives/reducer": "^0.0.101",
+    "@techstark/opencv-js": "^4.9.0-release.3",
     "date-fns": "^2.29.3",
     "electron-squirrel-startup": "^1.0.0",
     "tempy": "^3.0.0",
