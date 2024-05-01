@@ -10,7 +10,7 @@ export const maskServerPath = isProduction
   : path.join(appRootDir.get(), "..", "mask-server");
 
 export const initializeMaskApi = async (): Promise<ChildProcess> => {
-  const process = exec(`python3 -m flask run -p ${PYTHON_PORT}`, {
+  const process = exec(`python -m flask run -p ${PYTHON_PORT}`, {
     cwd: maskServerPath,
   });
 
