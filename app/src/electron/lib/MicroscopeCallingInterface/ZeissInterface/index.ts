@@ -214,7 +214,7 @@ export class ZeissInterface extends MicroscopeCallingInterface {
     do {
       await sleep(100);
       currentPosition = await this.getZeissParam(param);
-    } while (Math.abs(currentPosition - p.position) / p.position < 0.01);
+    } while (Math.abs(currentPosition - p.position) / p.position > 0.01);
     await sleep(500);
   }
 
