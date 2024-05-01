@@ -93,6 +93,9 @@
       "deleteAppDataOnUninstall": false
     }
   },
+  "optionalDependencies": {
+    "@esbuild/win32-x64": "^0.20.2"
+  },
   "dependencies": {
     "@solid-primitives/reducer": "^0.0.101",
     "@techstark/opencv-js": "^4.9.0-release.3",
