@@ -7,32 +7,32 @@ echo "•"
 echo "•"
 echo "•"
 
-while true; do
-    read -p "Have you installed python version 3.9?" yn
-    case $yn in
-        [Yy]* ) break;;
-        [Nn]* ) echo "Please install python v3.9." exit;;
-        * ) echo "Please answer yes or no.";;
-    esac
-done
+# while true; do
+#     read -p "Have you installed python version 3.9.13?" yn
+#     case $yn in
+#         [Yy]* ) break;;
+#         [Nn]* ) echo "Please install python v3.9." exit;;
+#         * ) echo "Please answer yes or no.";;
+#     esac
+# done
 
-while true; do
-    read -p "Have you installed dotnet already?" yn
-    case $yn in
-        [Yy]* ) break;;
-        [Nn]* ) echo "Please install dotnet before proceeding." exit;;
-        * ) echo "Please answer yes or no.";;
-    esac
-done
+# while true; do
+#     read -p "Have you installed dotnet already?" yn
+#     case $yn in
+#         [Yy]* ) break;;
+#         [Nn]* ) echo "Please install dotnet before proceeding." exit;;
+#         * ) echo "Please answer yes or no.";;
+#     esac
+# done
 
-while true; do
-    read -p "Is the Zeiss Remote API software available (usb is plugged in)?" yn
-    case $yn in
-        [Yy]* ) break;;
-        [Nn]* ) echo "Please install dotnet before proceeding." exit;;
-        * ) echo "Please answer yes or no.";;
-    esac
-done
+# while true; do
+#     read -p "Is the Zeiss Remote API software available (usb is plugged in)?" yn
+#     case $yn in
+#         [Yy]* ) break;;
+#         [Nn]* ) echo "Please install dotnet before proceeding." exit;;
+#         * ) echo "Please answer yes or no.";;
+#     esac
+# done
 
 # Set up python
 
@@ -43,21 +43,20 @@ echo "•"
 echo "•"
 echo "•"
 
-echo "RUN THE FOLLOWING"
 
-echo """
-python -m pip install --upgrade pip setuptools wheel && \\
-python -m pip install flask flask-cors opencv-python pycocotools matplotlib onnxruntime onnx torch torchvision && \\
-python -m pip install git+https://github.com/facebookresearch/segment-anything.git && \\
-curl -o ./mask-server/sam_vit_h_4b8939.pth https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth && \\
-cd app && npm install && cd ..
-"""
-echo "2 / X: DOT NET SET UP" 
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install flask flask-cors opencv-python pycocotools matplotlib onnxruntime onnx torch torchvision 
+python -m pip install git+https://github.com/facebookresearch/segment-anything.git 
+
+
+echo "2 / X: MODEL SET UP" 
 echo "•"
 echo "•"
 echo "•"
 echo "•"
 echo "•"
+
+curl -o ./mask-server/sam_vit_h_4b8939.pth https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth 
 
 echo "3 / X: NODE SET UP" 
 echo "•"
@@ -66,6 +65,7 @@ echo "•"
 echo "•"
 echo "•"
 
+cd app && npm install && cd ..
 
 echo "•"
 echo "•"
