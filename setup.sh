@@ -46,6 +46,7 @@ echo "•"
 echo "RUN THE FOLLOWING"
 
 echo """
+python -m pip install --upgrade pip setuptools wheel && \\
 python -m pip install flask flask-cors opencv-python pycocotools matplotlib onnxruntime onnx torch torchvision && \\
 python -m pip install git+https://github.com/facebookresearch/segment-anything.git && \\
 curl -o ./mask-server/sam_vit_h_4b8939.pth https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth && \\
