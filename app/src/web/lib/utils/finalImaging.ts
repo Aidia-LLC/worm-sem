@@ -61,12 +61,12 @@ export const handleFinalImaging = async (details: {
       await sleep(500);
       await microscopeBridge.setWorkingDistance(sliceConfig.focus);
       await sleep(500);
-      // await microscopeBridge.autoBrightnessAndContrast();
-      // await sleep(500);
-      // await microscopeBridge.setScanSpeed(4);
-      // await microscopeBridge.setFrozen(false);
-      // await sleep(1000);
-      // await microscopeBridge.autoFocusFine();
+      await microscopeBridge.autoBrightnessAndContrast();
+      await sleep(5000);
+      await microscopeBridge.setScanSpeed(4);
+      await microscopeBridge.setFrozen(false);
+      await sleep(1000);
+      await microscopeBridge.autoFocusFine();
       await microscopeBridge.setScanSpeed(scanSpeed);
       await sleep(5000);
       await grabImageOnFrameEnd(

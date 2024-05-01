@@ -100,6 +100,7 @@ app.whenReady().then(async () => {
             type: "SUCCESS",
             payload: response,
           } satisfies ElectronMessage);
+          break;
         }
         case "AUTO_BRIGHTNESS_AND_CONTRAST": {
           await microscopeApi.autoBrightnessAndContrast();
