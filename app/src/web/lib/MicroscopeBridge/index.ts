@@ -194,6 +194,28 @@ export const microscopeBridge: MicroscopeBridge = {
   setFreezeOn: async (freezeOn) => {
     await setSEMParam("FREEZE_ON", freezeOn);
   },
+
+  autoBrightnessAndContrast: async () => {
+    await window.semClient.send({
+      type: "AUTO_BRIGHTNESS_AND_CONTRAST",
+      id: nextId++,
+    });
+  },
+
+  autoFocusCoarse: async () => {
+    await window.semClient.send({
+      type: "AUTO_FOCUS_COARSE",
+      id: nextId++,
+    });
+  },
+
+  autoFocusFine: async () => {
+    await window.semClient.send({
+      type: "AUTO_FOCUS_FINE",
+      id: nextId++,
+    });
+  },
+
   grabFullFrame: async (props: Parameters<typeof grabSEMImage>[0]) => {
     return grabSEMImage(props);
   },

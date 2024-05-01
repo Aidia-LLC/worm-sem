@@ -71,6 +71,10 @@ export interface MicroscopeBridge {
   /// Sets when to freeze the image
   setFreezeOn(freezeOn: MicroscopeFreezeOn): Promise<void>;
 
+  autoBrightnessAndContrast(): Promise<void>;
+  autoFocusCoarse(): Promise<void>;
+  autoFocusFine(): Promise<void>;
+
   /// Grabs a full frame image from the microscope and saves it to the specified file.
   grabFullFrame(props: {
     name: string;

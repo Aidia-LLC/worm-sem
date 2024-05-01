@@ -42,6 +42,10 @@ export abstract class MicroscopeCallingInterface {
   abstract getFrozen(): Promise<boolean>;
   abstract setFreezeOn(freezeOn: MicroscopeFreezeOn): Promise<void>;
 
+  abstract autoBrightnessAndContrast(): void;
+  abstract autoFocusCoarse(): void;
+  abstract autoFocusFine(): void;
+
   abstract initialize(): Promise<void>;
   abstract connect(): Promise<void>;
   abstract shutdown(): void;

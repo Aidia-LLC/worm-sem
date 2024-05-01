@@ -13,6 +13,11 @@ import {
 } from "../types";
 import type { ZeissMessage } from "./types";
 
+// @ts-expect-error
+import isSquirrelStartup from "electron-squirrel-startup";
+
+if (isSquirrelStartup) app.quit();
+
 const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
 const isProduction = app.isPackaged;
@@ -252,6 +257,21 @@ export class ZeissInterface extends MicroscopeCallingInterface {
       }
     })();
     await this.setZeissParam("DP_FREEZE_ON", value);
+  }
+
+  override async autoBrightnessAndContrast(): Promise<void> {
+    await this.sendZeissCommand(`CMD_ABC`);
+    await sleep(100);
+  }
+
+  override async autoFocusCoarse(): Promise<void> {
+    await this.sendZeissCommand(`CMD_AUTO_FOCUS_COARSE`);
+    await sleep(100);
+  }
+
+  override async autoFocusFine(): Promise<void> {
+    await this.sendZeissCommand(`CMD_AUTO_FOCUS_FINE`);
+    await sleep(100);
   }
 
   override async grabFullFrame(
