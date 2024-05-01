@@ -33,6 +33,7 @@ export type ShapeConfiguration = {
   brightness?: number;
   focus?: number;
   point: [number, number];
+  paramsTouched: boolean;
 };
 
 export type FinalShapeConfiguration = {

@@ -7,32 +7,32 @@ echo "•"
 echo "•"
 echo "•"
 
-# while true; do
-#     read -p "Have you installed python version 3.9.13?" yn
-#     case $yn in
-#         [Yy]* ) break;;
-#         [Nn]* ) echo "Please install python v3.9." exit;;
-#         * ) echo "Please answer yes or no.";;
-#     esac
-# done
+while true; do
+    read -p "Have you installed python version 3.9.13?" yn
+    case $yn in
+        [Yy]* ) break;;
+        [Nn]* ) echo "Please install python v3.9.13" exit;;
+        * ) echo "Please answer yes or no.";;
+    esac
+done
 
-# while true; do
-#     read -p "Have you installed dotnet already?" yn
-#     case $yn in
-#         [Yy]* ) break;;
-#         [Nn]* ) echo "Please install dotnet before proceeding." exit;;
-#         * ) echo "Please answer yes or no.";;
-#     esac
-# done
+while true; do
+    read -p "Have you installed dotnet already?" yn
+    case $yn in
+        [Yy]* ) break;;
+        [Nn]* ) echo "Please install dotnet before proceeding." exit;;
+        * ) echo "Please answer yes or no.";;
+    esac
+done
 
-# while true; do
-#     read -p "Is the Zeiss Remote API software available (usb is plugged in)?" yn
-#     case $yn in
-#         [Yy]* ) break;;
-#         [Nn]* ) echo "Please install dotnet before proceeding." exit;;
-#         * ) echo "Please answer yes or no.";;
-#     esac
-# done
+while true; do
+    read -p "Is the Zeiss Remote API software available (usb is plugged in)?" yn
+    case $yn in
+        [Yy]* ) break;;
+        [Nn]* ) echo "Please install dotnet before proceeding." exit;;
+        * ) echo "Please answer yes or no.";;
+    esac
+done
 
 # Set up python
 

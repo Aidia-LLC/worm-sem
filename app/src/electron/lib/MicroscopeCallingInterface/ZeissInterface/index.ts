@@ -204,6 +204,20 @@ export class ZeissInterface extends MicroscopeCallingInterface {
     await this.setZeissParam("DP_IMAGE_STORE", quality);
   }
 
+  async moveAxis(p: {
+    axis: "R" | "X" | "Y";
+    position: number;
+  }): Promise<void> {
+    const param = `AP_STAGE_GOTO_${p.axis}`;
+    let currentPosition = await this.getZeissParam(param);
+    await this.setZeissParam(param, p.position);
+    do {
+      await sleep(100);
+      currentPosition = await this.getZeissParam(param);
+    } while (Math.abs(currentPosition - p.position) / p.position < 0.01);
+    await sleep(500);
+  }
+
   override async moveStageTo(position: {
     x: number;
     y: number;
@@ -212,13 +226,10 @@ export class ZeissInterface extends MicroscopeCallingInterface {
     await sleep(10);
     const r = position.r;
     if (r) {
-      await this.setZeissParam("AP_STAGE_GOTO_R", r);
-      await sleep(45_000);
+      await this.moveAxis({ axis: "R", position: r });
     }
-    await this.setZeissParam("AP_STAGE_GOTO_X", position.x);
-    await sleep(1_000);
-    await this.setZeissParam("AP_STAGE_GOTO_Y", position.y);
-    await sleep(1_000);
+    await this.moveAxis({ axis: "X", position: position.x });
+    await this.moveAxis({ axis: "Y", position: position.y });
   }
 
   override async getFieldOfView(): Promise<{ width: number; height: number }> {

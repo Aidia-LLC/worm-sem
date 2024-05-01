@@ -63,8 +63,8 @@ export const handleFinalImaging = async (details: {
       await sleep(500);
       await microscopeBridge.setWorkingDistance(sliceConfig.focus);
       await sleep(500);
-      await microscopeBridge.autoBrightnessAndContrast();
-      await sleep(500);
+      // await microscopeBridge.autoBrightnessAndContrast();
+      // await sleep(500);
       await microscopeBridge.autoFocusFine();
       await sleep(5000);
       await grabImageOnFrameEnd(
@@ -117,6 +117,7 @@ const interpolateConfigurations = (
         contrast,
         focus,
         point: allConfigurations[j].point,
+        paramsTouched: false,
       });
     }
   }
