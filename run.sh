@@ -1,0 +1,1 @@
+git pull && cd app && npm install && npm start
