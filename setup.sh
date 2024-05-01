@@ -46,7 +46,30 @@ echo "•"
 echo "RUN THE FOLLOWING"
 
 echo """
-python -m pip install flask flask-cors opencv-python pycocotools matplotlib onnxruntime onnx torch torchvision git+https://github.com/facebookresearch/segment-anything.git && \\
+python -m pip install flask flask-cors opencv-python pycocotools matplotlib onnxruntime onnx torch torchvision && \\
+python -m pip install git+https://github.com/facebookresearch/segment-anything.git && \\
 curl -o ./mask-server/sam_vit_h_4b8939.pth https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth && \\
 cd app && npm install && cd ..
 """
+echo "2 / X: DOT NET SET UP" 
+echo "•"
+echo "•"
+echo "•"
+echo "•"
+echo "•"
+
+echo "3 / X: NODE SET UP" 
+echo "•"
+echo "•"
+echo "•"
+echo "•"
+echo "•"
+
+
+echo "•"
+echo "•"
+echo "•"
+echo "•"
+echo "•"
+
+echo "SETUP COMPLETE"
