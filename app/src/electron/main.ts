@@ -2,13 +2,16 @@ import { ChildProcess } from "child_process";
 import { app, BrowserWindow, ipcMain } from "electron";
 import path from "path";
 import { platform } from "process";
-import { Command, GrabFullFrameCommand } from "../web/lib/MicroscopeBridge/types";
+import {
+  Command,
+  GrabFullFrameCommand,
+} from "../web/lib/MicroscopeBridge/types";
 import { getFilename } from "./lib/filesystem";
 import { initializeMaskApi } from "./lib/maskApi";
 import { MicroscopeCallingInterface } from "./lib/MicroscopeCallingInterface";
 import { ZeissInterface } from "./lib/MicroscopeCallingInterface/ZeissInterface";
-import { ElectronMessage } from "./types";
 import { createWindow } from "./lib/window";
+import { ElectronMessage } from "./types";
 
 const isProduction = app.isPackaged;
 
@@ -49,7 +52,10 @@ app.whenReady().then(async () => {
             return;
           }
           grabCommand.filename = filename;
-          console.log("Sending message to microscope api:", JSON.stringify(grabCommand));
+          console.log(
+            "Sending message to microscope api:",
+            JSON.stringify(grabCommand)
+          );
           const response = await microscopeApi.grabFullFrame(
             grabCommand.name,
             grabCommand.filename
@@ -94,6 +100,41 @@ app.whenReady().then(async () => {
             type: "SUCCESS",
             payload: response,
           } satisfies ElectronMessage);
+          break;
+        }
+        case "AUTO_BRIGHTNESS_AND_CONTRAST": {
+          await microscopeApi.autoBrightnessAndContrast();
+          browserWindow?.webContents.send("SEMClient:Received", {
+            id: command.id,
+            code: 200,
+            type: "SUCCESS",
+            payload: {},
+          } satisfies ElectronMessage);
+          break;
+        }
+        case "AUTO_FOCUS_COARSE": {
+          await microscopeApi.autoFocusCoarse();
+          browserWindow?.webContents.send("SEMClient:Received", {
+            id: command.id,
+            code: 200,
+            type: "SUCCESS",
+            payload: {},
+          } satisfies ElectronMessage);
+          break;
+        }
+        case "AUTO_FOCUS_FINE": {
+          await microscopeApi.autoFocusFine();
+          browserWindow?.webContents.send("SEMClient:Received", {
+            id: command.id,
+            code: 200,
+            type: "SUCCESS",
+            payload: {},
+          } satisfies ElectronMessage);
+          break;
+        }
+        default: {
+          const _t: never = command;
+          console.log("UNKNOWN COMMAND", _t);
         }
       }
     } catch (err) {

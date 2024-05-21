@@ -9,7 +9,10 @@ export type Command =
   | GrabFullFrameCommand
   | ConnectCommand
   | SetParamCommand
-  | GetParamCommand;
+  | GetParamCommand
+  | AutoBrightnessAndContrastCommand
+  | AutoFocusCoarseCommand
+  | AutoFocusFineCommand;
 
 interface BaseCommand {
   id: number;
@@ -28,6 +31,18 @@ export interface GrabFullFrameCommand extends BaseCommand {
 
 export interface ConnectCommand extends BaseCommand {
   type: "CONNECT";
+}
+
+export interface AutoBrightnessAndContrastCommand extends BaseCommand {
+  type: "AUTO_BRIGHTNESS_AND_CONTRAST";
+}
+
+export interface AutoFocusCoarseCommand extends BaseCommand {
+  type: "AUTO_FOCUS_COARSE";
+}
+
+export interface AutoFocusFineCommand extends BaseCommand {
+  type: "AUTO_FOCUS_FINE";
 }
 
 export type ParamName =

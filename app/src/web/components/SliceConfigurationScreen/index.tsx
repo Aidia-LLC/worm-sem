@@ -353,6 +353,19 @@ export const SliceConfigurationScreen = () => {
                 await microscopeBridge.setWorkingDistance(value);
               }}
             />
+            <Button
+              variant="secondary"
+              onClick={() => microscopeBridge.autoFocusFine()}
+            >
+              Auto Focus
+            </Button>
+
+            <Button
+              variant="secondary"
+              onClick={() => microscopeBridge.autoBrightnessAndContrast()}
+            >
+              Auto Brightness And Contrast
+            </Button>
           </Show>
         </div>
         <div class="flex flex-col gap-4 bg-slate-200 rounded-xl p-4 w-full items-center shadow-lg border-slate-400 border-2">

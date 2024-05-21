@@ -327,6 +327,7 @@ const ribbonUpdater = (
             ...ribbon,
             configurations: ribbon.slices.map((slice, index) => ({
               id: slice.id,
+              paramsTouched: false,
               index,
               brightness: event.payload.brightness,
               contrast: event.payload.contrast,
@@ -351,9 +352,21 @@ const ribbonUpdater = (
           return {
             ...ribbon,
             configurations: ribbon.configurations.map((config, idx) => {
-              if (idx !== focusedSliceIndex) return config;
+              if (idx !== focusedSliceIndex && config.paramsTouched)
+                return config;
+              if (idx > focusedRibbonId && (brightness || contrast || focus)) {
+                return {
+                  ...config,
+                  brightness: brightness ?? config.brightness,
+                  contrast: contrast ?? config.contrast,
+                  focus: focus ?? config.focus,
+                };
+              }
               return {
                 ...config,
+                paramsTouched:
+                  config.paramsTouched ||
+                  Boolean(brightness || contrast || focus),
                 brightness: brightness ?? config.brightness,
                 contrast: contrast ?? config.contrast,
                 focus: focus ?? config.focus,

@@ -39,8 +39,6 @@ export const handleFinalImaging = async (details: {
   await sleep(500);
   await microscopeBridge.setDetectorType(detectionType());
   await sleep(500);
-  await microscopeBridge.setScanSpeed(scanSpeed);
-  await sleep(500);
   await microscopeBridge.setImageQuality("HIGH");
   await sleep(3000);
   let i = 0;
@@ -56,13 +54,19 @@ export const handleFinalImaging = async (details: {
         x: sliceConfig.point[0],
         y: sliceConfig.point[1],
       });
-      await sleep(2500);
       await microscopeBridge.setBrightness(sliceConfig.brightness);
       await sleep(500);
       await microscopeBridge.setContrast(sliceConfig.contrast);
       await sleep(500);
       await microscopeBridge.setWorkingDistance(sliceConfig.focus);
-      await sleep(5000);
+      await sleep(500);
+      await microscopeBridge.setScanSpeed(4);
+      await microscopeBridge.setFrozen(false);
+      await sleep(1000);
+      await microscopeBridge.autoFocusFine();
+      await sleep(10_000);
+      await microscopeBridge.setScanSpeed(scanSpeed);
+      await sleep(1_000);
       await grabImageOnFrameEnd(
         {
           name: sliceConfig.label,
@@ -113,6 +117,7 @@ const interpolateConfigurations = (
         contrast,
         focus,
         point: allConfigurations[j].point,
+        paramsTouched: false,
       });
     }
   }

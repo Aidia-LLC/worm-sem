@@ -11,15 +11,24 @@
     "build": "tsc && vite build && electron-builder",
     "zeiss:build:windows": "cd ../zeiss-api && dotnet publish worm-sem.csproj --configuration Release --runtime win-x86 --self-contained true /p:PublishSingleFile=true && mkdir -p ../app/resources/win && cp bin/Release/net7.0/win-x86/publish/wormsem.exe ../app/resources/win/zeiss-api",
     "zeiss:build:macos-arm": "cd ../zeiss-api && dotnet publish worm-sem.csproj --configuration Release --runtime osx-arm64 --self-contained true /p:PublishSingleFile=true && mkdir -p ../app/resources/mac && cp bin/Release/net7.0/osx-arm64/publish/wormsem ../app/resources/mac/zeiss-api",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
   },
   "devDependencies": {
+    "@electron-forge/cli": "^7.4.0",
+    "@electron-forge/maker-deb": "^7.4.0",
+    "@electron-forge/maker-rpm": "^7.4.0",
+    "@electron-forge/maker-squirrel": "^7.4.0",
+    "@electron-forge/maker-zip": "^7.4.0",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.4.0",
+    "@electron-forge/plugin-fuses": "^7.4.0",
+    "@electron/fuses": "^1.8.0",
     "@types/app-root-dir": "^0.1.1",
     "@types/node": "^18.14.4",
     "app-root-dir": "^1.0.2",
     "autoprefixer": "^10.4.13",
     "electron": "^22.0.0",
-    "electron-builder": "^23.6.0",
     "postcss": "^8.4.21",
     "prettier": "^2.8.6",
     "prettier-plugin-organize-imports": "^3.2.2",
@@ -84,9 +93,14 @@
       "deleteAppDataOnUninstall": false
     }
   },
+  "optionalDependencies": {
+    "@esbuild/win32-x64": "^0.20.2"
+  },
   "dependencies": {
     "@solid-primitives/reducer": "^0.0.101",
+    "@techstark/opencv-js": "^4.9.0-release.3",
     "date-fns": "^2.29.3",
+    "electron-squirrel-startup": "^1.0.0",
     "tempy": "^3.0.0",
     "zod": "^3.21.4"
   }

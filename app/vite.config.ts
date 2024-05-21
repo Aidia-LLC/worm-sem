@@ -4,6 +4,9 @@ import solidPlugin from "vite-plugin-solid";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
+  optimizeDeps: {
+    exclude: ["node_modules/@techstark_opencv-js"],
+  },
   plugins: [
     tsconfigPaths(),
     solidPlugin(),

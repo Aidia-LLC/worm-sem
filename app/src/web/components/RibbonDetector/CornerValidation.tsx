@@ -79,11 +79,23 @@ export const CornerValidation = (props: {
           </div>
           <input
             value={options.options.sensitivity.toString()}
+            type="number"
+            onChange={(e) =>
+              setOptions({
+                options: {
+                  ...options.options,
+                  sensitivity: e.currentTarget.valueAsNumber,
+                },
+              })
+            }
+          />
+          <input
+            value={options.options.sensitivity.toString()}
             type="range"
             min="2"
             max="15"
             step=".1"
-            onInput={(e) => {
+            onChange={(e) => {
               setOptions({
                 options: {
                   ...options.options,
