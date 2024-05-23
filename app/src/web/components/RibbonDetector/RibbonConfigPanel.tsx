@@ -1,3 +1,5 @@
+import { Modal } from "@components/Modal";
+import { TemplatePicker } from "@components/TemplatePicker";
 import {
   initialStageSignal,
   magnificationSignal,
@@ -5,10 +7,11 @@ import {
   primaryImageSignal,
   ribbonState,
 } from "@data/globals";
+import { getTemplates, saveTemplate, Template } from "@data/templates";
 import { microscopeBridge } from "@MicroscopeBridge/index";
 import { getSliceManager } from "@SliceManager/index";
 import { ShapeSet } from "@SliceManager/types";
-import { For, Show } from "solid-js";
+import { createSignal, For, Show } from "solid-js";
 import { Button } from "../Button";
 
 export const availableColors = [
@@ -24,10 +27,14 @@ export const RibbonConfigPanel = (props: {
   ribbon: ShapeSet;
   canvasSize: { width: number; height: number };
   ctx: CanvasRenderingContext2D;
+  overlayCtx: CanvasRenderingContext2D;
+  extraCtx: CanvasRenderingContext2D;
   handleRibbonDetection: (
     points: [number, number][],
     clickedPointIndex: number
   ) => void;
+  applyTemplate: (details: { template: Template; ribbon: ShapeSet }) => void;
+  drawOverlay: VoidFunction;
 }) => {
   const sliceManager = getSliceManager();
 
@@ -36,6 +43,18 @@ export const RibbonConfigPanel = (props: {
   const [magnification] = magnificationSignal;
   const [stage] = initialStageSignal;
   const [image] = primaryImageSignal;
+  const [templates, setTemplates] = createSignal<Template[]>(getTemplates());
+  const [slice, setSlice] = createSignal<number | undefined>(0);
+  const [showSelect, setShowSelect] = createSignal(false);
+
+  const applyTemplate = (id: number) => {
+    const t = templates().find((t) => t.id == id);
+    if (!t) return;
+    props.applyTemplate({
+      template: t,
+      ribbon: props.ribbon,
+    });
+  };
 
   const radioName = () => `status-${props.ribbon.id}`;
   const matchingRadioName = () => `status-${props.ribbon.id}-matching`;
@@ -258,6 +277,97 @@ export const RibbonConfigPanel = (props: {
               />
               Adjust Single Slice
             </label>
+            <div class="flex flex-col gap-2"></div>
+            <label class="flex flex-row items-center gap-1 whitespace-nowrap">
+              <button
+                onClick={() => {
+                  setShowSelect(true);
+                }}
+                class="btn btn-primary btn-ghost"
+              >
+                Choose a Template
+              </button>
+            </label>
+            <div class="flex flex-col gap-2"></div>
+            <label class="flex flex-row items-center gap-1 whitespace-nowrap">
+              <select
+                value={slice() ? slice()! : 0}
+                onChange={(e) => {
+                  setSlice(e.currentTarget.value as unknown as number);
+                }}
+                class="select select-primary select-sm"
+              >
+                <For each={props.ribbon.slices}>
+                  {(slice) => (
+                    <option value={slice.id}>Slice {slice.id + 1}</option>
+                  )}
+                </For>
+              </select>
+              <button
+                class="btn btn-ghost btn-primary btn-sm"
+                onClick={async () => {
+                  //generate picuture with canvas.blob
+                  props.ctx.canvas.toBlob(async (blob) => {
+                    console.log(blob);
+                    if (!blob) return;
+                    const s = props.ribbon.slices[slice() || 0];
+                    const cropX = s.top.x2;
+                    const cropY = s.top.y2;
+                    const cropWidth = s.top.x1 - s.top.x2;
+                    const cropHeight = s.bottom.y1 - s.top.y1;
+                    console.log(s, cropX, cropY, cropWidth, cropHeight);
+                    const point = props.ribbon.matchedPoints[slice() || 0];
+
+                    const croppedBlob = await cropImageBlob(
+                      blob,
+                      cropX - cropWidth / 2,
+                      cropY - cropHeight / 2,
+                      cropWidth * 2.5,
+                      cropHeight * 2.5,
+                      props.overlayCtx,
+                      props.extraCtx,
+                      s,
+                      point
+                    );
+
+                    if (!croppedBlob) return;
+
+                    const dataUrl = props.extraCtx.canvas.toDataURL();
+
+                    // resize based on slice coordinates
+                    saveTemplate({
+                      slice: s,
+                      point,
+                      dataUrl,
+                    });
+                    setTemplates(getTemplates());
+                    props.drawOverlay();
+                  });
+                }}
+                disabled={props.ribbon.matchedPoints.length === 0}
+              >
+                Add Template
+              </button>
+            </label>
+            <div class="flex flex-col gap-2"></div>
+            <label class="flex flex-row items-center gap-1 whitespace-nowrap">
+              <button
+                class="btn btn-outline btn-primary btn-sm"
+                onClick={() => {
+                  ribbonDispatch({
+                    action: "setRibbons",
+                    payload: ribbonReducer().ribbons.map((r) => {
+                      if (r.id === props.ribbon.id)
+                        return { ...r, matchedPoints: [] };
+                      return r;
+                    }),
+                  });
+                }}
+                disabled={props.ribbon.matchedPoints.length === 0}
+              >
+                Clear Points
+              </button>
+            </label>
           </div>
         </Show>
         <Show when={props.ribbon.matchedPoints.length > 0}>
@@ -300,6 +410,128 @@ export const RibbonConfigPanel = (props: {
           </div>
         </Show>
       </Show>
+      <Modal show={showSelect()} onClose={() => setShowSelect(false)}>
+        <TemplatePicker
+          onPick={(template) => {
+            applyTemplate(template.id);
+            setShowSelect(false);
+          }}
+          templates={templates()}
+        />
+      </Modal>
     </div>
   );
+};
+
+async function cropImageBlob(
+  originalBlob: Blob,
+  cropX: number,
+  cropY: number,
+  cropWidth: number,
+  cropHeight: number,
+  overlayCtx: CanvasRenderingContext2D,
+  extraCtx: CanvasRenderingContext2D,
+  s: any,
+  point: [number, number]
+): Promise<Blob> {
+  // Create an offscreen canvas for the original image
+  const originalCtx = overlayCtx;
+  const originalCanvas = originalCtx.canvas;
+
+  if (!originalCtx) throw new Error("Could not get canvas context");
+
+  // Load the original blob into an image element
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = URL.createObjectURL(originalBlob);
+  });
+
+  // Set the canvas size to the image size
+  originalCanvas.width = img.width;
+  originalCanvas.height = img.height;
+
+  console.log("b4:");
+  drawPointAndSlice(point, s, originalCtx);
+  console.log("after:");
+
+  // Create another offscreen canvas for the cropped image
+  const croppedCanvas = extraCtx.canvas;
+  const croppedCtx = extraCtx;
+
+  if (!croppedCtx) throw new Error("Could not get canvas context");
+
+  // Set the canvas size to the crop size
+  croppedCanvas.width = cropWidth;
+  croppedCanvas.height = cropHeight;
+
+  // Draw the cropped area onto the new canvas
+  croppedCtx.drawImage(
+    originalCanvas,
+    cropX,
+    cropY,
+    cropWidth,
+    cropHeight,
+    0,
+    0,
+    cropWidth,
+    cropHeight
+  );
+
+  // drawPointAndSlice(point, s, croppedCtx);
+
+  console.log("Cropped canvas:", croppedCanvas);
+
+  // Convert the cropped canvas to a blob
+  return new Promise<Blob>((resolve) => {
+    croppedCanvas.toBlob((blob) => {
+      if (blob) {
+        console.log("Cropped blob:", blob);
+        resolve(blob);
+      } else {
+        throw new Error("Could not create blob");
+      }
+    });
+  });
+}
+
+const drawPointAndSlice = (
+  point: [number, number],
+  slice: any,
+  ctx: CanvasRenderingContext2D
+) => {
+  ctx.strokeStyle = "red";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(point[0], point[1], 5, 0, 2 * Math.PI);
+  ctx.stroke();
+  ctx.closePath();
+
+  //slice - top line, left line, right line, bottom line
+  ctx.strokeStyle = "blue";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(slice.top.x1, slice.top.y1);
+  ctx.lineTo(slice.top.x2, slice.top.y2);
+  ctx.stroke();
+  ctx.closePath();
+
+  ctx.beginPath();
+  ctx.moveTo(slice.bottom.x1, slice.bottom.y1);
+  ctx.lineTo(slice.bottom.x2, slice.bottom.y2);
+  ctx.stroke();
+  ctx.closePath();
+
+  ctx.beginPath();
+  ctx.moveTo(slice.top.x1, slice.top.y1);
+  ctx.lineTo(slice.bottom.x1, slice.bottom.y1);
+  ctx.stroke();
+  ctx.closePath();
+
+  ctx.beginPath();
+  ctx.moveTo(slice.top.x2, slice.top.y2);
+  ctx.lineTo(slice.bottom.x2, slice.bottom.y2);
+  ctx.stroke();
+  ctx.closePath();
 };

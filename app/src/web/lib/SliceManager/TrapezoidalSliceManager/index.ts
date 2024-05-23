@@ -1,3 +1,4 @@
+import { Template } from "@data/templates";
 import { SliceManager } from "../SliceManager";
 import { ShapeSet } from "../types";
 import { addTrapezoid } from "./functions/addTrapezoid";
@@ -9,6 +10,7 @@ import { findNearestVertex } from "./functions/findNearestVertex";
 import { getValidSlices } from "./functions/getValidSlices";
 import { isOutOfBounds } from "./functions/isOutOfBounds";
 import { matchPoints } from "./functions/matchPoints";
+import { matchPointsFromTemplate } from "./functions/matchPointsFromTemplate";
 import { translateSlice } from "./functions/translateSlice";
 import { translateSliceVertex } from "./functions/translateSliceVertex";
 import {
@@ -34,6 +36,13 @@ export class TrapezoidalSliceManager extends SliceManager {
     slice: TrapezoidalSlice;
   }) {
     return matchPoints(details);
+  }
+
+  override matchPointsFromTemplate(details: {
+    ribbon: ShapeSet;
+    template: Template;
+  }) {
+    return matchPointsFromTemplate(details);
   }
 
   override findContainingSlice(details: {

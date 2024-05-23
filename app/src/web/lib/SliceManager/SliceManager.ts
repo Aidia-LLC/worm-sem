@@ -1,3 +1,4 @@
+import { Template } from "@data/templates";
 import { Line, Point, Vertex } from "./TrapezoidalSliceManager/types";
 import { Shape, ShapeSet } from "./types";
 
@@ -19,6 +20,11 @@ export abstract class SliceManager {
     point: [number, number];
     ribbon: ShapeSet;
     slice: Shape;
+  }): ShapeSet["matchedPoints"];
+
+  abstract matchPointsFromTemplate(details: {
+    ribbon: ShapeSet;
+    template: Template;
   }): ShapeSet["matchedPoints"];
 
   abstract findContainingSlice(details: {

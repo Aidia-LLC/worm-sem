@@ -4,9 +4,13 @@ export type Template = {
   id: number;
   slice: Shape;
   point: [number, number];
+  dataUrl: string;
 };
 
 // uses local storage to store template data, in an array of templates
+export const removeTemplates = () => {
+  localStorage.removeItem("templates");
+};
 
 export const saveTemplate = (template: Omit<Template, "id">) => {
   const templates = getTemplates();

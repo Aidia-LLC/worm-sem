@@ -1,4 +1,5 @@
 import * as signals from "@data/globals";
+import { Template } from "@data/templates";
 import { getSliceManager } from "@SliceManager/index";
 import { Shape, ShapeSet } from "@SliceManager/types";
 import { base64ToImageSrc } from "@utils/base64ToImageSrc";
@@ -115,8 +116,8 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
         ctx.fillText(`${i + 1}`, trapezoids[i].left.x1, trapezoids[i].left.y1);
       }
       ctx.globalAlpha = 1;
-      ctx.lineWidth = 9 / zoom.scale;
-      const radius = (3 / zoom.scale) * 4;
+      ctx.lineWidth = 7 / zoom.scale;
+      const radius = (3 / zoom.scale) * 2;
       for (const point of trapezoidSet.matchedPoints) {
         ctx.beginPath();
         ctx.arc(point[0], point[1], radius, 0, 2 * Math.PI);
@@ -318,6 +319,21 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
     };
   };
 
+  const handlePointMatchingFromTemplate = (details: {
+    template: Template;
+    ribbon: ShapeSet;
+  }) => {
+    const newPoints = sliceManager.matchPointsFromTemplate(details);
+    ribbonDispatch({
+      action: "setRibbons",
+      payload: ribbonReducer().ribbons.map((r) => {
+        if (r.id === details.ribbon.id)
+          return { ...r, matchedPoints: newPoints };
+        return r;
+      }),
+    });
+  };
+
   const handlePointMatching = (details: {
     point: [number, number];
     ribbon: ShapeSet;
@@ -475,7 +491,9 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
   };
 
   const handleRibbonDetection = async () => {
+    //TODO: changes in sensitivity do not adjust the edge data
     const edgeContext = edgeDataCanvasRef.getContext("2d")!;
+    const overlayContext = overlayCanvasRef.getContext("2d")!;
     const edgeData = edgeContext.getImageData(
       0,
       0,
@@ -483,11 +501,12 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
       edgeDataCanvasRef.height
     );
     const { corners, imageData } = sliceManager.findCorners({
-      imageContext: edgeContext,
+      imageContext: overlayContext,
       imageData: edgeData,
     });
 
-    edgeContext.putImageData(imageData, 0, 0);
+    overlayContext.putImageData(imageData, 0, 0);
+    console.log("data", imageData);
     drawPoints(corners);
 
     ribbonDispatch({
@@ -697,7 +716,11 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
               canvasSize={canvasRef}
               ribbon={ribbon}
               ctx={canvasRef.getContext("2d")!}
+              overlayCtx={overlayCanvasRef.getContext("2d")!}
+              extraCtx={debugCanvasRef.getContext("2d")!}
               handleRibbonDetection={handleRibbonDetection}
+              applyTemplate={handlePointMatchingFromTemplate}
+              drawOverlay={drawOverlay}
             />
           )}
         </For>
