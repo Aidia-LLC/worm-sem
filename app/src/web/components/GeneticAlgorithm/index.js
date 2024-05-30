@@ -1,23 +1,16 @@
 const getDataArray = (shape) => {
   const { x, y, width, height } = shape;
-  const data = new Uint8Array(100 * 100 * 4);
+  const data = new Uint8Array(100 * 100);
 
   // Set all pixels to black (0, 0, 0, 255)
   for (let i = 0; i < data.length; i += 4) {
-    data[i] = 0; // Red
-    data[i + 1] = 0; // Green
-    data[i + 2] = 0; // Blue
-    data[i + 3] = 255; // Alpha
+    data[i] = 0; // Alpha
   }
 
-  // Set pixels within the defined square to white (255, 255, 255, 255)
   for (let row = y; row < y + height; row++) {
     for (let col = x; col < x + width; col++) {
-      const index = (row * 100 + col) * 4;
-      data[index] = 255; // Red
-      data[index + 1] = 255; // Green
-      data[index + 2] = 255; // Blue
-      data[index + 3] = 255; // Alpha
+      const index = row * 100 + col;
+      data[index] = 255; // Alpha
     }
   }
 
@@ -31,10 +24,10 @@ const pickRandomItemFromArray = (array) => {
 const GeneticAlgorithm = () => {
   const getIdealImage = () => {
     return getDataArray({
-      x: 50,
-      y: 50,
-      width: 50,
-      height: 50,
+      x: 17,
+      y: 26,
+      width: 43,
+      height: 62,
     });
     //the ideal image is a black square on a white background
   };
@@ -43,7 +36,7 @@ const GeneticAlgorithm = () => {
     const goodShape = getIdealImage();
     const image = getDataArray(shape);
     const distance = goodShape.reduce((sum, pixel, i) => {
-      return sum + Math.abs(pixel - image[i]);
+      return sum + (pixel === image[i] ? 0 : 1);
     }, 0);
     return Math.pow(0.98, distance);
   };
@@ -68,10 +61,10 @@ const GeneticAlgorithm = () => {
   const generateShape = () => {
     // generate a random shape
     return {
-      x: Math.round(Math.random() * 100),
-      y: Math.round(Math.random() * 100),
-      width: Math.round(Math.random() * 100),
-      height: Math.round(Math.random() * 100),
+      x: Math.round(Math.random() * 50),
+      y: Math.round(Math.random() * 50),
+      width: Math.round(Math.random() * 50),
+      height: Math.round(Math.random() * 50),
     };
   };
   const createGeneration = () => {
@@ -92,7 +85,10 @@ const GeneticAlgorithm = () => {
       }
       const survivors = population.slice(0, 40);
       const mutants = Array.from(Array(10), generateShape);
-      population = survivors.concat(mutants).map(mutate);
+      population = survivors.concat(mutants).map((x, i) => {
+        if (i < 25) return x;
+        return mutate(x);
+      });
       for (let i = 0; i < 50; i++) {
         population.push(
           crossover(population[i], pickRandomItemFromArray(population))
