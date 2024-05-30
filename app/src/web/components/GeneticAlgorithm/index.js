@@ -1,21 +1,50 @@
+const getDataArray = (shape) => {
+  const { x, y, width, height } = shape;
+  const data = new Uint8Array(100 * 100 * 4);
+
+  // Set all pixels to black (0, 0, 0, 255)
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = 0; // Red
+    data[i + 1] = 0; // Green
+    data[i + 2] = 0; // Blue
+    data[i + 3] = 255; // Alpha
+  }
+
+  // Set pixels within the defined square to white (255, 255, 255, 255)
+  for (let row = y; row < y + height; row++) {
+    for (let col = x; col < x + width; col++) {
+      const index = (row * 100 + col) * 4;
+      data[index] = 255; // Red
+      data[index + 1] = 255; // Green
+      data[index + 2] = 255; // Blue
+      data[index + 3] = 255; // Alpha
+    }
+  }
+
+  return data;
+};
+
 const pickRandomItemFromArray = (array) => {
   return array[Math.floor(Math.random() * array.length)];
 };
 
 const GeneticAlgorithm = () => {
-  const fitnessFunction = (image) => {
-    const goodShape = {
-      x: 57,
-      y: 42,
-      width: 77,
-      height: 23,
-    };
-    const distance = Math.sqrt(
-      Math.pow(image.x - goodShape.x, 2) +
-        Math.pow(image.y - goodShape.y, 2) +
-        Math.pow(image.width - goodShape.width, 2) +
-        Math.pow(image.height - goodShape.height, 2)
-    );
+  const getIdealImage = () => {
+    return getDataArray({
+      x: 50,
+      y: 50,
+      width: 50,
+      height: 50,
+    });
+    //the ideal image is a black square on a white background
+  };
+
+  const fitnessFunction = (shape) => {
+    const goodShape = getIdealImage();
+    const image = getDataArray(shape);
+    const distance = goodShape.reduce((sum, pixel, i) => {
+      return sum + Math.abs(pixel - image[i]);
+    }, 0);
     return Math.pow(0.98, distance);
   };
   const mutate = (shape) => {
