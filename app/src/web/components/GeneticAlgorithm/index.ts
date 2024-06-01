@@ -113,18 +113,25 @@ const geneticAlgorithm = (
     return mutate(slice, x || 1);
   };
   const createGeneration = (): Shapeless[] => {
-    return Array.from(Array(1000), generateShape);
+    return Array.from(Array(100), generateShape);
   };
   const loop = (): Shape => {
     let population = createGeneration();
     let i = 0;
     let x = 1; //learning variable
-    while (i < 100) {
+    let best = 0;
+    let bestCounter = 0;
+    while (i < 400) {
       i++;
+      bestCounter++;
       population.sort((a, b) => {
         return fitnessFunction(b) - fitnessFunction(a);
       });
-      if (fitnessFunction(population[0]) === 1) {
+      if (fitnessFunction(population[0]) > best) {
+        best = fitnessFunction(population[0]);
+        bestCounter = 0;
+      }
+      if (bestCounter > 200) {
         console.log(
           i,
           "found valid shape",
@@ -133,12 +140,12 @@ const geneticAlgorithm = (
         );
         return shapelessToShape(population[0]);
       }
-      const survivors = population.slice(0, 500);
+      const survivors = population.slice(0, 50);
       population = survivors.map((p, i) => {
-        if (i < 250) return p;
-        return mutate(survivors[i - 250], x);
+        if (i < 25) return p;
+        return mutate(survivors[i - 25], x);
       });
-      for (let i = 0; i < 500; i++) {
+      for (let i = 0; i < 50; i++) {
         population.push(
           crossover(population[i], pickRandomItemFromArray(population))
         );
