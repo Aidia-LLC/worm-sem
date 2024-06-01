@@ -36,13 +36,31 @@ export const getValidSlices = (points: Point[]): Line[][] => {
 
   if (!allSets) return validSets.map(getTrapezoid) as Line[][];
 
-  const trapezoids = allSets
+  console.log(allSets);
+
+  const mapped = allSets
     .map((set) => set.map((i) => points[i]))
-    .filter((set) => getArea(set) > expectedArea * 0.8)
-    .map(getTrapezoid);
+    .filter((set) => getArea(set) > expectedArea * 0.5);
+
+  console.log(
+    mapped,
+    allSets.map((set) => set.map((i) => points[i])).map(getArea),
+    getArea(validSets[1]),
+    getTrapezoid(validSets[1])
+  );
+
+  //get trapezoids from valid sets
+  const trapezoids = mapped.map(getTrapezoid);
+
+  console.log(trapezoids);
 
   //return good sets
-  return trapezoids.filter((t) => t !== null) as Line[][];
+  const filtered = trapezoids.filter((t) => t !== null) as Line[][];
+  return filtered;
+  // if (filtered.length < points.length / 4) {
+  //   return [...trapezoids, getTrapezoid(validSets[1].map(i => points[i]))!];
+
+  // }
 };
 
 function generateSets(n: number, startSet: number[]): number[][] | null {
@@ -127,7 +145,7 @@ const getArea = (points: Point[]) => {
   const trapezoid = getTrapezoid(points);
   if (!trapezoid) return -1;
   const areas = area(trapezoid);
-  return areas;
+  return Math.abs(areas);
 };
 
 const getTrapezoidIntersects = (Lines: Line[]) => {

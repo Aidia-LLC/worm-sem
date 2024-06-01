@@ -4,6 +4,7 @@ import { getSliceManager } from "@SliceManager/index";
 import { Shape, ShapeSet } from "@SliceManager/types";
 import { base64ToImageSrc } from "@utils/base64ToImageSrc";
 import { convertZoomedCoordinates } from "@utils/convertZoomedCoordinates";
+import { edgeFilter } from "@utils/edgeFilter";
 import { segmentImage } from "@utils/segmentImage";
 import { setupCanvases } from "@utils/setupCanvases";
 import { createEffect, createSignal, For, onMount, Show } from "solid-js";
@@ -37,7 +38,9 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
   createEffect(() => {
     const state = ribbonReducer();
     if (state.masks.length === 0 || state.currentMaskIndex === -1) return;
-    const ctx = edgeDataCanvasRef.getContext("2d");
+    const ctx = edgeDataCanvasRef.getContext("2d", {
+      willReadFrequently: true,
+    });
     if (!ctx) return;
     ctx.putImageData(state.masks[state.currentMaskIndex], 0, 0);
   });
@@ -78,7 +81,9 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
   });
 
   const drawOverlay = () => {
-    const ctx = overlayCanvasRef.getContext("2d")!;
+    const ctx = overlayCanvasRef.getContext("2d", {
+      willReadFrequently: true,
+    })!;
     ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
     ctx.save();
 
@@ -134,7 +139,7 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
   };
 
   const draw = () => {
-    const ctx = canvasRef.getContext("2d")!;
+    const ctx = canvasRef.getContext("2d", { willReadFrequently: true })!;
     ctx.clearRect(0, 0, canvasRef.width, canvasRef.height);
     const src = primaryImage()?.src;
     if (!src) return;
@@ -492,8 +497,12 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
 
   const handleRibbonDetection = async () => {
     //TODO: changes in sensitivity do not adjust the edge data
-    const edgeContext = edgeDataCanvasRef.getContext("2d")!;
-    const overlayContext = overlayCanvasRef.getContext("2d")!;
+    const edgeContext = edgeDataCanvasRef.getContext("2d", {
+      willReadFrequently: true,
+    })!;
+    const overlayContext = overlayCanvasRef.getContext("2d", {
+      willReadFrequently: true,
+    })!;
     const edgeData = edgeContext.getImageData(
       0,
       0,
@@ -520,7 +529,9 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
   };
 
   const drawPoints = (points: [number, number][]) => {
-    const overlayContext = overlayCanvasRef.getContext("2d")!;
+    const overlayContext = overlayCanvasRef.getContext("2d", {
+      willReadFrequently: true,
+    })!;
 
     for (let i = 0; i < points.length; i++) {
       const point = points[i];
@@ -539,20 +550,11 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
   };
 
   const handleCornerValidation = () => {
-    const edgeContext = edgeDataCanvasRef.getContext("2d")!;
+    const edgeContext = edgeDataCanvasRef.getContext("2d", {
+      willReadFrequently: true,
+    })!;
     const organizedPoints = ribbonReducer().corners;
     const validSlices = sliceManager.getValidSlices(organizedPoints);
-    for (const slice of validSlices) {
-      edgeContext.beginPath();
-      edgeContext.moveTo(slice[0][0][0], slice[0][0][1]);
-      edgeContext.lineTo(slice[1][0][0], slice[1][0][1]);
-      edgeContext.lineTo(slice[2][0][0], slice[2][0][1]);
-      edgeContext.lineTo(slice[3][0][0], slice[3][0][1]);
-      edgeContext.lineTo(slice[0][0][0], slice[0][0][1]);
-      edgeContext.strokeStyle = "red";
-      edgeContext.lineWidth = 2;
-      edgeContext.stroke();
-    }
     const slices = validSlices.map((slice, i) => {
       return {
         left: {
@@ -582,6 +584,38 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
         id: i,
       };
     });
+    console.log("slices", slices.length);
+    const edgeData = edgeContext.getImageData(
+      0,
+      0,
+      edgeDataCanvasRef.width,
+      edgeDataCanvasRef.height
+    );
+    // convert edge data to just the edges
+    const betterEdgeData = edgeFilter(edgeDataCanvasRef, edgeData, edgeContext);
+    edgeContext.putImageData(betterEdgeData, 0, 0);
+    const improvedSlices = sliceManager.geneticAlgorithm(
+      slices,
+      betterEdgeData
+    );
+
+    //draw improved slices blue
+    const overlayContext = overlayCanvasRef.getContext("2d", {
+      willReadFrequently: true,
+    })!;
+    for (const slice of improvedSlices) {
+      overlayContext.beginPath();
+      overlayContext.moveTo(slice.left.x1, slice.left.y1);
+      overlayContext.lineTo(slice.left.x2, slice.left.y2);
+      overlayContext.lineTo(slice.right.x2, slice.right.y2);
+      overlayContext.lineTo(slice.right.x1, slice.right.y1);
+      overlayContext.lineTo(slice.left.x1, slice.left.y1);
+      overlayContext.strokeStyle = "blue";
+      overlayContext.lineWidth = 2;
+      overlayContext.stroke();
+    }
+    console.log("slices", improvedSlices.length);
+
     const id = nextId();
     setNextId((prev) => prev + 1);
     ribbonDispatch({
@@ -595,7 +629,7 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
     ribbonDispatch({
       action: "addRibbon",
       payload: {
-        slices,
+        slices: improvedSlices,
         id,
         name: `Ribbon ${id}`,
         color,
@@ -715,9 +749,13 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
             <RibbonConfigPanel
               canvasSize={canvasRef}
               ribbon={ribbon}
-              ctx={canvasRef.getContext("2d")!}
-              overlayCtx={overlayCanvasRef.getContext("2d")!}
-              extraCtx={debugCanvasRef.getContext("2d")!}
+              ctx={canvasRef.getContext("2d", { willReadFrequently: true })!}
+              overlayCtx={
+                overlayCanvasRef.getContext("2d", { willReadFrequently: true })!
+              }
+              extraCtx={
+                debugCanvasRef.getContext("2d", { willReadFrequently: true })!
+              }
               handleRibbonDetection={handleRibbonDetection}
               applyTemplate={handlePointMatchingFromTemplate}
               drawOverlay={drawOverlay}

@@ -74,5 +74,7 @@ export abstract class SliceManager {
 
   abstract getValidSlices(points: Point[]): Line[][];
 
+  abstract geneticAlgorithm(slices: Shape[], edgeData: ImageData): Shape[];
+
   abstract distanceSegmentToPoint(A: Vertex, B: Vertex, C: Vertex): number;
 }

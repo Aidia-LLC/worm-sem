@@ -1,6 +1,7 @@
+import { GeneticAlgorithm } from "@components/GeneticAlgorithm";
 import { Template } from "@data/templates";
 import { SliceManager } from "../SliceManager";
-import { ShapeSet } from "../types";
+import { Shape, ShapeSet } from "../types";
 import { addTrapezoid } from "./functions/addTrapezoid";
 import { distanceSegmentToPoint } from "./functions/distanceSegmentToPoint";
 import { drawTrapezoid } from "./functions/drawTrapezoid";
@@ -104,6 +105,10 @@ export class TrapezoidalSliceManager extends SliceManager {
 
   override getValidSlices(points: Point[]): Line[][] {
     return getValidSlices(points);
+  }
+
+  override geneticAlgorithm(slices: Shape[], edgeData: ImageData): Shape[] {
+    return GeneticAlgorithm(slices, edgeData);
   }
 
   override distanceSegmentToPoint(A: Vertex, B: Vertex, C: Vertex): number {
