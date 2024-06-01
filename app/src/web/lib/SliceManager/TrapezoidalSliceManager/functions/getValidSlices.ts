@@ -40,7 +40,7 @@ export const getValidSlices = (points: Point[]): Line[][] => {
 
   const mapped = allSets
     .map((set) => set.map((i) => points[i]))
-    .filter((set) => getArea(set) > expectedArea * 0.5);
+    .filter((set) => Math.abs(getArea(set)) > expectedArea * 0.7);
 
   console.log(
     mapped,
@@ -145,7 +145,7 @@ const getArea = (points: Point[]) => {
   const trapezoid = getTrapezoid(points);
   if (!trapezoid) return -1;
   const areas = area(trapezoid);
-  return Math.abs(areas);
+  return areas;
 };
 
 const getTrapezoidIntersects = (Lines: Line[]) => {

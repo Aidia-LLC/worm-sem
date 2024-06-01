@@ -56,12 +56,11 @@ const geneticAlgorithm = (
       },
     };
   };
-  const fitnessFunction = (shape: Shapeless, log?: boolean): number => {
+  const fitnessFunction = (shape: Shapeless): number => {
     const points = getPointsOnTrapezoid({
       data: edgeData,
       trapezoid: shapelessToShape(shape),
       width,
-      log: log,
     });
     return sigmoid(points);
   };
@@ -130,7 +129,7 @@ const geneticAlgorithm = (
           i,
           "found valid shape",
           population[0],
-          fitnessFunction(population[0], true)
+          fitnessFunction(population[0])
         );
         return shapelessToShape(population[0]);
       }
@@ -167,12 +166,10 @@ const getPointsOnTrapezoid = ({
   data,
   width,
   trapezoid,
-  log,
 }: {
   data: Uint8ClampedArray;
   trapezoid: Shape;
   width: number;
-  log?: boolean;
 }): number => {
   const lines = [
     trapezoid.top,

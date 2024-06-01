@@ -556,33 +556,119 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
     const organizedPoints = ribbonReducer().corners;
     const validSlices = sliceManager.getValidSlices(organizedPoints);
     const slices = validSlices.map((slice, i) => {
-      return {
-        left: {
-          x1: slice[0][0][0],
-          y1: slice[0][0][1],
-          x2: slice[1][0][0],
-          y2: slice[1][0][1],
-        },
-        right: {
-          x1: slice[3][0][0],
-          y1: slice[3][0][1],
-          x2: slice[2][0][0],
-          y2: slice[2][0][1],
-        },
-        top: {
-          x1: slice[0][0][0],
-          y1: slice[0][0][1],
-          x2: slice[3][0][0],
-          y2: slice[3][0][1],
-        },
-        bottom: {
-          x1: slice[1][0][0],
-          y1: slice[1][0][1],
-          x2: slice[2][0][0],
-          y2: slice[2][0][1],
-        },
-        id: i,
-      };
+      if (slice[0][0][0] < slice[3][0][0])
+        return slice[0][0][1] < slice[1][0][1]
+          ? {
+              left: {
+                x1: slice[0][0][0],
+                y1: slice[0][0][1],
+                x2: slice[1][0][0],
+                y2: slice[1][0][1],
+              },
+              right: {
+                x1: slice[3][0][0],
+                y1: slice[3][0][1],
+                x2: slice[2][0][0],
+                y2: slice[2][0][1],
+              },
+              top: {
+                x1: slice[0][0][0],
+                y1: slice[0][0][1],
+                x2: slice[3][0][0],
+                y2: slice[3][0][1],
+              },
+              bottom: {
+                x1: slice[1][0][0],
+                y1: slice[1][0][1],
+                x2: slice[2][0][0],
+                y2: slice[2][0][1],
+              },
+              id: i,
+            }
+          : {
+              left: {
+                x1: slice[0][0][0],
+                y1: slice[0][0][1],
+                x2: slice[1][0][0],
+                y2: slice[1][0][1],
+              },
+              right: {
+                x1: slice[3][0][0],
+                y1: slice[3][0][1],
+                x2: slice[2][0][0],
+                y2: slice[2][0][1],
+              },
+              bottom: {
+                x1: slice[0][0][0],
+                y1: slice[0][0][1],
+                x2: slice[3][0][0],
+                y2: slice[3][0][1],
+              },
+              top: {
+                x1: slice[1][0][0],
+                y1: slice[1][0][1],
+                x2: slice[2][0][0],
+                y2: slice[2][0][1],
+              },
+              id: i,
+            };
+      else {
+        return slice[0][0][1] < slice[1][0][1]
+          ? {
+              right: {
+                x1: slice[0][0][0],
+                y1: slice[0][0][1],
+                x2: slice[1][0][0],
+                y2: slice[1][0][1],
+              },
+              left: {
+                x1: slice[3][0][0],
+                y1: slice[3][0][1],
+                x2: slice[2][0][0],
+                y2: slice[2][0][1],
+              },
+              top: {
+                x1: slice[0][0][0],
+                y1: slice[0][0][1],
+                x2: slice[3][0][0],
+                y2: slice[3][0][1],
+              },
+              bottom: {
+                x1: slice[1][0][0],
+                y1: slice[1][0][1],
+                x2: slice[2][0][0],
+                y2: slice[2][0][1],
+              },
+              id: i,
+            }
+          : {
+              right: {
+                x1: slice[0][0][0],
+                y1: slice[0][0][1],
+                x2: slice[1][0][0],
+                y2: slice[1][0][1],
+              },
+              left: {
+                x1: slice[3][0][0],
+                y1: slice[3][0][1],
+                x2: slice[2][0][0],
+                y2: slice[2][0][1],
+              },
+              bottom: {
+                x1: slice[0][0][0],
+                y1: slice[0][0][1],
+                x2: slice[3][0][0],
+                y2: slice[3][0][1],
+              },
+              top: {
+                x1: slice[1][0][0],
+                y1: slice[1][0][1],
+                x2: slice[2][0][0],
+                y2: slice[2][0][1],
+              },
+              id: i,
+            };
+      }
     });
     console.log("slices", slices.length);
     const edgeData = edgeContext.getImageData(
