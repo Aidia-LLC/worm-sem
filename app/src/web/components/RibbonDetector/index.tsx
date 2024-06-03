@@ -526,6 +526,12 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
       action: "setCorners",
       payload: corners,
     });
+
+    ribbonDispatch({
+      action: "setCornerValidation",
+      payload: false,
+    });
+    handleCornerValidation(corners);
   };
 
   const drawPoints = (points: [number, number][]) => {
@@ -549,11 +555,11 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
     }
   };
 
-  const handleCornerValidation = () => {
+  const handleCornerValidation = (corners?: [number, number][]) => {
     const edgeContext = edgeDataCanvasRef.getContext("2d", {
       willReadFrequently: true,
     })!;
-    const organizedPoints = ribbonReducer().corners;
+    const organizedPoints = corners ?? ribbonReducer().corners;
     const validSlices = sliceManager.getValidSlices(organizedPoints);
     const slices = validSlices.map((slice, i) => {
       if (slice[0][0][0] < slice[3][0][0])
@@ -752,6 +758,13 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
       { action: "setDetectionLoading", payload: false },
       { action: "setMasks", payload: segmentedImageData }
     );
+    const mask = segmentedImageData[0];
+    if (!mask) return;
+    ribbonDispatch(
+      { action: "setMasks", payload: [] },
+      { action: "setReferencePoints", payload: [] }
+    );
+    handleRibbonDetection();
   };
 
   return (

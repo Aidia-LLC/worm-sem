@@ -9,6 +9,8 @@ export function findCorners(p: {
   corners: Point[];
   imageData: ImageData;
 } {
+  // Use the initial points to know the start and end? Somehow filter out from there? Using the genetic algorithm?
+
   const [ribbonReducer, ribbonDispatch] = signals.ribbonState;
   let contours = ribbonReducer().contours;
   let imageData = p.imageData;
@@ -69,9 +71,103 @@ export function findCorners(p: {
     organizedPoints.push(line[0]);
   }
 
+  console.log("organizedPoints 1 ", organizedPoints.length);
+
+  // organizedPoints = removeDuplicates(organizedPoints);
+
+  // console.log("organizedPoints 2 ", organizedPoints.length);
+
+  let newPoints: Point[] = [];
+  for (let i = 0; i < 5; i++) {
+    const { points } = removeDuplicate([...organizedPoints]);
+    newPoints = [...points];
+  }
+  console.log("organizedPoints 2 ", newPoints.length);
+
+  // remove the last few points to make it a multiple of 4
+  for (let i = 0; i < 5; i++) {
+    if ([...newPoints].length % 4 === 0) {
+      break;
+    }
+    const { points } = removeDuplicate(newPoints);
+    newPoints = [...points];
+  }
+
+  organizedPoints = newPoints.length ? newPoints : organizedPoints;
+
+  console.log("organizedPoints 3 ", organizedPoints.length);
+
   return {
     corners: organizedPoints,
     imageData: blackImage,
+  };
+}
+
+function removeDuplicates(arr: Point[]): Point[] {
+  let newArr = [];
+  let index = Infinity;
+  do {
+    const { points, maxDerivativeIndex } = removeDuplicate(arr);
+    newArr = points;
+    index = maxDerivativeIndex;
+    arr = newArr;
+  } while (index > 5);
+  return newArr;
+}
+
+function removeDuplicate(arr: Point[]): {
+  points: Point[];
+  maxDerivativeIndex: number;
+} {
+  // reduce dupicate points (points very close together)
+  // first, find the distance between each points and sort by distance
+  let distances = [];
+  for (let i = 0; i < arr.length - 1; i++) {
+    let distance = Math.sqrt(
+      Math.pow(arr[i][0] - arr[i + 1][0], 2) +
+        Math.pow(arr[i][1] - arr[i + 1][1], 2)
+    );
+    distances.push(distance);
+  }
+  // sort by distance
+  distances = distances.map((d, i) => ({ d, i }));
+  //find the smallest where the index is consecutive
+  let smallest = {
+    d: Infinity,
+    i: 0,
+  };
+  for (let i = 0; i < distances.length - 1; i++) {
+    if (distances[i + 1].d + distances[i].d < smallest.d) {
+      smallest = { d: distances[i].d + distances[i + 1].d, i: i + 1 };
+    }
+  }
+
+  // derivative of the distances - to find the greatest change
+  // let derivative = [];
+  // for (let i = 0; i < distances.length - 1; i++) {
+  //   derivative.push(distances[i + 1].d - distances[i].d);
+  // }
+
+  // // find the greatest change over a window of 3
+  // let maxDerivative = 0;
+  // let maxDerivativeIndex = 0;
+  // for (let i = 0; i < derivative.length - 2; i++) {
+  //   let sum = derivative[i] + derivative[i + 1] + derivative[i + 2];
+  //   if (sum > maxDerivative) {
+  //     maxDerivative = sum;
+  //     maxDerivativeIndex = i;
+  //   }
+  // }
+  // if (maxDerivativeIndex <= 5) {
+  //   return { points: arr, maxDerivativeIndex };
+  // }
+  console.log("smallest", smallest);
+  console.log("arr", arr);
+  console.log("d", distances);
+
+  return {
+    points: arr.filter((_, i) => i !== smallest.i),
+    maxDerivativeIndex: 0,
   };
 }
 

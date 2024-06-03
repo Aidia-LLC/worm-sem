@@ -2,7 +2,7 @@ import { ProcessingOptions } from "@data/ProcessingOptions";
 import { createStore, SetStoreFunction } from "solid-js/store";
 
 export const defaultOptions: ProcessingOptions = {
-  sensitivity: 5,
+  sensitivity: 4,
 };
 
 export const createOptionsStore = (): [

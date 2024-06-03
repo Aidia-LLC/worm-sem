@@ -56,19 +56,6 @@ export const MaskSelector = (props: {
               { action: "setMasks", payload: [] },
               { action: "setReferencePoints", payload: [] }
             );
-            // const edgeContext = props.edgeDataCanvasRef().getContext("2d")!;
-            // edgeContext.clearRect(
-            //   0,
-            //   0,
-            //   props.edgeDataCanvasRef().width,
-            //   props.edgeDataCanvasRef().height
-            // );
-            // const edgeData = edgeFilter(
-            //   props.edgeDataCanvasRef(),
-            //   mask,
-            //   edgeContext
-            // );
-            // edgeContext.putImageData(edgeData, 0, 0);
             props.handleRibbonDetection(points, 0);
           }}
           class="whitespace-nowrap"
