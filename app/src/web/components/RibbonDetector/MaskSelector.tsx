@@ -52,10 +52,7 @@ export const MaskSelector = (props: {
               ribbonReducer().masks[ribbonReducer().currentMaskIndex];
             if (!mask) return;
             const points = ribbonReducer().referencePoints;
-            ribbonDispatch(
-              { action: "setMasks", payload: [] },
-              { action: "setReferencePoints", payload: [] }
-            );
+            ribbonDispatch({ action: "setMasks", payload: [] });
             props.handleRibbonDetection(points, 0);
           }}
           class="whitespace-nowrap"

@@ -1,6 +1,14 @@
 import { optionsStore } from "@data/globals";
+import {
+  Line,
+  LineSegment,
+  Point,
+  Vertex,
+} from "@SliceManager/TrapezoidalSliceManager/types";
 import { Shape } from "@SliceManager/types";
-type Shapeless = Omit<Shape, "id">;
+type Shapeless = Omit<Shape, "id"> & {
+  center: { x: number; y: number };
+};
 
 // y\ =\ 1\ -\ e^{-.05x}
 const sigmoid = (x: number): number => {
@@ -13,35 +21,77 @@ const pickRandomItemFromArray = (array: any[]) => {
   return array[Math.floor(Math.random() * array.length)];
 };
 
-export const GeneticAlgorithm = (
-  slices: Shape[],
+export const InitialGeneticAlgorithm = (
+  points: [number, number][],
   edgeData: ImageData
-): Shape[] => {
+): Line[][] => {
   const [options] = optionsStore;
+  const boxSize = options.options.boxSize;
+  const halfBox = boxSize / 2;
   const dataArray: Uint8ClampedArray = edgeData.data;
   const newArray: any[] = [];
   for (let i = 0; i < dataArray.length; i += 4) {
     newArray.push(dataArray[i]);
   }
-  console.log("slices", slices.length);
-  return slices.map((slice) => {
-    // if (i < 3) return slice;
-    return geneticAlgorithm(
-      slice,
-      newArray as unknown as Uint8ClampedArray,
-      edgeData.width,
-      options.options.boxSize
-    );
-  });
+  return points
+    .map((point, i) => {
+      // if (i < 3) return slice;
+      const shape = geneticAlgorithm(
+        {
+          id: i,
+          top: {
+            x1: point[0] - halfBox,
+            y1: point[1] - halfBox,
+            x2: point[0] + halfBox,
+            y2: point[1] - halfBox,
+          },
+          bottom: {
+            x1: point[0] - halfBox,
+            y1: point[1] + halfBox,
+            x2: point[0] + halfBox,
+            y2: point[1] + halfBox,
+          },
+          left: {
+            x1: point[0] - halfBox,
+            y1: point[1] - halfBox,
+            x2: point[0] - halfBox,
+            y2: point[1] + halfBox,
+          },
+          right: {
+            x1: point[0] + halfBox,
+            y1: point[1] - halfBox,
+            x2: point[0] + halfBox,
+            y2: point[1] + halfBox,
+          },
+          center: { x: point[0], y: point[1] },
+        },
+        newArray as unknown as Uint8ClampedArray,
+        edgeData.width,
+        boxSize
+      );
+      return getTrapezoid([
+        [shape.left.x1, shape.left.y1],
+        [shape.right.x1, shape.right.y1],
+        [shape.right.x2, shape.right.y2],
+        [shape.left.x2, shape.left.y2],
+      ]);
+    })
+    .filter((shape) => shape !== null) as Line[][];
 };
 
 const geneticAlgorithm = (
-  slice: Shape,
+  slice: Shape & {
+    center: { x: number; y: number };
+  },
   edgeData: Uint8ClampedArray,
   width: number,
   boxSize: number
 ): Shape => {
-  const shapelessToShape = (shapeless: Shapeless): Shape => {
+  const shapelessToShape = (
+    shapeless: Shapeless
+  ): Shape & {
+    center: { x: number; y: number };
+  } => {
     return {
       id: slice.id,
       top: shapeless.top,
@@ -58,6 +108,7 @@ const geneticAlgorithm = (
         x2: shapeless.bottom.x2,
         y2: shapeless.bottom.y2,
       },
+      center: slice.center,
     };
   };
   const fitnessFunction = (shape: Shapeless): number => {
@@ -99,19 +150,14 @@ const geneticAlgorithm = (
       };
       // check area, penalize if the area is too small
       area = calculateArea(shapelessToShape(trap));
-    } while (area < boxArea * 0.35);
+    } while (area < boxArea * 0.3);
     return trap!;
   };
   const crossover = (shape1: Shapeless, shape2: Shapeless): Shapeless => {
     let area = 0;
     let trap: Shapeless | undefined;
-    let i = 0;
     const boxArea = boxSize * boxSize;
     do {
-      i++;
-      if (i > 10) {
-        return shape1;
-      }
       const topBottom = {
         top: {
           x1: Math.random() > 0.5 ? shape1.top.x1 : shape2.top.x1,
@@ -131,9 +177,8 @@ const geneticAlgorithm = (
         bottom: topBottom.bottom,
         center: shape1.center,
       };
-
       area = calculateArea(shapelessToShape(trap));
-    } while (area < boxArea * 0.35);
+    } while (area < boxArea * 0.3);
     return trap!;
   };
   const generateShape = (): Shapeless => {
@@ -149,7 +194,7 @@ const geneticAlgorithm = (
     let x = 1; //learning variable
     let best = 0;
     let bestCounter = 0;
-    while (i < 1500) {
+    while (i < 500) {
       i++;
       bestCounter++;
       population.sort((a, b) => {
@@ -159,15 +204,15 @@ const geneticAlgorithm = (
         best = fitnessFunction(population[0]);
         bestCounter = 0;
       }
-      if (bestCounter > 100 && x > 0.5) {
-        x -= 0.1;
-        console.log("x decreased to: ", x);
-        bestCounter = 0;
-      }
-      if (bestCounter > 250) {
+      //   if (bestCounter > 100 && x > 0.6) {
+      //     x -= 0.1;
+      //     console.log("x decreased to: ", x);
+      //     bestCounter = 0;
+      //   }
+      if (bestCounter > 150) {
         console.log(
           i,
-          "found valid shape",
+          "progress stopped at: ",
           population[0],
           fitnessFunction(population[0])
         );
@@ -209,7 +254,9 @@ const getPointsOnTrapezoid = ({
   boxSize,
 }: {
   data: Uint8ClampedArray;
-  trapezoid: Shape;
+  trapezoid: Shape & {
+    center: { x: number; y: number };
+  };
   width: number;
   boxSize: number;
 }): number => {
@@ -241,6 +288,22 @@ const getPointsOnTrapezoid = ({
         )
       )
         continue;
+
+      // check if any points are outsize the box area. If so, penalize
+      // the shape by 4 points for each point outside the box
+      if (x + xStep * j < trapezoid.center.x - boxSize / 2) {
+        points -= 4;
+      }
+      if (x + xStep * j > trapezoid.center.x + boxSize / 2) {
+        points -= 4;
+      }
+      if (y + yStep * j < trapezoid.center.y - boxSize / 2) {
+        points -= 4;
+      }
+      if (y + yStep * j > trapezoid.center.y + boxSize / 2) {
+        points -= 4;
+      }
+
       if (
         data[Math.round(y + yStep * j) * width + Math.round(x + xStep * j)] ===
           255 ||
@@ -262,13 +325,7 @@ const getPointsOnTrapezoid = ({
     }
   }
 
-  const area = calculateArea(trapezoid);
-  const boxArea = boxSize * boxSize;
-  if (area < boxArea * 0.35) {
-    // points lost are proportional to the smallness of the area
-    points -= (100 * (boxArea - area)) / boxArea;
-  }
-  return 6 * points - 5 * checkedPoints; //penalize bad points
+  return 20 * points - 19 * checkedPoints; //19x penalize bad points
 };
 
 function calculateArea(trapezoid: Shape): number {
@@ -292,4 +349,105 @@ function calculateArea(trapezoid: Shape): number {
   const s = (a + b + c + d) / 2;
   // Calculate the area using Brahmagupta's formula
   return Math.sqrt((s - a) * (s - b) * (s - c) * (s - d));
+}
+
+const pointToLine = (point: Point, point2: Point) => {
+  if (!point || !point2) {
+    return { x1: 0, y1: 0, x2: 0, y2: 0 };
+  }
+  return {
+    x1: point[0],
+    y1: point[1],
+    x2: point2[0],
+    y2: point2[1],
+  };
+};
+
+const getTrapezoidIntersects = (Lines: Line[]) => {
+  for (let i = 0; i < Lines.length; i++) {
+    const line1 = Lines[i];
+    for (let j = i + 1; j < Lines.length; j++) {
+      const line2 = Lines[j];
+      const intersect = intersectionPoint(
+        pointToLine(line1[0], line1[1]),
+        pointToLine(line2[0], line2[1])
+      );
+      if (intersect) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
+const getTrapezoid = (points: Point[]): Line[] | null => {
+  let trapezoid: Line[] = [
+    [points[0], points[1]],
+    [points[1], points[2]],
+    [points[2], points[3]],
+    [points[3], points[0]],
+  ];
+  if (!getTrapezoidIntersects(trapezoid)) {
+    return trapezoid;
+  }
+  trapezoid = [
+    [points[0], points[1]],
+    [points[1], points[3]],
+    [points[3], points[2]],
+    [points[2], points[0]],
+  ];
+  if (!getTrapezoidIntersects(trapezoid)) {
+    return trapezoid;
+  }
+  trapezoid = [
+    [points[0], points[2]],
+    [points[2], points[1]],
+    [points[1], points[3]],
+    [points[3], points[0]],
+  ];
+  if (!getTrapezoidIntersects(trapezoid)) {
+    return null;
+  } else return trapezoid;
+};
+
+function intersectionPoint(
+  line1: LineSegment | Pick<LineSegment, "x1" | "x2" | "y1" | "y2">,
+  line2: LineSegment | Pick<LineSegment, "x1" | "x2" | "y1" | "y2">
+): Vertex | null {
+  const x1 = line1.x1;
+  const y1 = line1.y1;
+  const x2 = line1.x2;
+  const y2 = line1.y2;
+
+  const x3 = line2.x1;
+  const y3 = line2.y1;
+  const x4 = line2.x2;
+  const y4 = line2.y2;
+
+  //if endpoints are the same, they don't intersect
+  if (
+    (x1 === x3 && y1 === y3) ||
+    (x1 === x4 && y1 === y4) ||
+    (x2 === x3 && y2 === y3) ||
+    (x2 === x4 && y2 === y4)
+  ) {
+    return null;
+  }
+  const denominator = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
+
+  if (denominator === 0) {
+    // The lines are parallel, so they don't intersect
+    return null;
+  }
+
+  const ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denominator;
+  const ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denominator;
+  if (ua < -0.5 || ua > 1.5 || ub < -0.5 || ub > 1.5) {
+    // The intersection point is outside of at least one of the line segments
+    return null;
+  }
+
+  const x = x1 + ua * (x2 - x1);
+  const y = y1 + ua * (y2 - y1);
+  return { x, y };
 }

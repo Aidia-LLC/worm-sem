@@ -3,6 +3,7 @@ import { createStore, SetStoreFunction } from "solid-js/store";
 
 export const defaultOptions: ProcessingOptions = {
   sensitivity: 4,
+  boxSize: 100,
 };
 
 export const createOptionsStore = (): [

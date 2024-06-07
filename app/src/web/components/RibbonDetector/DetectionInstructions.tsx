@@ -1,5 +1,5 @@
-import { Match, Show, Switch } from "solid-js";
 import { ribbonState } from "@data/globals";
+import { Match, Show, Switch } from "solid-js";
 
 export const DetectionInstructions = () => {
   const [ribbonReducer] = ribbonState;

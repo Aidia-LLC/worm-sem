@@ -1,4 +1,5 @@
 import { GeneticAlgorithm } from "@components/GeneticAlgorithm";
+import { InitialGeneticAlgorithm } from "@components/GeneticAlgorithm/initial";
 import { Template } from "@data/templates";
 import { SliceManager } from "../SliceManager";
 import { Shape, ShapeSet } from "../types";
@@ -109,6 +110,13 @@ export class TrapezoidalSliceManager extends SliceManager {
 
   override geneticAlgorithm(slices: Shape[], edgeData: ImageData): Shape[] {
     return GeneticAlgorithm(slices, edgeData);
+  }
+
+  override initialGeneticAlgorithm(
+    points: [number, number][],
+    edgeData: ImageData
+  ): Line[][] {
+    return InitialGeneticAlgorithm(points, edgeData);
   }
 
   override distanceSegmentToPoint(A: Vertex, B: Vertex, C: Vertex): number {

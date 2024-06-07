@@ -1,8 +1,9 @@
-import { scanSpeedSignal } from "@data/globals";
+import { optionsStore, scanSpeedSignal } from "@data/globals";
 import { Param } from "./Param";
 
 export const ParameterPanel = () => {
   const [scanSpeed, setScanSpeed] = scanSpeedSignal;
+  const [options, setOptions] = optionsStore;
 
   return (
     <>
@@ -13,6 +14,23 @@ export const ParameterPanel = () => {
           value={scanSpeed()}
           onChange={setScanSpeed}
           description="This is the scan speed used for the final imaging. A value of 7 is a sensible default that will take about 20 minutes to image each slice."
+          tooltipPosition="bottom"
+        />
+        <Param
+          label="Box Size"
+          value={options.options.boxSize}
+          onChange={(e) => {
+            setOptions((prev) => {
+              return {
+                ...prev,
+                options: {
+                  ...prev.options,
+                  boxSize: e,
+                },
+              };
+            });
+          }}
+          description="This is roughly the size of a slice, make sure the entire slice is contained within the box."
           tooltipPosition="bottom"
         />
       </div>

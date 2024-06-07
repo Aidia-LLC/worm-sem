@@ -24,6 +24,7 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
   let edgeDataCanvasRef!: HTMLCanvasElement;
   let debugCanvasRef!: HTMLCanvasElement;
 
+  const [options] = signals.optionsStore;
   const [nextId, setNextId] = signals.nextRibbonIdSignal;
   const [zoomState, setZoomState] = signals.zoomStateSignal;
   const [ribbonReducer, ribbonDispatch] = signals.ribbonState;
@@ -101,6 +102,18 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
         ctx.arc(point[0], point[1], 10, 0, 2 * Math.PI);
         ctx.fillStyle = "red";
         ctx.fill();
+        ctx.closePath();
+        // draw a square outline of size options.boxSize around the point
+        const size = options.options.boxSize;
+        ctx.beginPath();
+        ctx.moveTo(point[0] - size / 2, point[1] - size / 2);
+        ctx.lineTo(point[0] + size / 2, point[1] - size / 2);
+        ctx.lineTo(point[0] + size / 2, point[1] + size / 2);
+        ctx.lineTo(point[0] - size / 2, point[1] + size / 2);
+        ctx.lineTo(point[0] - size / 2, point[1] - size / 2);
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 2;
+        ctx.stroke();
         ctx.closePath();
       }
     }
@@ -496,42 +509,11 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
   };
 
   const handleRibbonDetection = async () => {
-    //TODO: changes in sensitivity do not adjust the edge data
-    const edgeContext = edgeDataCanvasRef.getContext("2d", {
-      willReadFrequently: true,
-    })!;
-    const overlayContext = overlayCanvasRef.getContext("2d", {
-      willReadFrequently: true,
-    })!;
-    const edgeData = edgeContext.getImageData(
-      0,
-      0,
-      edgeDataCanvasRef.width,
-      edgeDataCanvasRef.height
-    );
-    const { corners, imageData } = sliceManager.findCorners({
-      imageContext: overlayContext,
-      imageData: edgeData,
-    });
-
-    overlayContext.putImageData(imageData, 0, 0);
-    console.log("data", imageData);
-    drawPoints(corners);
-
-    ribbonDispatch({
-      action: "setCornerValidation",
-      payload: true,
-    });
-    ribbonDispatch({
-      action: "setCorners",
-      payload: corners,
-    });
-
     ribbonDispatch({
       action: "setCornerValidation",
       payload: false,
     });
-    handleCornerValidation(corners);
+    handleCornerValidation();
   };
 
   const drawPoints = (points: [number, number][]) => {
@@ -555,12 +537,60 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
     }
   };
 
-  const handleCornerValidation = (corners?: [number, number][]) => {
+  const handleCornerValidation = () => {
     const edgeContext = edgeDataCanvasRef.getContext("2d", {
       willReadFrequently: true,
     })!;
-    const organizedPoints = corners ?? ribbonReducer().corners;
-    const validSlices = sliceManager.getValidSlices(organizedPoints);
+    // const organizedPoints = corners ?? ribbonReducer().corners;
+    // const validSlices = sliceManager.getValidSlices(organizedPoints);
+
+    // console.log("slices", slices.length);
+    const edgeData = edgeContext.getImageData(
+      0,
+      0,
+      edgeDataCanvasRef.width,
+      edgeDataCanvasRef.height
+    );
+
+    const boxSize = options.options.boxSize;
+
+    const points = ribbonReducer().referencePoints;
+    const interpolatedPoints: [number, number][] = [];
+    for (let i = 0; i < points.length - 1; i++) {
+      interpolatedPoints.push(points[i]);
+      const dx = points[i + 1][0] - points[i][0];
+      const dy = points[i + 1][1] - points[i][1];
+      const distance = Math.sqrt(dx ** 2 + dy ** 2) * 1.05;
+      const numPoints = Math.round(distance / boxSize);
+      console.log("numPoints: ", numPoints);
+      console.log("dx, dy: ", dx, dy);
+      console.log("distance: ", distance);
+      console.log("i: ", i);
+
+      for (let j = 1; j < numPoints + 1; j++) {
+        interpolatedPoints.push([
+          points[i][0] + (dx * j) / numPoints,
+          points[i][1] + (dy * j) / numPoints,
+        ]);
+      }
+    }
+    interpolatedPoints.push(points[points.length - 1]);
+    //filter points very close to each other
+    const filteredPoints: [number, number][] = [];
+    for (let i = 0; i < interpolatedPoints.length - 1; i++) {
+      const dx = interpolatedPoints[i + 1][0] - interpolatedPoints[i][0];
+      const dy = interpolatedPoints[i + 1][1] - interpolatedPoints[i][1];
+      const distance = Math.sqrt(dx ** 2 + dy ** 2);
+      if (distance > 5) {
+        filteredPoints.push(interpolatedPoints[i]);
+      }
+    }
+
+    const validSlices = sliceManager.initialGeneticAlgorithm(
+      filteredPoints,
+      edgeData
+    );
+
     const slices = validSlices.map((slice, i) => {
       if (slice[0][0][0] < slice[3][0][0])
         return slice[0][0][1] < slice[1][0][1]
@@ -676,14 +706,8 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
             };
       }
     });
-    console.log("slices", slices.length);
-    const edgeData = edgeContext.getImageData(
-      0,
-      0,
-      edgeDataCanvasRef.width,
-      edgeDataCanvasRef.height
-    );
-    // convert edge data to just the edges
+
+    // // convert edge data to just the edges
     const betterEdgeData = edgeFilter(edgeDataCanvasRef, edgeData, edgeContext);
     edgeContext.putImageData(betterEdgeData, 0, 0);
     const improvedSlices = sliceManager.geneticAlgorithm(
@@ -706,7 +730,6 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
       overlayContext.lineWidth = 2;
       overlayContext.stroke();
     }
-    console.log("slices", improvedSlices.length);
 
     const id = nextId();
     setNextId((prev) => prev + 1);
@@ -760,10 +783,7 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
     );
     const mask = segmentedImageData[0];
     if (!mask) return;
-    ribbonDispatch(
-      { action: "setMasks", payload: [] },
-      { action: "setReferencePoints", payload: [] }
-    );
+    ribbonDispatch({ action: "setMasks", payload: [] });
     handleRibbonDetection();
   };
 
