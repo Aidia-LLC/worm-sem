@@ -27,7 +27,7 @@ export const InitialGeneticAlgorithm = (
 ): Line[][] => {
   const [options] = optionsStore;
   const boxSize = options.options.boxSize;
-  const halfBox = boxSize / 2;
+  const halfBox = boxSize / 3;
   const dataArray: Uint8ClampedArray = edgeData.data;
   const newArray: any[] = [];
   for (let i = 0; i < dataArray.length; i += 4) {
@@ -125,14 +125,14 @@ const geneticAlgorithm = (
     let area = 0;
     let trap: Shapeless | undefined;
     do {
-      const topLeftX1 = shape.top.x1 + x * (Math.random() * 20 - 10);
-      const topLeftY1 = shape.top.y1 + x * (Math.random() * 20 - 10);
-      const topRightX1 = shape.top.x2 + x * (Math.random() * 20 - 10);
-      const topRightY1 = shape.top.y2 + x * (Math.random() * 20 - 10);
-      const bottomLeftX1 = shape.bottom.x1 + x * (Math.random() * 20 - 10);
-      const bottomLeftY1 = shape.bottom.y1 + x * (Math.random() * 20 - 10);
-      const bottomRightX1 = shape.bottom.x2 + x * (Math.random() * 20 - 10);
-      const bottomRightY1 = shape.bottom.y2 + x * (Math.random() * 20 - 10);
+      const topLeftX1 = shape.top.x1 - x * (Math.random() * 20);
+      const topLeftY1 = shape.top.y1 - x * (Math.random() * 20);
+      const topRightX1 = shape.top.x2 + x * (Math.random() * 20);
+      const topRightY1 = shape.top.y2 - x * (Math.random() * 20);
+      const bottomLeftX1 = shape.bottom.x1 - x * (Math.random() * 20);
+      const bottomLeftY1 = shape.bottom.y1 + x * (Math.random() * 20);
+      const bottomRightX1 = shape.bottom.x2 + x * (Math.random() * 20);
+      const bottomRightY1 = shape.bottom.y2 + x * (Math.random() * 20);
       trap = {
         top: {
           x1: topLeftX1,
@@ -209,7 +209,7 @@ const geneticAlgorithm = (
       //     console.log("x decreased to: ", x);
       //     bestCounter = 0;
       //   }
-      if (bestCounter > 150) {
+      if (bestCounter > 100) {
         console.log(
           i,
           "progress stopped at: ",
@@ -325,7 +325,7 @@ const getPointsOnTrapezoid = ({
     }
   }
 
-  return 20 * points - 19 * checkedPoints; //19x penalize bad points
+  return 3 * points - 2 * checkedPoints; //19x penalize bad points
 };
 
 function calculateArea(trapezoid: Shape): number {

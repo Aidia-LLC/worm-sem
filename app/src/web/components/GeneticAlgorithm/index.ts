@@ -160,7 +160,7 @@ const geneticAlgorithm = (
         bestCounter = 0;
       }
       if (bestCounter > 100 && x > 0.5) {
-        x -= 0.1;
+        x -= 0.5;
         console.log("x decreased to: ", x);
         bestCounter = 0;
       }
@@ -268,7 +268,7 @@ const getPointsOnTrapezoid = ({
     // points lost are proportional to the smallness of the area
     points -= (100 * (boxArea - area)) / boxArea;
   }
-  return 6 * points - 5 * checkedPoints; //penalize bad points
+  return 2 * points - checkedPoints; //penalize bad points
 };
 
 function calculateArea(trapezoid: Shape): number {
