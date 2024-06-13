@@ -9,19 +9,13 @@ export const DetectionInstructions = () => {
       <span class="text-lg font-medium leading-snug min-h-[96px]">
         <Switch>
           <Match when={ribbonReducer().referencePoints.length === 0}>
-            Click the center point of the slice at the END of the ribbon
-          </Match>
-          <Match when={ribbonReducer().referencePoints.length === 1}>
             Click the center point of the slice at the START of the ribbon
           </Match>
-          <Match when={ribbonReducer().referencePoints.length === 2}>
-            Click the center point of ANY other slice in the ribbon.
+          <Match when={ribbonReducer().referencePoints.length === 1}>
+            Adjust the box size to be as small as possible. Then, click a center point 1-3 slices away.
           </Match>
-          <Match when={ribbonReducer().referencePoints.length > 2}>
-            Click the center point of ANY other slices in the ribbon if desired.
-            These extra points may help the mask algorithm work better. They
-            also will be used as additional reference points to attempt to
-            detect the ribbon if other points don't perform well. Click "Detect
+          <Match when={ribbonReducer().referencePoints.length >= 2}>
+            Continue to click the center points of slices 1-3 away from the last point. Click "Detect
             Ribbon" when you are done.
           </Match>
         </Switch>
