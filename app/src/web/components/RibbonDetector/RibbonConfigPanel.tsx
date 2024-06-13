@@ -28,6 +28,7 @@ export const RibbonConfigPanel = (props: {
   canvasSize: { width: number; height: number };
   ctx: CanvasRenderingContext2D;
   overlayCtx: CanvasRenderingContext2D;
+  edgeCtx: CanvasRenderingContext2D;
   extraCtx: CanvasRenderingContext2D;
   handleRibbonDetection: (
     points: [number, number][],
@@ -67,6 +68,12 @@ export const RibbonConfigPanel = (props: {
   };
 
   const handleAddTrapezoid = ({ top }: { top: boolean }) => {
+    const edgeData = props.edgeCtx.getImageData(
+      0,
+      0,
+      props.canvasSize.width,
+      props.canvasSize.height
+    );
     setRibbon({
       ...props.ribbon,
       matchedPoints: [],
@@ -74,6 +81,7 @@ export const RibbonConfigPanel = (props: {
         shapes: props.ribbon.slices,
         id: nextSliceId(),
         top,
+        edgeData,
       }),
     });
     setNextSliceId(nextSliceId() + 1);
@@ -332,16 +340,35 @@ export const RibbonConfigPanel = (props: {
 
                     if (!croppedBlob) return;
 
-                    const dataUrl = props.extraCtx.canvas.toDataURL();
+                    croppedBlob.arrayBuffer().then((buffer) => {
+                      const data = new Uint8Array(buffer);
+                      const blob = new Blob([data], { type: "image/png" });
+                      const url = URL.createObjectURL(blob);
+                      const img = new Image();
+                      img.src = url;
+                      img.onload = () => {
+                        props.extraCtx.drawImage(img, cropX - cropWidth / 2,
+                        cropY - cropHeight / 2,
+                        cropWidth,
+                        cropHeight,
+                        0,
+                        0,
+                        cropWidth,
+                        cropHeight);
+                        drawPointAndSlice(point, s, props.extraCtx);
 
-                    // resize based on slice coordinates
-                    saveTemplate({
-                      slice: s,
-                      point,
-                      dataUrl,
-                    });
-                    setTemplates(getTemplates());
-                    props.drawOverlay();
+                        const dataUrl = props.extraCtx.canvas.toDataURL();
+
+                        // resize based on slice coordinates
+                        saveTemplate({
+                          slice: s,
+                          point,
+                          dataUrl,
+                        });
+                        setTemplates(getTemplates());
+                        props.drawOverlay();
+                      };
+                    })
                   });
                 }}
                 disabled={props.ribbon.matchedPoints.length === 0}
@@ -416,6 +443,7 @@ export const RibbonConfigPanel = (props: {
             applyTemplate(template.id);
             setShowSelect(false);
           }}
+          onRefresh={() => setTemplates(getTemplates())}
           templates={templates()}
         />
       </Modal>

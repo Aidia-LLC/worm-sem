@@ -1,4 +1,5 @@
 import { optionsStore } from "@data/globals";
+import { Line, LineSegment, Point, Vertex } from "@SliceManager/TrapezoidalSliceManager/types";
 import { Shape } from "@SliceManager/types";
 type Shapeless = Omit<Shape, "id">;
 
@@ -26,13 +27,134 @@ export const GeneticAlgorithm = (
   console.log("slices", slices.length);
   return slices.map((slice) => {
     // if (i < 3) return slice;
-    return geneticAlgorithm(
+    const s = geneticAlgorithm(
       slice,
       newArray as unknown as Uint8ClampedArray,
       edgeData.width,
       options.options.boxSize
     );
-  });
+    return getTrapezoid([
+      [s.left.x1, s.left.y1],
+      [s.right.x1, s.right.y1],
+      [s.right.x2, s.right.y2],
+      [s.left.x2, s.left.y2],
+    ]);
+  }).filter(s => s !== null).map((slice, i) => {
+    if (!slice) return
+    if (slice[0][0][0] < slice[3][0][0])
+      return slice[0][0][1] < slice[1][0][1]
+        ? {
+            left: {
+              x1: slice[0][0][0],
+              y1: slice[0][0][1],
+              x2: slice[1][0][0],
+              y2: slice[1][0][1],
+            },
+            right: {
+              x1: slice[3][0][0],
+              y1: slice[3][0][1],
+              x2: slice[2][0][0],
+              y2: slice[2][0][1],
+            },
+            top: {
+              x1: slice[0][0][0],
+              y1: slice[0][0][1],
+              x2: slice[3][0][0],
+              y2: slice[3][0][1],
+            },
+            bottom: {
+              x1: slice[1][0][0],
+              y1: slice[1][0][1],
+              x2: slice[2][0][0],
+              y2: slice[2][0][1],
+            },
+            id: i,
+          }
+        : {
+            left: {
+              x1: slice[0][0][0],
+              y1: slice[0][0][1],
+              x2: slice[1][0][0],
+              y2: slice[1][0][1],
+            },
+            right: {
+              x1: slice[3][0][0],
+              y1: slice[3][0][1],
+              x2: slice[2][0][0],
+              y2: slice[2][0][1],
+            },
+            bottom: {
+              x1: slice[0][0][0],
+              y1: slice[0][0][1],
+              x2: slice[3][0][0],
+              y2: slice[3][0][1],
+            },
+            top: {
+              x1: slice[1][0][0],
+              y1: slice[1][0][1],
+              x2: slice[2][0][0],
+              y2: slice[2][0][1],
+            },
+            id: i,
+          };
+    else {
+      return slice[0][0][1] < slice[1][0][1]
+        ? {
+            right: {
+              x1: slice[0][0][0],
+              y1: slice[0][0][1],
+              x2: slice[1][0][0],
+              y2: slice[1][0][1],
+            },
+            left: {
+              x1: slice[3][0][0],
+              y1: slice[3][0][1],
+              x2: slice[2][0][0],
+              y2: slice[2][0][1],
+            },
+            top: {
+              x1: slice[0][0][0],
+              y1: slice[0][0][1],
+              x2: slice[3][0][0],
+              y2: slice[3][0][1],
+            },
+            bottom: {
+              x1: slice[1][0][0],
+              y1: slice[1][0][1],
+              x2: slice[2][0][0],
+              y2: slice[2][0][1],
+            },
+            id: i,
+          }
+        : {
+            right: {
+              x1: slice[0][0][0],
+              y1: slice[0][0][1],
+              x2: slice[1][0][0],
+              y2: slice[1][0][1],
+            },
+            left: {
+              x1: slice[3][0][0],
+              y1: slice[3][0][1],
+              x2: slice[2][0][0],
+              y2: slice[2][0][1],
+            },
+            bottom: {
+              x1: slice[0][0][0],
+              y1: slice[0][0][1],
+              x2: slice[3][0][0],
+              y2: slice[3][0][1],
+            },
+            top: {
+              x1: slice[1][0][0],
+              y1: slice[1][0][1],
+              x2: slice[2][0][0],
+              y2: slice[2][0][1],
+            },
+            id: i,
+          };
+    }
+  }).filter(s => s !== null) as Shape[]
 };
 
 const geneticAlgorithm = (
@@ -280,4 +402,107 @@ function calculateArea(trapezoid: Shape): number {
   const s = (a + b + c + d) / 2;
   // Calculate the area using Brahmagupta's formula
   return Math.sqrt((s - a) * (s - b) * (s - c) * (s - d));
+}
+
+
+
+const pointToLine = (point: Point, point2: Point) => {
+  if (!point || !point2) {
+    return { x1: 0, y1: 0, x2: 0, y2: 0 };
+  }
+  return {
+    x1: point[0],
+    y1: point[1],
+    x2: point2[0],
+    y2: point2[1],
+  };
+};
+
+const getTrapezoidIntersects = (Lines: Line[]) => {
+  for (let i = 0; i < Lines.length; i++) {
+    const line1 = Lines[i];
+    for (let j = i + 1; j < Lines.length; j++) {
+      const line2 = Lines[j];
+      const intersect = intersectionPoint(
+        pointToLine(line1[0], line1[1]),
+        pointToLine(line2[0], line2[1])
+      );
+      if (intersect) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
+const getTrapezoid = (points: Point[]): Line[] | null => {
+  let trapezoid: Line[] = [
+    [points[0], points[1]],
+    [points[1], points[2]],
+    [points[2], points[3]],
+    [points[3], points[0]],
+  ];
+  if (!getTrapezoidIntersects(trapezoid)) {
+    return trapezoid;
+  }
+  trapezoid = [
+    [points[0], points[1]],
+    [points[1], points[3]],
+    [points[3], points[2]],
+    [points[2], points[0]],
+  ];
+  if (!getTrapezoidIntersects(trapezoid)) {
+    return trapezoid;
+  }
+  trapezoid = [
+    [points[0], points[2]],
+    [points[2], points[1]],
+    [points[1], points[3]],
+    [points[3], points[0]],
+  ];
+  if (!getTrapezoidIntersects(trapezoid)) {
+    return null;
+  } else return trapezoid;
+};
+
+function intersectionPoint(
+  line1: LineSegment | Pick<LineSegment, "x1" | "x2" | "y1" | "y2">,
+  line2: LineSegment | Pick<LineSegment, "x1" | "x2" | "y1" | "y2">
+): Vertex | null {
+  const x1 = line1.x1;
+  const y1 = line1.y1;
+  const x2 = line1.x2;
+  const y2 = line1.y2;
+
+  const x3 = line2.x1;
+  const y3 = line2.y1;
+  const x4 = line2.x2;
+  const y4 = line2.y2;
+
+  //if endpoints are the same, they don't intersect
+  if (
+    (x1 === x3 && y1 === y3) ||
+    (x1 === x4 && y1 === y4) ||
+    (x2 === x3 && y2 === y3) ||
+    (x2 === x4 && y2 === y4)
+  ) {
+    return null;
+  }
+  const denominator = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
+
+  if (denominator === 0) {
+    // The lines are parallel, so they don't intersect
+    return null;
+  }
+
+  const ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denominator;
+  const ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denominator;
+  if (ua < -0.5 || ua > 1.5 || ub < -0.5 || ub > 1.5) {
+    // The intersection point is outside of at least one of the line segments
+    return null;
+  }
+
+  const x = x1 + ua * (x2 - x1);
+  const y = y1 + ua * (y2 - y1);
+  return { x, y };
 }

@@ -1,3 +1,4 @@
+import { GeneticAlgorithm } from "@components/GeneticAlgorithm";
 import { TrapezoidalShapeSet, TrapezoidalSlice } from "../types";
 import { getXYShift } from "./getXYShift";
 
@@ -5,10 +6,12 @@ export const addTrapezoid = ({
   shapes,
   id,
   top = false,
+  edgeData,
 }: {
   shapes: TrapezoidalShapeSet["slices"];
   id: number;
   top: boolean;
+  edgeData: ImageData;
 }): TrapezoidalSlice[] => {
   const trapezoids = shapes;
   if (trapezoids.length === 1) {
@@ -114,7 +117,9 @@ export const addTrapezoid = ({
       },
     };
 
-    newTrapezoidSet.unshift(topTrapezoid);
+    const better = GeneticAlgorithm([topTrapezoid], edgeData);
+
+    newTrapezoidSet.unshift(better[0] as any);
   } else {
     const newTrapezoid = trapezoids[trapezoids.length - 1];
     const referenceTrapezoid = trapezoids[trapezoids.length - 2];
@@ -178,7 +183,10 @@ export const addTrapezoid = ({
       },
     };
 
-    newTrapezoidSet.push(bottomTrapezoid);
+    const better = GeneticAlgorithm([bottomTrapezoid], edgeData);
+
+    newTrapezoidSet.push(better[0] as any);
   }
-  return newTrapezoidSet.map((s, i) => ({ ...s, id: i }));
+  const newT = newTrapezoidSet.map((s, i) => ({ ...s, id: i }));
+  return newT
 };

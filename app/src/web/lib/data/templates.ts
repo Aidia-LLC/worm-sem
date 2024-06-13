@@ -14,7 +14,7 @@ export const removeTemplates = () => {
 
 export const saveTemplate = (template: Omit<Template, "id">) => {
   const templates = getTemplates();
-  templates.push({ ...template, id: templates.length });
+  templates.push({ ...template, id: templates.at(-1)?.id + 1 || 0 });
   localStorage.setItem("templates", JSON.stringify(templates));
 };
 

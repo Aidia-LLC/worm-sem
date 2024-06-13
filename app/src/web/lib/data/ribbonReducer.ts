@@ -21,6 +21,7 @@ export const ribbonReducerInitialState = {
   referencePoints: [] as [number, number][],
   detection: true,
   detectionLoading: false,
+  algorithmStep: 0,
   cornerValidation: false,
   cornerPhase: "delete" as "delete" | "add" | "adjust",
   contours: [] as any,
@@ -43,6 +44,10 @@ export type RibbonDispatchPayload =
   | {
       action: "setFocusedRibbonId";
       payload: number | null;
+    }
+    | {
+      action: "setAlgorithmStep";
+      payload: number;
     }
   | {
       action: "setPhase";
@@ -178,6 +183,8 @@ const ribbonUpdater = (
       };
     case "setDraggingData":
       return { ...state, draggingData: event.payload };
+    case "setAlgorithmStep":
+      return { ...state, algorithmStep: event.payload };
     case "setRibbons":
       return { ...state, ribbons: event.payload };
     case "addRibbon":
@@ -253,6 +260,7 @@ const ribbonUpdater = (
         focusedRibbonId: null,
         focusedSliceIndex: -1,
         draggingData: null,
+        algorithmStep: 0,
       };
     case "setFocusedSliceIndex":
       return { ...state, focusedSliceIndex: event.payload };

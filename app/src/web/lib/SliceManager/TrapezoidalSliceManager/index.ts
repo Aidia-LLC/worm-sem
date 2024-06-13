@@ -90,6 +90,7 @@ export class TrapezoidalSliceManager extends SliceManager {
     top: boolean;
     shapes: TrapezoidalSlice[];
     id: number;
+    edgeData: ImageData;
   }): TrapezoidalSlice[] {
     return addTrapezoid(details);
   }

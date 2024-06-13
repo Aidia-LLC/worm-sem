@@ -1,10 +1,15 @@
-import { Template } from "@data/templates";
+import { Template, deleteTemplate } from "@data/templates";
 import { For } from "solid-js";
 
 export const TemplatePicker = (props: {
   onPick: (template: Template) => void;
   templates: Template[];
+  onRefresh: () => void;
 }) => {
+  const handleDelete = (template: Template) => {
+    deleteTemplate(template.id);
+    props.onRefresh()
+  }
   return (
     <div class="flex flex-col gap-4 p-2 justify-center items-center text-center">
       <h1 class="text-2xl font-bold">Choose a template</h1>
@@ -19,6 +24,15 @@ export const TemplatePicker = (props: {
                 Template {template.id + 1}
               </h2>
               <img src={template.dataUrl} />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(template);
+                }}
+                class="btn btn-ghost text-red-500"
+              >
+                Delete
+              </button>
             </div>
           )}
         </For>

@@ -16,6 +16,7 @@ import { ParameterPanel } from "./ParameterPanel";
 import { availableColors, RibbonConfigPanel } from "./RibbonConfigPanel";
 import { ZoomController } from "./ZoomController";
 import { ZoomSlider } from "./ZoomSlider";
+import { ProgressBar } from "@components/ProgressBar";
 
 export const RibbonDetector = (props: { samLoaded: boolean }) => {
   const sliceManager = getSliceManager();
@@ -35,6 +36,7 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
     0, 0,
   ]);
   const [defaultZoomScale] = signals.defaultZoomScaleSignal;
+  const [step, setStep] = createSignal(0);
 
   createEffect(() => {
     const state = ribbonReducer();
@@ -538,6 +540,7 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
   };
 
   const handleCornerValidation = () => {
+    //TODO STEP 2
     const edgeContext = edgeDataCanvasRef.getContext("2d", {
       willReadFrequently: true,
     })!;
@@ -707,19 +710,14 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
       }
     });
 
+    
     // // convert edge data to just the edges
     const betterEdgeData = edgeFilter(edgeDataCanvasRef, edgeData, edgeContext);
     edgeContext.putImageData(betterEdgeData, 0, 0);
-    const improvedSlices = sliceManager.geneticAlgorithm(
-      slices,
-      betterEdgeData
-    );
-
-    //draw improved slices blue
     const overlayContext = overlayCanvasRef.getContext("2d", {
       willReadFrequently: true,
     })!;
-    for (const slice of improvedSlices) {
+    for (const slice of slices) {
       overlayContext.beginPath();
       overlayContext.moveTo(slice.left.x1, slice.left.y1);
       overlayContext.lineTo(slice.left.x2, slice.left.y2);
@@ -730,39 +728,69 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
       overlayContext.lineWidth = 2;
       overlayContext.stroke();
     }
-
-    const id = nextId();
-    setNextId((prev) => prev + 1);
+    //TODO STEP 3
     ribbonDispatch({
-      action: "setDetection",
-      payload: false,
+      action: "setAlgorithmStep",
+      payload: 2,
     });
-    setShowOriginalImage(true);
-    const colors = new Set(availableColors);
-    ribbonReducer().ribbons.forEach((set) => colors.delete(set.color));
-    const color = colors.size > 0 ? colors.values().next().value : "red";
-    ribbonDispatch({
-      action: "addRibbon",
-      payload: {
-        slices: improvedSlices,
-        id,
-        name: `Ribbon ${id}`,
-        color,
-        thickness: 5,
-        status: "editing",
-        matchedPoints: [],
-        referencePoints: [],
-        referencePointIndex: 0,
-        configurations: [],
-        slicesToConfigure: [],
-        slicesToMove: [],
-        allowDetectAgain: false,
-      } satisfies ShapeSet,
-    });
-    ribbonDispatch({
-      action: "setCornerValidation",
-      payload: false,
-    });
+    setStep(3);
+    setTimeout(() => {
+      const improvedSlices = sliceManager.geneticAlgorithm(
+        slices,
+        betterEdgeData
+      );
+  
+      //draw improved slices blue
+      for (const slice of improvedSlices) {
+        overlayContext.beginPath();
+        overlayContext.moveTo(slice.left.x1, slice.left.y1);
+        overlayContext.lineTo(slice.left.x2, slice.left.y2);
+        overlayContext.lineTo(slice.right.x2, slice.right.y2);
+        overlayContext.lineTo(slice.right.x1, slice.right.y1);
+        overlayContext.lineTo(slice.left.x1, slice.left.y1);
+        overlayContext.strokeStyle = "blue";
+        overlayContext.lineWidth = 2;
+        overlayContext.stroke();
+      }
+  
+      const id = nextId();
+      setNextId((prev) => prev + 1);
+      ribbonDispatch({
+        action: "setDetection",
+        payload: false,
+      });
+      setShowOriginalImage(true);
+      const colors = new Set(availableColors);
+      ribbonReducer().ribbons.forEach((set) => colors.delete(set.color));
+      const color = colors.size > 0 ? colors.values().next().value : "red";
+      ribbonDispatch({
+        action: "addRibbon",
+        payload: {
+          slices: improvedSlices,
+          id,
+          name: `Ribbon ${id}`,
+          color,
+          thickness: 5,
+          status: "editing",
+          matchedPoints: [],
+          referencePoints: [],
+          referencePointIndex: 0,
+          configurations: [],
+          slicesToConfigure: [],
+          slicesToMove: [],
+          allowDetectAgain: false,
+        } satisfies ShapeSet,
+      });
+      ribbonDispatch({
+        action: "setCornerValidation",
+        payload: false,
+      });
+      ribbonDispatch({
+        action: "setAlgorithmStep",
+        payload: 0,
+      });
+      setStep(0);
+    }, 50)
   };
 
   const handleMask = async () => {
@@ -771,6 +799,7 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
       { action: "setDetection", payload: false },
       { action: "setDetectionLoading", payload: true }
     );
+    setStep(1);
     const segmentedImageData = await segmentImage({
       points,
       canvasRef,
@@ -784,11 +813,19 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
     const mask = segmentedImageData[0];
     if (!mask) return;
     ribbonDispatch({ action: "setMasks", payload: [] });
+    ribbonDispatch({
+      action: "setAlgorithmStep",
+      payload: 1,
+    });
+    setStep(2);
+    setTimeout(() => {
     handleRibbonDetection();
+    }, 50);
   };
 
   return (
     <div class="flex flex-col gap-3 text-xs">
+      <ProgressBar step={step()} />
       <div class="grid grid-cols-5 gap-4 mt-1">
         <Button
           variant="ghost"
@@ -871,6 +908,9 @@ export const RibbonDetector = (props: { samLoaded: boolean }) => {
               ctx={canvasRef.getContext("2d", { willReadFrequently: true })!}
               overlayCtx={
                 overlayCanvasRef.getContext("2d", { willReadFrequently: true })!
+              }
+              edgeCtx={
+                edgeDataCanvasRef.getContext("2d", { willReadFrequently: true })!
               }
               extraCtx={
                 debugCanvasRef.getContext("2d", { willReadFrequently: true })!

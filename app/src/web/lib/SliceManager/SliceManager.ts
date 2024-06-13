@@ -62,6 +62,7 @@ export abstract class SliceManager {
     top: boolean;
     shapes: Shape[];
     id: number;
+    edgeData: ImageData;
   }): Shape[];
 
   abstract findCorners(details: {
