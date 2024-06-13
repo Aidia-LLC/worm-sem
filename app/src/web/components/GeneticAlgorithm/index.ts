@@ -149,7 +149,7 @@ const geneticAlgorithm = (
     let x = 1; //learning variable
     let best = 0;
     let bestCounter = 0;
-    while (i < 1500) {
+    while (i < 1000) {
       i++;
       bestCounter++;
       population.sort((a, b) => {
@@ -159,12 +159,12 @@ const geneticAlgorithm = (
         best = fitnessFunction(population[0]);
         bestCounter = 0;
       }
-      if (bestCounter > 100 && x > 0.5) {
+      if (bestCounter > 50 && x > 0.5) {
         x -= 0.5;
         console.log("x decreased to: ", x);
         bestCounter = 0;
       }
-      if (bestCounter > 250) {
+      if (bestCounter > 100) {
         console.log(
           i,
           "found valid shape",
@@ -173,12 +173,12 @@ const geneticAlgorithm = (
         );
         return shapelessToShape(population[0]);
       }
-      const survivors = population.slice(0, 50);
+      const survivors = population.slice(0, 100);
       population = survivors.map((p, i) => {
-        if (i < 25) return p;
-        return mutate(survivors[i - 25], x);
+        if (i < 50) return p;
+        return mutate(survivors[i - 50], x);
       });
-      for (let i = 0; i < 50; i++) {
+      for (let i = 0; i < 100; i++) {
         population.push(
           crossover(population[i], pickRandomItemFromArray(population))
         );
@@ -243,19 +243,7 @@ const getPointsOnTrapezoid = ({
         continue;
       if (
         data[Math.round(y + yStep * j) * width + Math.round(x + xStep * j)] ===
-          255 ||
-        data[
-          Math.round(y + yStep * j) * width + Math.round(x + xStep * j + 1)
-        ] === 255 ||
-        data[
-          Math.round(y + yStep * j) * width + Math.round(x + xStep * j - 1)
-        ] === 255 ||
-        data[
-          Math.round(y + yStep * j + 1) * width + Math.round(x + xStep * j)
-        ] === 255 ||
-        data[
-          Math.round(y + yStep * j - 1) * width + Math.round(x + xStep * j)
-        ] === 255
+          255
       ) {
         points++;
       }
@@ -264,11 +252,11 @@ const getPointsOnTrapezoid = ({
 
   const area = calculateArea(trapezoid);
   const boxArea = boxSize * boxSize;
-  if (area < boxArea * 0.35) {
+  if (area < boxArea * 0.45) {
     // points lost are proportional to the smallness of the area
     points -= (100 * (boxArea - area)) / boxArea;
   }
-  return 2 * points - checkedPoints; //penalize bad points
+  return 3 * points - checkedPoints; //penalize bad points
 };
 
 function calculateArea(trapezoid: Shape): number {

@@ -32,6 +32,13 @@ export function edgeFilter(
     betterStuff[i * 4 + 1] = betterData[i] > 1 ? 255 : 0;
     betterStuff[i * 4 + 2] = betterData[i] > 1 ? 255 : 0;
     betterStuff[i * 4 + 3] = 255;
+    //if 255, make sure neighboring pixels are 255
+    if (betterData[i] > 1) {
+      betterStuff[(i + 1) * 4] = 255;
+      betterStuff[(i - 1) * 4] = 255;
+      betterStuff[(i + canvas.width) * 4] = 255;
+      betterStuff[(i - canvas.width) * 4] = 255;
+    }
   }
   newImageData.data.set(betterStuff);
   return newImageData;

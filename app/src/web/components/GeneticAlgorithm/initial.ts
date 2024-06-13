@@ -306,19 +306,7 @@ const getPointsOnTrapezoid = ({
 
       if (
         data[Math.round(y + yStep * j) * width + Math.round(x + xStep * j)] ===
-          255 ||
-        data[
-          Math.round(y + yStep * j) * width + Math.round(x + xStep * j + 1)
-        ] === 255 ||
-        data[
-          Math.round(y + yStep * j) * width + Math.round(x + xStep * j - 1)
-        ] === 255 ||
-        data[
-          Math.round(y + yStep * j + 1) * width + Math.round(x + xStep * j)
-        ] === 255 ||
-        data[
-          Math.round(y + yStep * j - 1) * width + Math.round(x + xStep * j)
-        ] === 255
+          255
       ) {
         points++;
       }

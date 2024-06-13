@@ -18,6 +18,9 @@ export const DetectionInstructions = () => {
             Continue to click the center points of slices 1-3 away from the last point. Click "Detect
             Ribbon" when you are done.
           </Match>
+          <Match when={true}>
+            If you need to restart, click "disable detection" and then "enable detection" again.
+          </Match>
         </Switch>
       </span>
     </Show>
