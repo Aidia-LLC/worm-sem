@@ -41,6 +41,7 @@ export const GeneticAlgorithm = (
     ]);
   }).filter(s => s !== null).map((slice, i) => {
     if (!slice) return
+    // make sure slice is oriented properly
     if (slice[0][0][0] < slice[3][0][0])
       return slice[0][0][1] < slice[1][0][1]
         ? {
